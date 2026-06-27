@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Layers, Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
 
@@ -12,19 +12,28 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isRegister, setIsRegister] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
 
     try {
       setLoading(true);
       setError(null);
-      await signInWithEmailAndPassword(auth, email, password);
+      if (isRegister) {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
       router.push('/editor');
     } catch (err: any) {
-      console.error('Login error:', err);
-      if (
+      console.error('Authentication error:', err);
+      if (err.code === 'auth/email-already-in-use') {
+        setError('This email address is already registered.');
+      } else if (err.code === 'auth/weak-password') {
+        setError('Password should be at least 6 characters.');
+      } else if (
         err.code === 'auth/invalid-credential' ||
         err.code === 'auth/user-not-found' ||
         err.code === 'auth/wrong-password'
@@ -82,10 +91,10 @@ export default function LoginPage() {
             letterSpacing: '-0.02em',
             marginBottom: '0.25rem'
           }}>
-            Overlay Studio Login
+            {isRegister ? 'Create GFX Account' : 'Overlay Studio Login'}
           </h2>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            Sign in to access templates and slots manager.
+            {isRegister ? 'Register as a designer to start building overlays.' : 'Sign in to access templates and slots manager.'}
           </p>
         </div>
 
@@ -106,7 +115,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div className="property-field">
             <span className="property-label">Email Address</span>
             <div style={{ position: 'relative' }}>
@@ -166,10 +175,10 @@ export default function LoginPage() {
             {loading ? (
               <>
                 <Loader2 className="animate-spin" style={{ width: '16px', height: '16px', animation: 'spin 1s linear' }} />
-                Authenticating...
+                {isRegister ? 'Creating Account...' : 'Authenticating...'}
               </>
             ) : (
-              'Sign In'
+              isRegister ? 'Create Account' : 'Sign In'
             )}
           </button>
         </form>
@@ -178,10 +187,32 @@ export default function LoginPage() {
           borderTop: '1px solid rgba(255,255,255,0.06)',
           paddingTop: '1rem',
           textAlign: 'center',
-          fontSize: '0.75rem',
-          color: 'var(--text-muted)'
+          fontSize: '0.8rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem'
         }}>
-          Uses your existing analytics engine credentials.
+          <button 
+            type="button" 
+            onClick={() => {
+              setIsRegister(!isRegister);
+              setError(null);
+            }}
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              color: 'var(--accent)', 
+              cursor: 'pointer', 
+              fontSize: '0.8rem',
+              fontWeight: 500,
+              textDecoration: 'underline'
+            }}
+          >
+            {isRegister ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+          </button>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+            {isRegister ? 'Registers a new account in Firebase Auth' : 'Uses your existing analytics credentials.'}
+          </span>
         </div>
       </div>
     </div>
