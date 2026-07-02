@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { 
-  getTemplate, saveTemplate, getTournaments, getTournamentAnalytics, getTeams,
+  getTemplate, saveTemplate, getTournaments,
   getFieldCatalog, FieldBox, FieldCatalogItem, OverlayTemplate 
 } from '@/lib/db';
+import { getTopStandings } from '@/lib/statsApi';
 import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, doc } from 'firebase/firestore';
@@ -100,74 +101,28 @@ export default function TemplateBuilderPage({ params }: PageProps) {
   }, [rawTemplateId, isNew, router]);
 
   // Load preview data when preview tournament changes
+  // Calls the Stats API (getTopStandings) so the editor previews real computed data,
+  // not locally-fabricated placeholder numbers.
   useEffect(() => {
     if (!selectedTournamentId) return;
 
     async function loadPreviewStats() {
       try {
-        const teamAnalytics = await getTournamentAnalytics(selectedTournamentId);
-        if (teamAnalytics && teamAnalytics.length > 0) {
-          setPreviewTeams(teamAnalytics);
-          setSelectedTeamId(teamAnalytics[0].teamId);
-          setPreviewTeamData(teamAnalytics[0]);
+        const { results } = await getTopStandings(selectedTournamentId, 12, 'team');
+        if (results && results.length > 0) {
+          setPreviewTeams(results);
+          setSelectedTeamId(results[0].teamId ?? results[0].id);
+          setPreviewTeamData(results[0]);
         } else {
-          // Fallback: If no match results exist for this tournament, fetch the global teams list
-          // and wrap it in placeholder stats so they can preview their real teams!
-          const globalTeams = await getTeams();
-          if (globalTeams && globalTeams.length > 0) {
-            const formatted = globalTeams.map((t: any, i) => ({
-              teamId: t.id || `team-${i}`,
-              teamName: t.teamName || 'Unknown Team',
-              clanName: t.clanName || '',
-              logoUrl: t.logoUrl || '',
-              wins: 0,
-              matches: 0,
-              placementPts: 0,
-              kills: 0,
-              damage: 0,
-              bonusPts: 0,
-              totalPts: 0,
-              analytics: {
-                PPM: 0,
-                KPM: 0,
-                avgPlace: 0,
-                killPct: 0,
-                placementEfficiency: 0,
-                top3Rate: 0,
-                top5Rate: 0,
-                winRate: 0,
-              },
-              scores: {
-                POWER: 50,
-                PLACEMENT: 50,
-                CONVERSION: 50,
-                FORM: 50,
-                TEAM_RATING: 50,
-                FINAL_RATING: 500,
-                rankLabel: 'Challenger',
-              },
-              labels: {
-                playstyle: 'Standard',
-                powerLabel: 'Standard',
-                placementLabel: 'Standard',
-                conversionLabel: 'Standard',
-                formLabel: 'Steady',
-              },
-              identity: 'Challenger',
-              analyticsRank: i + 1,
-              killsCurrent: 0,
-              placementCurrent: 0
-            }));
-            setPreviewTeams(formatted);
-            setSelectedTeamId(formatted[0].teamId);
-            setPreviewTeamData(formatted[0]);
-          } else {
-            setPreviewTeams([]);
-            setPreviewTeamData(null);
-          }
+          // No data from Stats API yet — show honest empty state
+          setPreviewTeams([]);
+          setPreviewTeamData(null);
         }
       } catch (err) {
-        console.error('Error fetching preview stats:', err);
+        // Stats API not configured or unreachable — leave preview empty
+        console.warn('Preview stats unavailable (Stats API not reachable or not configured):', err);
+        setPreviewTeams([]);
+        setPreviewTeamData(null);
       }
     }
 

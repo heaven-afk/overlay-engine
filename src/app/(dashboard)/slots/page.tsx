@@ -1,42 +1,75 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { 
+import { useEffect, useState, useCallback } from 'react';
+import {
   getSlots, getTemplates, saveSlot, deleteSlot,
-  getTournaments, getTournamentAnalytics, getTeams,
-  OverlaySlot, OverlayTemplate 
+  getTournaments,
+  OverlaySlot, OverlayTemplate,
 } from '@/lib/db';
-import { db } from '@/lib/firebase';
-import { doc, setDoc } from 'firebase/firestore';
-import { 
-  Layers, Plus, Link as LinkIcon, Check, Copy, 
-  Trash, RefreshCw, Send, Loader2, Play
+import {
+  getTopStandings,
+  getGlobalRankings,
+  getProfile,
+  compareEntities,
+} from '@/lib/statsApi';
+import {
+  Layers, Plus, Link as LinkIcon, Check, Copy,
+  Trash, Send, Loader2, Users, User, RefreshCw,
 } from 'lucide-react';
+
+// ─── Per-slot configuration state shapes ─────────────────────────────────────
+
+interface StandingsConfig {
+  n: number;
+  type: 'team' | 'player';
+  tournamentId: string;
+}
+
+interface H2HConfig {
+  idA: string;
+  idB: string;
+  scopeTournamentId: string; // '' = career-wide
+}
+
+interface PlayerCardConfig {
+  playerId: string;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function SlotsDashboard() {
   const [slots, setSlots] = useState<OverlaySlot[]>([]);
   const [templates, setTemplates] = useState<OverlayTemplate[]>([]);
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // New Slot form states
   const [showAddForm, setShowAddForm] = useState(false);
   const [newSlotName, setNewSlotName] = useState('');
   const [newSlotType, setNewSlotType] = useState<'single_team' | 'standings_table' | 'head_to_head' | 'player_card'>('single_team');
   const [creating, setCreating] = useState(false);
 
-  // Selected tournament tracking per slot
-  const [selectedTourneyId, setSelectedTourneyId] = useState<Record<string, string>>({});
+  // Push status
   const [pushingId, setPushingId] = useState<string | null>(null);
 
-  // Copy status mapping
+  // Copy status
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  // Simulation loading state
-  const [simulatingId, setSimulatingId] = useState<string | null>(null);
 
   // Origin for browser links
   const [origin, setOrigin] = useState('');
+
+  // Per-slot configuration state
+  const [standingsConfig, setStandingsConfig] = useState<Record<string, StandingsConfig>>({});
+  const [h2hConfig, setH2HConfig] = useState<Record<string, H2HConfig>>({});
+  const [playerCardConfig, setPlayerCardConfig] = useState<Record<string, PlayerCardConfig>>({});
+
+  // Global pickers data (loaded once, reused across all H2H and player-card slots)
+  const [globalTeams, setGlobalTeams] = useState<any[]>([]);
+  const [globalPlayers, setGlobalPlayers] = useState<any[]>([]);
+  const [pickerLoading, setPickerLoading] = useState(false);
+
+  // Partial-result warnings keyed by slot id
+  const [partialWarning, setPartialWarning] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -49,7 +82,7 @@ export default function SlotsDashboard() {
       const [slotsList, templatesList, tournamentsList] = await Promise.all([
         getSlots(),
         getTemplates(),
-        getTournaments()
+        getTournaments(),
       ]);
       setSlots(slotsList);
       setTemplates(templatesList);
@@ -61,11 +94,29 @@ export default function SlotsDashboard() {
     }
   }
 
+  // Lazily fetch global rankings for H2H and player-card pickers
+  async function ensurePickerData() {
+    if (globalTeams.length > 0 || globalPlayers.length > 0) return;
+    try {
+      setPickerLoading(true);
+      const [teamsRes, playersRes] = await Promise.all([
+        getGlobalRankings('team', 100),
+        getGlobalRankings('player', 200),
+      ]);
+      setGlobalTeams(teamsRes.results ?? []);
+      setGlobalPlayers(playersRes.results ?? []);
+    } catch (err) {
+      console.error('Failed to load global rankings for pickers:', err);
+    } finally {
+      setPickerLoading(false);
+    }
+  }
+
   // Securely generate a random, unguessable render token
   function generateToken() {
     const arr = new Uint8Array(16);
     window.crypto.getRandomValues(arr);
-    return Array.from(arr, dec => dec.toString(16).padStart(2, '0')).join('');
+    return Array.from(arr, (dec) => dec.toString(16).padStart(2, '0')).join('');
   }
 
   async function handleCreateSlot(e: React.FormEvent) {
@@ -106,7 +157,7 @@ export default function SlotsDashboard() {
         publicRenderToken: slot.publicRenderToken,
       };
       await saveSlot(updatedSlot, slotId);
-      setSlots((prev) => 
+      setSlots((prev) =>
         prev.map((s) => (s.id === slotId ? { ...s, assignedTemplateId: templateId } : s))
       );
     } catch (err) {
@@ -124,368 +175,148 @@ export default function SlotsDashboard() {
     }
   }
 
-  // Pushes actual live statistics from Firebase database
-  async function pushRealTournamentData(slot: OverlaySlot) {
-    const tourneyId = selectedTourneyId[slot.id!];
-    if (!tourneyId) {
-      alert('Please select a tournament from the dropdown first.');
+  // ─── PART 3 — Standings push (team or player, configurable N) ──────────────
+
+  async function pushTournamentStandings(slot: OverlaySlot) {
+    const cfg = standingsConfig[slot.id!];
+    const tournamentId = cfg?.tournamentId;
+    const n = cfg?.n ?? 5;
+    const type = cfg?.type ?? 'team';
+
+    if (!tournamentId) {
+      alert('Please select a tournament first.');
       return;
     }
 
     try {
       setPushingId(slot.id!);
-      const analytics = await getTournamentAnalytics(tourneyId);
-      
-      let standings: any[] = analytics;
-      
-      // Fallback: If no match results exist for this tournament yet, load global teams registry
-      if (!standings || standings.length === 0) {
-        const globalTeams = await getTeams();
-        standings = globalTeams.map((t: any, i) => ({
-          teamId: t.id,
-          teamName: t.teamName,
-          clanName: t.clanName || '',
-          logoUrl: t.logoUrl || '',
-          wins: 0,
-          matches: 0,
-          placementPts: 0,
-          kills: 0,
-          damage: 0,
-          bonusPts: 0,
-          totalPts: 0,
-          analytics: {
-            PPM: 0,
-            KPM: 0,
-            avgPlace: 0,
-            killPct: 0,
-            placementEfficiency: 0,
-            top3Rate: 0,
-            top5Rate: 0,
-            winRate: 0,
-          },
-          scores: {
-            POWER: 50,
-            PLACEMENT: 50,
-            CONVERSION: 50,
-            FORM: 50,
-            TEAM_RATING: 50,
-            FINAL_RATING: 500,
-            rankLabel: 'Challenger',
-          },
-          labels: {
-            playstyle: 'Standard',
-            powerLabel: 'Standard',
-            placementLabel: 'Standard',
-            conversionLabel: 'Standard',
-            formLabel: 'Steady',
-          },
-          identity: 'Challenger',
-          analyticsRank: i + 1,
-          killsCurrent: 0,
-          placementCurrent: 0
+      setPartialWarning((prev) => ({ ...prev, [slot.id!]: '' }));
+
+      const { results } = await getTopStandings(tournamentId, n, type);
+
+      if (!results || results.length === 0) {
+        setPartialWarning((prev) => ({
+          ...prev,
+          [slot.id!]: `No ${type} data available for this tournament yet.`,
+        }));
+        return;
+      }
+
+      if (results.length < n) {
+        setPartialWarning((prev) => ({
+          ...prev,
+          [slot.id!]: `Only ${results.length} of ${n} requested ${type}s have data yet.`,
         }));
       }
 
-      const team1 = standings[0] || {};
-      const team2 = standings[1] || {};
-      const team3 = standings[2] || {};
-      const team4 = standings[3] || {};
-      const team5 = standings[4] || {};
-
-      const realPayload = {
-        team: team1,
-        team1,
-        team2,
-        team3,
-        team4,
-        team5,
-        teams: standings
-      };
+      // Build payload: indexed entities + convenience aliases
+      const payload: Record<string, any> = { [`${type}s`]: results };
+      results.forEach((entity: any, i: number) => {
+        payload[`${type}${i + 1}`] = entity;
+      });
+      if (results[0]) payload[type] = results[0];
 
       const updatedSlot: Omit<OverlaySlot, 'id'> = {
         name: slot.name,
         slotType: slot.slotType,
         assignedTemplateId: slot.assignedTemplateId,
-        currentData: realPayload,
+        currentData: payload,
         publicRenderToken: slot.publicRenderToken,
       };
 
       await saveSlot(updatedSlot, slot.id);
-      setSlots((prev) => 
-        prev.map((s) => (s.id === slot.id ? { ...s, currentData: realPayload } : s))
-      );
+      setSlots((prev) => prev.map((s) => (s.id === slot.id ? { ...s, currentData: payload } : s)));
     } catch (err) {
-      console.error('Error pushing tournament standings:', err);
-      alert('Failed to push live statistics.');
+      console.error('Error pushing standings:', err);
+      alert('Failed to push live statistics. Check that the Stats API is reachable and the API key is configured.');
     } finally {
       setPushingId(null);
     }
   }
 
-  const copyToClipboard = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
+  // ─── PART 5 — Head to Head push ─────────────────────────────────────────────
 
-  // Helper to simulate pushing fake broadcast data to test the overlay live
-  async function simulateDataPush(slot: OverlaySlot) {
+  async function pushHeadToHead(slot: OverlaySlot) {
+    const cfg = h2hConfig[slot.id!];
+    if (!cfg?.idA || !cfg?.idB) {
+      alert('Please select both Team A and Team B.');
+      return;
+    }
+    if (cfg.idA === cfg.idB) {
+      alert('Team A and Team B must be different.');
+      return;
+    }
+
     try {
-      setSimulatingId(slot.id!);
-      
-      const team1 = {
-        teamId: 'mgl-mock-team-1',
-        teamName: 'Nova Slayers',
-        clanName: 'NOVA GAMING',
-        logoUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=120&auto=format&fit=crop',
-        wins: 4,
-        matches: 12,
-        placementPts: 140,
-        kills: 92,
-        damage: 18450,
-        bonusPts: 10,
-        totalPts: 334,
-        analytics: {
-          PPM: 27.83,
-          KPM: 7.67,
-          avgPlace: 3.25,
-          killPct: 55.09,
-          placementEfficiency: 11.67,
-          top3Rate: 66.67,
-          top5Rate: 83.33,
-          winRate: 33.33,
-        },
-        scores: {
-          POWER: 88.5,
-          PLACEMENT: 91.2,
-          CONVERSION: 82.4,
-          FORM: 89.0,
-          TEAM_RATING: 87.9,
-          FINAL_RATING: 879,
-          rankLabel: 'Elite Rank',
-        },
-        labels: {
-          playstyle: 'Aggressive Clutch',
-          powerLabel: 'Elite',
-          placementLabel: 'Dominant',
-          conversionLabel: 'Clutch',
-          formLabel: 'Red Hot',
-        },
-        identity: 'Slayer',
-        analyticsRank: 1,
-        killsCurrent: 14,
-        placementCurrent: 2
-      };
+      setPushingId(slot.id!);
 
-      const team2 = {
-        teamId: 'mgl-mock-team-2',
-        teamName: 'Apex Predators',
-        clanName: 'APEX ESPORTS',
-        logoUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=120&auto=format&fit=crop',
-        wins: 3,
-        matches: 12,
-        placementPts: 120,
-        kills: 80,
-        damage: 16200,
-        bonusPts: 5,
-        totalPts: 285,
-        analytics: {
-          PPM: 23.75,
-          KPM: 6.67,
-          avgPlace: 4.12,
-          killPct: 56.14,
-          placementEfficiency: 10.00,
-          top3Rate: 50.00,
-          top5Rate: 75.00,
-          winRate: 25.00,
-        },
-        scores: {
-          POWER: 81.2,
-          PLACEMENT: 82.0,
-          CONVERSION: 78.5,
-          FORM: 84.2,
-          TEAM_RATING: 81.2,
-          FINAL_RATING: 812,
-          rankLabel: 'Top Rank',
-        },
-        labels: {
-          playstyle: 'Balanced',
-          powerLabel: 'Strong',
-          placementLabel: 'Controlled',
-          conversionLabel: 'Efficient',
-          formLabel: 'In Form',
-        },
-        identity: 'Balanced',
-        analyticsRank: 2,
-        killsCurrent: 10,
-        placementCurrent: 4
-      };
+      const data = await compareEntities(
+        'team',
+        cfg.idA,
+        cfg.idB,
+        cfg.scopeTournamentId || undefined
+      );
 
-      const team3 = {
-        teamId: 'mgl-mock-team-3',
-        teamName: 'Cobra Esports',
-        clanName: 'COBRA CLAN',
-        logoUrl: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=120&auto=format&fit=crop',
-        wins: 2,
-        matches: 12,
-        placementPts: 105,
-        kills: 72,
-        damage: 14900,
-        bonusPts: 0,
-        totalPts: 249,
-        analytics: {
-          PPM: 20.75,
-          KPM: 6.00,
-          avgPlace: 5.05,
-          killPct: 57.83,
-          placementEfficiency: 8.75,
-          top3Rate: 41.67,
-          top5Rate: 66.67,
-          winRate: 16.67,
-        },
-        scores: {
-          POWER: 75.0,
-          PLACEMENT: 76.4,
-          CONVERSION: 70.2,
-          FORM: 78.0,
-          TEAM_RATING: 74.8,
-          FINAL_RATING: 748,
-          rankLabel: 'Pro Rank',
-        },
-        labels: {
-          playstyle: 'Defensive',
-          powerLabel: 'Strong',
-          placementLabel: 'Stable',
-          conversionLabel: 'Average',
-          formLabel: 'Steady',
-        },
-        identity: 'Survivalist',
-        analyticsRank: 3,
-        killsCurrent: 6,
-        placementCurrent: 5
-      };
-
-      const team4 = {
-        teamId: 'mgl-mock-team-4',
-        teamName: 'Shadow Mercs',
-        clanName: 'SHADOWS',
-        logoUrl: 'https://images.unsplash.com/photo-1553481187-be93c21490a9?w=120&auto=format&fit=crop',
-        wins: 1,
-        matches: 12,
-        placementPts: 85,
-        kills: 60,
-        damage: 12100,
-        bonusPts: 0,
-        totalPts: 205,
-        analytics: {
-          PPM: 17.08,
-          KPM: 5.00,
-          avgPlace: 6.20,
-          killPct: 58.54,
-          placementEfficiency: 7.08,
-          top3Rate: 33.33,
-          top5Rate: 58.33,
-          winRate: 8.33,
-        },
-        scores: {
-          POWER: 65.4,
-          PLACEMENT: 64.5,
-          CONVERSION: 60.1,
-          FORM: 68.4,
-          TEAM_RATING: 64.5,
-          FINAL_RATING: 645,
-          rankLabel: 'Pro Rank',
-        },
-        labels: {
-          playstyle: 'Balanced',
-          powerLabel: 'Strong',
-          placementLabel: 'Stable',
-          conversionLabel: 'Average',
-          formLabel: 'Steady',
-        },
-        identity: 'Balanced',
-        analyticsRank: 4,
-        killsCurrent: 8,
-        placementCurrent: 6
-      };
-
-      const team5 = {
-        teamId: 'mgl-mock-team-5',
-        teamName: 'Alpha Wolves',
-        clanName: 'WOLVES',
-        logoUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=120&auto=format&fit=crop',
-        wins: 1,
-        matches: 12,
-        placementPts: 70,
-        kills: 52,
-        damage: 10450,
-        bonusPts: 0,
-        totalPts: 174,
-        analytics: {
-          PPM: 14.50,
-          KPM: 4.33,
-          avgPlace: 7.15,
-          killPct: 59.77,
-          placementEfficiency: 5.83,
-          top3Rate: 25.00,
-          top5Rate: 50.00,
-          winRate: 8.33,
-        },
-        scores: {
-          POWER: 58.0,
-          PLACEMENT: 57.2,
-          CONVERSION: 56.4,
-          FORM: 60.5,
-          TEAM_RATING: 57.5,
-          FINAL_RATING: 575,
-          rankLabel: 'Mid Rank',
-        },
-        labels: {
-          playstyle: 'Defensive',
-          powerLabel: 'Balanced',
-          placementLabel: 'Stable',
-          conversionLabel: 'Average',
-          formLabel: 'Steady',
-        },
-        identity: 'Survivalist',
-        analyticsRank: 5,
-        killsCurrent: 4,
-        placementCurrent: 8
-      };
-
-      const mockTeamData = {
-        team: team1,
-        team1,
-        team2,
-        team3,
-        team4,
-        team5,
-        teams: [team1, team2, team3, team4, team5]
+      // Normalise: the API returns teamA/teamB or may return them under other keys
+      const payload = {
+        teamA: data.teamA ?? data.playerA ?? {},
+        teamB: data.teamB ?? data.playerB ?? {},
+        scope: data.scope ?? { type: cfg.scopeTournamentId ? 'tournament' : 'career' },
       };
 
       const updatedSlot: Omit<OverlaySlot, 'id'> = {
         name: slot.name,
         slotType: slot.slotType,
         assignedTemplateId: slot.assignedTemplateId,
-        currentData: mockTeamData,
+        currentData: payload,
         publicRenderToken: slot.publicRenderToken,
       };
 
       await saveSlot(updatedSlot, slot.id);
-      
-      // Update local state
-      setSlots((prev) => 
-        prev.map((s) => (s.id === slot.id ? { ...s, currentData: mockTeamData } : s))
-      );
+      setSlots((prev) => prev.map((s) => (s.id === slot.id ? { ...s, currentData: payload } : s)));
     } catch (err) {
-      console.error('Error simulating push:', err);
-      alert('Failed to simulate data push');
+      console.error('Error pushing H2H:', err);
+      alert('Failed to push Head to Head data. Check that the Stats API is reachable and both team IDs exist.');
     } finally {
-      setSimulatingId(null);
+      setPushingId(null);
     }
   }
 
-  // Clear data from a slot
+  // ─── PART 6 — Player Card push ───────────────────────────────────────────────
+
+  async function pushPlayerCard(slot: OverlaySlot) {
+    const cfg = playerCardConfig[slot.id!];
+    if (!cfg?.playerId) {
+      alert('Please select a player first.');
+      return;
+    }
+
+    try {
+      setPushingId(slot.id!);
+
+      const { profile, careerStats } = await getProfile('player', cfg.playerId);
+      const payload = { player: { ...profile, careerStats } };
+
+      const updatedSlot: Omit<OverlaySlot, 'id'> = {
+        name: slot.name,
+        slotType: slot.slotType,
+        assignedTemplateId: slot.assignedTemplateId,
+        currentData: payload,
+        publicRenderToken: slot.publicRenderToken,
+      };
+
+      await saveSlot(updatedSlot, slot.id);
+      setSlots((prev) => prev.map((s) => (s.id === slot.id ? { ...s, currentData: payload } : s)));
+    } catch (err) {
+      console.error('Error pushing player card:', err);
+      alert('Failed to push Player Card data. Check that the Stats API is reachable and the player ID exists.');
+    } finally {
+      setPushingId(null);
+    }
+  }
+
+  // ─── Clear data ───────────────────────────────────────────────────────────────
+
   async function clearSlotData(slot: OverlaySlot) {
     try {
       const updatedSlot: Omit<OverlaySlot, 'id'> = {
@@ -497,13 +328,301 @@ export default function SlotsDashboard() {
       };
 
       await saveSlot(updatedSlot, slot.id);
-      setSlots((prev) => 
+      setSlots((prev) =>
         prev.map((s) => (s.id === slot.id ? { ...s, currentData: null } : s))
       );
     } catch (err) {
       console.error('Error clearing data:', err);
     }
   }
+
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  // ─── Helper — set standings config for a slot ────────────────────────────────
+
+  function updateStandingsConfig(slotId: string, patch: Partial<StandingsConfig>) {
+    const defaults: StandingsConfig = { n: 5, type: 'team', tournamentId: '' };
+    setStandingsConfig((prev) => ({
+      ...prev,
+      [slotId]: { ...defaults, ...prev[slotId], ...patch },
+    }));
+  }
+
+  function updateH2HConfig(slotId: string, patch: Partial<H2HConfig>) {
+    const defaults: H2HConfig = { idA: '', idB: '', scopeTournamentId: '' };
+    setH2HConfig((prev) => ({
+      ...prev,
+      [slotId]: { ...defaults, ...prev[slotId], ...patch },
+    }));
+  }
+
+  function updatePlayerCardConfig(slotId: string, patch: Partial<PlayerCardConfig>) {
+    const defaults: PlayerCardConfig = { playerId: '' };
+    setPlayerCardConfig((prev) => ({
+      ...prev,
+      [slotId]: { ...defaults, ...prev[slotId], ...patch },
+    }));
+  }
+
+  // ─── Render helpers ───────────────────────────────────────────────────────────
+
+  function renderPushControls(slot: OverlaySlot) {
+    const isPushing = pushingId === slot.id;
+
+    if (slot.slotType === 'standings_table' || slot.slotType === 'single_team') {
+      const cfg = standingsConfig[slot.id!] ?? { n: 5, type: 'team', tournamentId: '' };
+      const warning = partialWarning[slot.id!];
+
+      return (
+        <div style={{
+          background: 'rgba(255,255,255,0.02)',
+          padding: '0.75rem',
+          borderRadius: '8px',
+          border: '1px solid rgba(255,255,255,0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem',
+        }}>
+          <span className="slot-control-label" style={{ margin: 0, fontWeight: 600 }}>
+            Push Live Tournament Data
+          </span>
+
+          {/* Tournament picker */}
+          <select
+            className="select-input"
+            style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+            value={cfg.tournamentId}
+            onChange={(e) => updateStandingsConfig(slot.id!, { tournamentId: e.target.value })}
+          >
+            <option value="">-- Choose Tournament --</option>
+            {tournaments.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+
+          {/* N + type controls */}
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              <span>Top</span>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={cfg.n}
+                onChange={(e) => updateStandingsConfig(slot.id!, { n: Math.max(1, Number(e.target.value)) })}
+                style={{
+                  width: '48px',
+                  padding: '0.2rem 0.4rem',
+                  fontSize: '0.8rem',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  textAlign: 'center',
+                }}
+              />
+            </div>
+
+            <select
+              className="select-input"
+              style={{ padding: '0.25rem 0.4rem', fontSize: '0.8rem', height: '28px', flex: 1 }}
+              value={cfg.type}
+              onChange={(e) => updateStandingsConfig(slot.id!, { type: e.target.value as 'team' | 'player' })}
+            >
+              <option value="team">Teams</option>
+              <option value="player">Players</option>
+            </select>
+
+            <button
+              onClick={() => pushTournamentStandings(slot)}
+              className="btn btn-primary btn-sm"
+              style={{ height: '32px', fontSize: '0.8rem', padding: '0 0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+              disabled={isPushing}
+            >
+              {isPushing ? (
+                <Loader2 style={{ width: '13px', height: '13px', animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <Send style={{ width: '13px', height: '13px' }} />
+              )}
+              Push
+            </button>
+          </div>
+
+          {warning && (
+            <p style={{ fontSize: '0.75rem', color: '#fbbf24', margin: 0 }}>
+              ⚠ {warning}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    if (slot.slotType === 'head_to_head') {
+      const cfg = h2hConfig[slot.id!] ?? { idA: '', idB: '', scopeTournamentId: '' };
+
+      return (
+        <div style={{
+          background: 'rgba(255,255,255,0.02)',
+          padding: '0.75rem',
+          borderRadius: '8px',
+          border: '1px solid rgba(255,255,255,0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span className="slot-control-label" style={{ margin: 0, fontWeight: 600 }}>
+              Head to Head
+            </span>
+            {pickerLoading && (
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <Loader2 style={{ width: '11px', height: '11px', animation: 'spin 1s linear infinite' }} />
+                Loading teams…
+              </span>
+            )}
+          </div>
+
+          {/* Team A picker */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Team A</span>
+            <select
+              className="select-input"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+              value={cfg.idA}
+              onFocus={ensurePickerData}
+              onChange={(e) => updateH2HConfig(slot.id!, { idA: e.target.value })}
+            >
+              <option value="">-- Select Team A --</option>
+              {globalTeams.map((t: any) => (
+                <option key={t.teamId ?? t.id} value={t.teamId ?? t.id}>
+                  {t.teamName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Team B picker */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Team B</span>
+            <select
+              className="select-input"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+              value={cfg.idB}
+              onFocus={ensurePickerData}
+              onChange={(e) => updateH2HConfig(slot.id!, { idB: e.target.value })}
+            >
+              <option value="">-- Select Team B --</option>
+              {globalTeams
+                .filter((t: any) => (t.teamId ?? t.id) !== cfg.idA)
+                .map((t: any) => (
+                  <option key={t.teamId ?? t.id} value={t.teamId ?? t.id}>
+                    {t.teamName}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          {/* Optional tournament scope */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Scope to Tournament <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional — leave blank for career)</span>
+            </span>
+            <select
+              className="select-input"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+              value={cfg.scopeTournamentId}
+              onChange={(e) => updateH2HConfig(slot.id!, { scopeTournamentId: e.target.value })}
+            >
+              <option value="">Career (all tournaments)</option>
+              {tournaments.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={() => pushHeadToHead(slot)}
+            className="btn btn-primary btn-sm"
+            style={{ height: '32px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.25rem', justifyContent: 'center' }}
+            disabled={isPushing || !cfg.idA || !cfg.idB}
+          >
+            {isPushing ? (
+              <Loader2 style={{ width: '13px', height: '13px', animation: 'spin 1s linear infinite' }} />
+            ) : (
+              <Users style={{ width: '13px', height: '13px' }} />
+            )}
+            Push Comparison
+          </button>
+        </div>
+      );
+    }
+
+    if (slot.slotType === 'player_card') {
+      const cfg = playerCardConfig[slot.id!] ?? { playerId: '' };
+
+      return (
+        <div style={{
+          background: 'rgba(255,255,255,0.02)',
+          padding: '0.75rem',
+          borderRadius: '8px',
+          border: '1px solid rgba(255,255,255,0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span className="slot-control-label" style={{ margin: 0, fontWeight: 600 }}>
+              Player Card
+            </span>
+            {pickerLoading && (
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <Loader2 style={{ width: '11px', height: '11px', animation: 'spin 1s linear infinite' }} />
+                Loading players…
+              </span>
+            )}
+          </div>
+
+          <select
+            className="select-input"
+            style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+            value={cfg.playerId}
+            onFocus={ensurePickerData}
+            onChange={(e) => updatePlayerCardConfig(slot.id!, { playerId: e.target.value })}
+          >
+            <option value="">-- Select Player --</option>
+            {globalPlayers.map((p: any) => (
+              <option key={p.playerId ?? p.id} value={p.playerId ?? p.id}>
+                {p.ign ?? p.professionalName ?? p.playerId ?? p.id}
+                {p.teamName ? ` (${p.teamName})` : ''}
+              </option>
+            ))}
+          </select>
+
+          <button
+            onClick={() => pushPlayerCard(slot)}
+            className="btn btn-primary btn-sm"
+            style={{ height: '32px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.25rem', justifyContent: 'center' }}
+            disabled={isPushing || !cfg.playerId}
+          >
+            {isPushing ? (
+              <Loader2 style={{ width: '13px', height: '13px', animation: 'spin 1s linear infinite' }} />
+            ) : (
+              <User style={{ width: '13px', height: '13px' }} />
+            )}
+            Push Player Card
+          </button>
+        </div>
+      );
+    }
+
+    return null;
+  }
+
+  // ─── JSX ──────────────────────────────────────────────────────────────────────
 
   return (
     <div className="container">
@@ -514,9 +633,9 @@ export default function SlotsDashboard() {
             Assign templates to broadcast channels and grab OBS Browser Source URLs.
           </p>
         </div>
-        
-        <button 
-          onClick={() => setShowAddForm(!showAddForm)} 
+
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
           className="btn btn-primary"
         >
           <Plus style={{ width: '18px', height: '18px' }} />
@@ -526,7 +645,7 @@ export default function SlotsDashboard() {
 
       {/* INLINE NEW SLOT FORM */}
       {showAddForm && (
-        <form 
+        <form
           onSubmit={handleCreateSlot}
           style={{
             background: 'var(--bg-card)',
@@ -537,7 +656,7 @@ export default function SlotsDashboard() {
             display: 'flex',
             gap: '1.5rem',
             alignItems: 'flex-end',
-            flexWrap: 'wrap'
+            flexWrap: 'wrap',
           }}
         >
           <div className="property-field" style={{ flexGrow: 1, minWidth: '240px' }}>
@@ -567,15 +686,15 @@ export default function SlotsDashboard() {
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="btn btn-primary"
               disabled={creating}
             >
               {creating ? 'Creating...' : 'Save Slot'}
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="btn btn-secondary"
               onClick={() => setShowAddForm(false)}
             >
@@ -597,7 +716,7 @@ export default function SlotsDashboard() {
           borderRadius: '12px',
           padding: '4rem 2rem',
           textAlign: 'center',
-          color: 'var(--text-muted)'
+          color: 'var(--text-muted)',
         }}>
           <Layers style={{ width: '3rem', height: '3rem', margin: '0 auto 1rem', color: 'rgba(255,255,255,0.1)' }} />
           <h3 style={{ color: '#fff', marginBottom: '0.5rem' }}>No Active Slots</h3>
@@ -619,7 +738,7 @@ export default function SlotsDashboard() {
                   <div className="slot-title-group">
                     <h3 style={{ fontSize: '1.25rem', fontFamily: 'Outfit' }}>{slot.name}</h3>
                     <span className="slot-badge">
-                      {slot.slotType.replace('_', ' ').toUpperCase()}
+                      {slot.slotType.replace(/_/g, ' ').toUpperCase()}
                     </span>
                   </div>
                   <button
@@ -633,8 +752,9 @@ export default function SlotsDashboard() {
                 </div>
 
                 <div className="slot-grid">
-                  {/* Left Column: Link template & settings */}
+                  {/* Left Column */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {/* Template assignment */}
                     <div className="slot-control-group">
                       <span className="slot-control-label">Assigned Template</span>
                       <select
@@ -651,12 +771,13 @@ export default function SlotsDashboard() {
                       </select>
                     </div>
 
+                    {/* OBS URL */}
                     <div className="slot-control-group">
                       <span className="slot-control-label">OBS Browser Source URL</span>
                       <div className="copy-url-box">
                         <div className="copy-url-text">{renderUrl}</div>
-                        <button 
-                          onClick={() => copyToClipboard(renderUrl, slot.id!)} 
+                        <button
+                          onClick={() => copyToClipboard(renderUrl, slot.id!)}
                           className="copy-url-btn"
                           title="Copy Link"
                         >
@@ -672,74 +793,22 @@ export default function SlotsDashboard() {
                       </span>
                     </div>
 
-                    {/* SELECT REAL TOURNAMENT STANDINGS FOR LIVE PUSH */}
-                    <div style={{ 
-                      background: 'rgba(255,255,255,0.02)', 
-                      padding: '0.75rem', 
-                      borderRadius: '8px', 
-                      border: '1px solid rgba(255,255,255,0.04)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.5rem'
-                    }}>
-                      <span className="slot-control-label" style={{ margin: 0, fontWeight: 600 }}>Push Real Tournament Data</span>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <select 
-                          className="select-input"
-                          style={{ flexGrow: 1, padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
-                          value={selectedTourneyId[slot.id!] || ''}
-                          onChange={(e) => setSelectedTourneyId(prev => ({ ...prev, [slot.id!]: e.target.value }))}
-                        >
-                          <option value="">-- Choose Tournament --</option>
-                          {tournaments.map(t => (
-                            <option key={t.id} value={t.id}>{t.name}</option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={() => pushRealTournamentData(slot)}
-                          className="btn btn-primary btn-sm"
-                          style={{ height: '32px', fontSize: '0.8rem', padding: '0 0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-                          disabled={pushingId === slot.id}
-                        >
-                          {pushingId === slot.id ? (
-                            <Loader2 className="animate-spin" style={{ width: '13px', height: '13px', animation: 'spin 1s linear infinite' }} />
-                          ) : (
-                            <Send style={{ width: '13px', height: '13px' }} />
-                          )}
-                          Push
-                        </button>
-                      </div>
-                    </div>
+                    {/* Push controls — varies by slot type */}
+                    {renderPushControls(slot)}
 
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    {/* Clear data */}
+                    {slot.currentData && (
                       <button
-                        onClick={() => simulateDataPush(slot)}
-                        className="btn btn-secondary btn-sm"
-                        disabled={simulatingId === slot.id}
-                        style={{ flexGrow: 1 }}
+                        onClick={() => clearSlotData(slot)}
+                        className="btn btn-danger btn-sm"
+                        style={{ padding: '0.45rem 0.75rem', alignSelf: 'flex-start' }}
                       >
-                        {simulatingId === slot.id ? (
-                          <Loader2 className="animate-spin" style={{ width: '14px', height: '14px' }} />
-                        ) : (
-                          <Play style={{ width: '14px', height: '14px' }} />
-                        )}
-                        Simulate Mock Data
+                        Clear Data
                       </button>
-
-                      {slot.currentData && (
-                        <button
-                          onClick={() => clearSlotData(slot)}
-                          className="btn btn-danger btn-sm"
-                          style={{ padding: '0.45rem 0.75rem' }}
-                          title="Clear current data"
-                        >
-                          Clear Data
-                        </button>
-                      )}
-                    </div>
+                    )}
                   </div>
 
-                  {/* Right Column: Live Data Payload inspect */}
+                  {/* Right Column: Live Data Payload preview */}
                   <div className="slot-control-group">
                     <span className="slot-control-label">Live Data Stream Preview</span>
                     {slot.currentData ? (
@@ -756,7 +825,7 @@ export default function SlotsDashboard() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: 'var(--text-muted)',
-                        fontSize: '0.85rem'
+                        fontSize: '0.85rem',
                       }}>
                         Waiting for live broadcast push...
                       </div>

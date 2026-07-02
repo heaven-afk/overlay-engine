@@ -13,7 +13,6 @@ import {
   orderBy,
   Timestamp,
 } from 'firebase/firestore';
-import { computeTeamAnalytics, TeamMatchResult, BonusPoint, ScoringConfig } from './engine/analytics';
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
@@ -106,61 +105,6 @@ export async function getTeams() {
     console.error('Failed to getTeams:', err);
     return [];
   }
-}
-
-export async function getTeamMatchResults(tournamentId: string): Promise<TeamMatchResult[]> {
-  try {
-    const snap = await getDocs(collection(db, 'tournaments', tournamentId, 'teamMatchResults'));
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as TeamMatchResult));
-  } catch (err) {
-    console.error(`Failed to getTeamMatchResults for tourney ${tournamentId}:`, err);
-    return [];
-  }
-}
-
-export async function getBonusPoints(tournamentId: string): Promise<BonusPoint[]> {
-  try {
-    const snap = await getDocs(collection(db, 'tournaments', tournamentId, 'bonusPoints'));
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as BonusPoint));
-  } catch (err) {
-    console.error(`Failed to getBonusPoints for tourney ${tournamentId}:`, err);
-    return [];
-  }
-}
-
-export async function getTournamentAnalytics(tournamentId: string) {
-  // Use individual wrapper to prevent one failing sub-collection from breaking everything
-  const [tournament, matchResults, bonusPoints, allTeams] = await Promise.all([
-    getTournament(tournamentId),
-    getTeamMatchResults(tournamentId),
-    getBonusPoints(tournamentId),
-    getTeams(),
-  ]);
-
-  if (!tournament) return [];
-
-  const teamMap = Object.fromEntries(allTeams.map((t: any) => [t.id, t]));
-  const scoring: ScoringConfig = (tournament as any).scoring || {};
-
-  const enrichedResults = matchResults.map((r) => ({
-    ...r,
-    teamName: teamMap[r.teamId]?.teamName || r.teamName || r.teamId,
-    clanName: teamMap[r.teamId]?.clanName || '',
-    logoUrl: teamMap[r.teamId]?.logoUrl || '',
-  }));
-
-  const enrichedBonus = enrichedResults.length > 0 ? bonusPoints.map((b) => ({
-    ...b,
-    teamName: teamMap[b.teamId]?.teamName || b.teamId,
-  })) : [];
-
-  const computed = computeTeamAnalytics(enrichedResults, enrichedBonus, scoring);
-
-  // Re-attach logoUrl to the computed output for visual logo bindings
-  return computed.map((team) => ({
-    ...team,
-    logoUrl: teamMap[team.teamId]?.logoUrl || '',
-  }));
 }
 
 // ─── TEMPLATES CRUD (overlayTemplates) ───────────────────────────────────────
@@ -267,9 +211,10 @@ export async function deleteSlot(id: string): Promise<void> {
   await deleteDoc(doc(db, 'overlaySlots', id));
 }
 
-// ─── FIELD CATALOG SEEDING (overlayDataFieldCatalog) ─────────────────────────
+// ─── FIELD CATALOG (overlayDataFieldCatalog) ─────────────────────────────────
 
 const BASE_CATALOG: FieldCatalogItem[] = [
+  // Single team / team reference
   { key: "team.teamName", label: "Team Name", type: "text" },
   { key: "team.logoUrl", label: "Team Logo", type: "image" },
   { key: "team.clanName", label: "Clan Name", type: "text" },
@@ -282,11 +227,47 @@ const BASE_CATALOG: FieldCatalogItem[] = [
   { key: "team.analytics.top5Rate", label: "Top 5 Rate", type: "text" },
   { key: "team.labels.formLabel", label: "Form (Red Hot, In Form, etc.)", type: "text" },
   { key: "team.kills", label: "Kills (current match/day)", type: "text" },
-  { key: "team.placement", label: "Placement (current match/day)", type: "text" }
+  { key: "team.placement", label: "Placement (current match/day)", type: "text" },
+
+  // ── Head to Head ──────────────────────────────────────────────────────────
+  { key: "teamA.teamName", label: "H2H Team A Name", type: "text" },
+  { key: "teamA.logoUrl", label: "H2H Team A Logo", type: "image" },
+  { key: "teamA.clanName", label: "H2H Team A Clan Name", type: "text" },
+  { key: "teamA.scores.FINAL_RATING", label: "H2H Team A Rating", type: "text" },
+  { key: "teamA.scores.rankLabel", label: "H2H Team A Rank Label", type: "text" },
+  { key: "teamA.identity", label: "H2H Team A Identity", type: "text" },
+  { key: "teamA.analytics.PPM", label: "H2H Team A PPM", type: "text" },
+  { key: "teamA.analytics.KPM", label: "H2H Team A KPM", type: "text" },
+  { key: "teamA.labels.formLabel", label: "H2H Team A Form", type: "text" },
+  { key: "teamB.teamName", label: "H2H Team B Name", type: "text" },
+  { key: "teamB.logoUrl", label: "H2H Team B Logo", type: "image" },
+  { key: "teamB.clanName", label: "H2H Team B Clan Name", type: "text" },
+  { key: "teamB.scores.FINAL_RATING", label: "H2H Team B Rating", type: "text" },
+  { key: "teamB.scores.rankLabel", label: "H2H Team B Rank Label", type: "text" },
+  { key: "teamB.identity", label: "H2H Team B Identity", type: "text" },
+  { key: "teamB.analytics.PPM", label: "H2H Team B PPM", type: "text" },
+  { key: "teamB.analytics.KPM", label: "H2H Team B KPM", type: "text" },
+  { key: "teamB.labels.formLabel", label: "H2H Team B Form", type: "text" },
+  { key: "scope.type", label: "H2H Scope Type (career / tournament)", type: "text" },
+  { key: "scope.tournamentId", label: "H2H Scope Tournament ID", type: "text" },
+
+  // ── Player Card ───────────────────────────────────────────────────────────
+  { key: "player.ign", label: "Player IGN", type: "text" },
+  { key: "player.professionalName", label: "Player Pro Name", type: "text" },
+  { key: "player.teamName", label: "Player Team Name", type: "text" },
+  { key: "player.logoUrl", label: "Player Logo / Avatar", type: "image" },
+  { key: "player.careerStats.careerKills", label: "Player Career Kills", type: "text" },
+  { key: "player.careerStats.avgDamage", label: "Player Avg Damage", type: "text" },
+  { key: "player.careerStats.avgKills", label: "Player Avg Kills", type: "text" },
+  { key: "player.careerStats.avgPlacement", label: "Player Avg Placement", type: "text" },
+  { key: "player.careerStats.winRate", label: "Player Win Rate", type: "text" },
+  { key: "player.careerStats.top5Rate", label: "Player Top 5 Rate", type: "text" },
+  { key: "player.scores.FINAL_RATING", label: "Player Rating", type: "text" },
+  { key: "player.scores.rankLabel", label: "Player Rank Label", type: "text" },
 ];
 
-// Generate multi-team fields (team1 through team5) for standings & H2H templates
-const GENERATED_CATALOG: FieldCatalogItem[] = Array.from({ length: 5 }, (_, i) => {
+// Generate multi-team fields (team1 through team12) for standings templates
+const GENERATED_CATALOG: FieldCatalogItem[] = Array.from({ length: 12 }, (_, i) => {
   const num = i + 1;
   return [
     { key: `team${num}.teamName`, label: `Team #${num} Name`, type: "text" as const },
@@ -328,89 +309,89 @@ async function seedDefaultTemplates() {
     canvasWidth: 1920,
     canvasHeight: 1080,
     fieldBoxes: [
-      // Left Team (Team 1)
+      // Left Team (Team A)
       {
         id: 'h2h-t1-name',
-        dataField: 'team1.teamName',
+        dataField: 'teamA.teamName',
         x: 150, y: 180, width: 500, height: 70,
         fontFamily: 'Outfit', fontSize: 44, fontWeight: 'bold',
         color: '#ffffff', textAlign: 'center', boxType: 'text'
       },
       {
         id: 'h2h-t1-logo',
-        dataField: 'team1.logoUrl',
+        dataField: 'teamA.logoUrl',
         x: 300, y: 280, width: 200, height: 200,
         fontFamily: 'Inter', fontSize: 14, fontWeight: 'normal',
         color: '#ffffff', textAlign: 'center', boxType: 'image'
       },
       {
         id: 'h2h-t1-rating',
-        dataField: 'team1.scores.FINAL_RATING',
+        dataField: 'teamA.scores.FINAL_RATING',
         x: 150, y: 520, width: 500, height: 60,
         fontFamily: 'Space Grotesk', fontSize: 40, fontWeight: 'bold',
         color: '#8b5cf6', textAlign: 'center', boxType: 'text'
       },
       {
         id: 'h2h-t1-ppm',
-        dataField: 'team1.analytics.PPM',
+        dataField: 'teamA.analytics.PPM',
         x: 150, y: 620, width: 500, height: 50,
         fontFamily: 'Inter', fontSize: 28, fontWeight: 'normal',
         color: '#f4f4f6', textAlign: 'center', boxType: 'text'
       },
       {
         id: 'h2h-t1-kpm',
-        dataField: 'team1.analytics.KPM',
+        dataField: 'teamA.analytics.KPM',
         x: 150, y: 710, width: 500, height: 50,
         fontFamily: 'Inter', fontSize: 28, fontWeight: 'normal',
         color: '#f4f4f6', textAlign: 'center', boxType: 'text'
       },
       {
         id: 'h2h-t1-form',
-        dataField: 'team1.labels.formLabel',
+        dataField: 'teamA.labels.formLabel',
         x: 150, y: 800, width: 500, height: 50,
         fontFamily: 'Inter', fontSize: 24, fontWeight: 'bold',
         color: '#34d399', textAlign: 'center', boxType: 'text'
       },
       
-      // Right Team (Team 2)
+      // Right Team (Team B)
       {
         id: 'h2h-t2-name',
-        dataField: 'team2.teamName',
+        dataField: 'teamB.teamName',
         x: 1270, y: 180, width: 500, height: 70,
         fontFamily: 'Outfit', fontSize: 44, fontWeight: 'bold',
         color: '#ffffff', textAlign: 'center', boxType: 'text'
       },
       {
         id: 'h2h-t2-logo',
-        dataField: 'team2.logoUrl',
+        dataField: 'teamB.logoUrl',
         x: 1420, y: 280, width: 200, height: 200,
         fontFamily: 'Inter', fontSize: 14, fontWeight: 'normal',
         color: '#ffffff', textAlign: 'center', boxType: 'image'
       },
       {
         id: 'h2h-t2-rating',
-        dataField: 'team2.scores.FINAL_RATING',
+        dataField: 'teamB.scores.FINAL_RATING',
         x: 1270, y: 520, width: 500, height: 60,
         fontFamily: 'Space Grotesk', fontSize: 40, fontWeight: 'bold',
         color: '#8b5cf6', textAlign: 'center', boxType: 'text'
       },
       {
         id: 'h2h-t2-ppm',
-        dataField: 'team2.analytics.PPM',
+        dataField: 'teamB.analytics.PPM',
         x: 1270, y: 620, width: 500, height: 50,
         fontFamily: 'Inter', fontSize: 28, fontWeight: 'normal',
         color: '#f4f4f6', textAlign: 'center', boxType: 'text'
       },
       {
         id: 'h2h-t2-kpm',
-        dataField: 'team2.analytics.KPM',
+        dataField: 'teamB.analytics.KPM',
         x: 1270, y: 710, width: 500, height: 50,
         fontFamily: 'Inter', fontSize: 28, fontWeight: 'normal',
         color: '#f4f4f6', textAlign: 'center', boxType: 'text'
       },
       {
         id: 'h2h-t2-form',
-        dataField: 'team2.labels.formLabel',
+        dataField: 'teamB.labels.formLabel',
         x: 1270, y: 800, width: 500, height: 50,
         fontFamily: 'Inter', fontSize: 24, fontWeight: 'bold',
         color: '#34d399', textAlign: 'center', boxType: 'text'
