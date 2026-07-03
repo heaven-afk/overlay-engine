@@ -470,6 +470,91 @@ export default function StylePanel({
 
             </div>
           </div>
+
+          {/* ANIMATION SECTION */}
+          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '1.25rem', marginTop: '1.25rem' }}>
+            <span className="sidebar-section-title">Animation</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+              <div className="property-field">
+                <span className="property-label">Entrance</span>
+                <select
+                  className="select-input"
+                  value={selectedBox.entranceAnimation || 'none'}
+                  onChange={(e) => handleUpdateBox({ entranceAnimation: e.target.value as any })}
+                >
+                  <option value="none">None</option>
+                  <option value="fadeIn">Fade In</option>
+                  <option value="slideInLeft">Slide In — Left</option>
+                  <option value="slideInRight">Slide In — Right</option>
+                  <option value="slideInUp">Slide In — Up</option>
+                  <option value="slideInDown">Slide In — Down</option>
+                  <option value="scaleIn">Scale In</option>
+                  <option value="bounceIn">Bounce In</option>
+                </select>
+              </div>
+
+              {(selectedBox.entranceAnimation && selectedBox.entranceAnimation !== 'none') && (
+                <div className="property-grid">
+                  <div className="property-field">
+                    <span className="property-label">Duration (ms)</span>
+                    <input
+                      type="number"
+                      className="text-input"
+                      min={100}
+                      max={2000}
+                      step={50}
+                      value={selectedBox.entranceDuration ?? 400}
+                      onChange={(e) => handleUpdateBox({ entranceDuration: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="property-field">
+                    <span className="property-label">Delay (ms)</span>
+                    <input
+                      type="number"
+                      className="text-input"
+                      min={0}
+                      max={3000}
+                      step={50}
+                      value={selectedBox.entranceDelay ?? 0}
+                      onChange={(e) => handleUpdateBox({ entranceDelay: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="property-field" style={{ marginTop: '0.25rem' }}>
+                <span className="property-label">On Update</span>
+                <select
+                  className="select-input"
+                  value={selectedBox.updateAnimation || 'none'}
+                  onChange={(e) => handleUpdateBox({ updateAnimation: e.target.value as any })}
+                >
+                  <option value="none">None</option>
+                  <option value="countUp">Count Up (numbers only)</option>
+                  <option value="pulse">Pulse</option>
+                  <option value="flash">Flash</option>
+                  <option value="flip">Flip</option>
+                </select>
+              </div>
+
+              {(selectedBox.updateAnimation && selectedBox.updateAnimation !== 'none') && (
+                <div className="property-field">
+                  <span className="property-label">Update Duration (ms)</span>
+                  <input
+                    type="number"
+                    className="text-input"
+                    min={100}
+                    max={2000}
+                    step={50}
+                    value={selectedBox.updateDuration ?? 300}
+                    onChange={(e) => handleUpdateBox({ updateDuration: Number(e.target.value) })}
+                  />
+                </div>
+              )}
+
+            </div>
+          </div>
         </>
       ) : (
         <>

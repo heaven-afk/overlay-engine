@@ -12,7 +12,8 @@ import { getTopStandings } from '@/lib/statsApi';
 import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, doc } from 'firebase/firestore';
-import { ArrowLeft, Save, Upload, Loader2, Play } from 'lucide-react';
+import { ArrowLeft, Save, Upload, Loader2, Play, Download } from 'lucide-react';
+import html2canvas from 'html2canvas';
 import StylePanel from '@/components/editor/StylePanel';
 
 // Dynamically import CanvasEditor with SSR disabled since react-konva relies on browser window/canvas
@@ -182,6 +183,29 @@ export default function TemplateBuilderPage({ params }: PageProps) {
     setSelectedId(newBox.id);
   };
 
+  // Download canvas preview as PNG
+  const handleDownload = async () => {
+    const canvasEl = document.getElementById('overlay-canvas-preview');
+    if (!canvasEl) return;
+
+    try {
+      const screenshot = await html2canvas(canvasEl, {
+        backgroundColor: null, // preserve transparency
+        scale: 2,              // 2x for high-DPI / retina quality
+        useCORS: true,         // allow cross-origin images (team logos from Firebase Storage)
+        allowTaint: false,
+      });
+
+      const link = document.createElement('a');
+      link.download = `${name.replace(/\s+/g, '_')}_overlay.png`;
+      link.href = screenshot.toDataURL('image/png');
+      link.click();
+    } catch (err) {
+      console.error('Download failed:', err);
+      alert('Failed to export PNG. Ensure preview data is loaded.');
+    }
+  };
+
   // Save changes
   const handleSave = async () => {
     if (!name.trim()) {
@@ -283,6 +307,12 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             />
           </label>
 
+          {/* Download PNG Button */}
+          <button onClick={handleDownload} className="btn btn-secondary btn-sm">
+            <Download style={{ width: '14px', height: '14px' }} />
+            Download PNG
+          </button>
+
           {/* Save Button */}
           <button onClick={handleSave} className="btn btn-primary btn-sm" disabled={saving}>
             {saving ? (
@@ -299,7 +329,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       <div className="editor-root" style={{ flexGrow: 1 }}>
         
         {/* Stage Container */}
-        <div className="editor-canvas-container">
+        <div className="editor-canvas-container" id="overlay-canvas-preview">
           <CanvasEditor
             backgroundImageUrl={backgroundImageUrl}
             canvasWidth={canvasWidth}

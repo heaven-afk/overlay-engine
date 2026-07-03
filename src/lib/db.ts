@@ -45,6 +45,13 @@ export interface FieldBox {
   borderRadius?: number;
   padding?: number;
   elementOpacity?: number;
+
+  // Animation — all optional, safe defaults so existing templates work unchanged
+  entranceAnimation?: 'none' | 'fadeIn' | 'slideInLeft' | 'slideInRight' | 'slideInUp' | 'slideInDown' | 'scaleIn' | 'bounceIn';
+  entranceDuration?: number;   // ms, default 400
+  entranceDelay?: number;      // ms, default 0 — lets the designer stagger multiple boxes
+  updateAnimation?: 'none' | 'countUp' | 'pulse' | 'flash' | 'flip';
+  updateDuration?: number;     // ms, default 300
 }
 
 export interface OverlayTemplate {
