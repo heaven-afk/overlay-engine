@@ -765,7 +765,7 @@ export default function SlotsDashboard() {
                         <option value="">-- No template assigned (blank overlay) --</option>
                         {templates.map((t) => (
                           <option key={t.id} value={t.id}>
-                            {t.name} ({t.canvasWidth}x{t.canvasHeight})
+                            {t.name} (1920x1080)
                           </option>
                         ))}
                       </select>

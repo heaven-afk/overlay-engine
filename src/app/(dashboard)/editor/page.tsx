@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getTemplates, deleteTemplate, saveTemplate, OverlayTemplate } from '@/lib/db';
-import { Plus, Trash, Copy, Edit, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Plus, Trash, Copy, Edit, Image as ImageIcon, Loader2, AlertTriangle, Layers, Award, User, Users } from 'lucide-react';
 
 export default function TemplateLibrary() {
   const router = useRouter();
@@ -43,17 +43,16 @@ export default function TemplateLibrary() {
   }
 
   async function handleDuplicate(template: OverlayTemplate) {
+    if (!template.templateType) {
+      alert('Legacy templates cannot be duplicated. Please create a new template.');
+      return;
+    }
     try {
       setActionLoading(`dup-${template.id}`);
       const newTemplate: Omit<OverlayTemplate, 'id'> = {
         name: `${template.name} (Copy)`,
-        backgroundImageUrl: template.backgroundImageUrl,
-        canvasWidth: template.canvasWidth || 1920,
-        canvasHeight: template.canvasHeight || 1080,
-        fieldBoxes: template.fieldBoxes.map((box) => ({
-          ...box,
-          id: Math.random().toString(36).substring(2, 9),
-        })),
+        templateType: template.templateType,
+        styleConfig: JSON.parse(JSON.stringify(template.styleConfig || {})),
       };
       
       const newId = await saveTemplate(newTemplate);
@@ -67,13 +66,38 @@ export default function TemplateLibrary() {
     }
   }
 
+  const getTemplateTypeIcon = (type?: string) => {
+    switch (type) {
+      case 'top_standings':
+        return <Award style={{ width: '20px', height: '20px', color: '#C9A84C' }} />;
+      case 'head_to_head':
+        return <Users style={{ width: '20px', height: '20px', color: '#a78bfa' }} />;
+      case 'team_profile':
+        return <Layers style={{ width: '20px', height: '20px', color: '#38bdf8' }} />;
+      case 'player_profile':
+        return <User style={{ width: '20px', height: '20px', color: '#34d399' }} />;
+      default:
+        return <AlertTriangle style={{ width: '20px', height: '20px', color: '#f87171' }} />;
+    }
+  };
+
+  const getTemplateTypeName = (type?: string) => {
+    switch (type) {
+      case 'top_standings': return 'Top Standings';
+      case 'head_to_head': return 'Head to Head';
+      case 'team_profile': return 'Team Profile';
+      case 'player_profile': return 'Player Profile';
+      default: return 'Legacy Template';
+    }
+  };
+
   return (
     <div className="container">
       <div className="flex-between" style={{ marginBottom: '2.5rem' }}>
         <div>
           <h1>Design Templates</h1>
           <p className="page-description" style={{ margin: 0 }}>
-            Create, manage, and visual-edit graphic overlays for your live streams.
+            Configure and style premium pre-built broadcast overlays for your live streams.
           </p>
         </div>
         <Link href="/editor/new" className="btn btn-primary">
@@ -98,7 +122,7 @@ export default function TemplateLibrary() {
         }}>
           <ImageIcon style={{ width: '3rem', height: '3rem', margin: '0 auto 1rem', color: 'rgba(255,255,255,0.1)' }} />
           <h3 style={{ color: '#fff', marginBottom: '0.5rem' }}>No Templates Found</h3>
-          <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem' }}>Start by creating your first broadcast design template.</p>
+          <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem' }}>Create a configured template to begin streaming.</p>
           <Link href="/editor/new" className="btn btn-primary">
             <Plus style={{ width: '18px', height: '18px' }} />
             Create First Template
@@ -106,55 +130,100 @@ export default function TemplateLibrary() {
         </div>
       ) : (
         <div className="template-grid">
-          {templates.map((template) => (
-            <div key={template.id} className="template-card">
-              <div 
-                className="template-card-preview"
-                style={{
-                  backgroundImage: template.backgroundImageUrl ? `url(${template.backgroundImageUrl})` : 'none',
-                }}
-              >
-                {!template.backgroundImageUrl && (
-                  <div className="template-card-preview-empty">
-                    <ImageIcon style={{ width: '24px', height: '24px', opacity: 0.3, margin: '0 auto 4px' }} />
-                    <span>No Background Image</span>
+          {templates.map((template) => {
+            const isLegacy = !template.templateType;
+
+            return (
+              <div key={template.id} className="template-card">
+                <div 
+                  className="template-card-preview"
+                  style={{
+                    backgroundColor: isLegacy ? 'rgba(239, 68, 68, 0.05)' : 'rgba(0, 0, 0, 0.3)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '12px',
+                    height: '140px',
+                  }}
+                >
+                  {getTemplateTypeIcon(template.templateType)}
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    color: isLegacy ? '#ef4444' : 'var(--text-muted)',
+                  }}>
+                    {getTemplateTypeName(template.templateType)}
+                  </span>
+                </div>
+
+                <div className="template-card-content">
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                    <h3 className="template-card-title" style={{ fontSize: '1.1rem', margin: 0 }}>
+                      {template.name}
+                    </h3>
+                    {isLegacy && (
+                      <span style={{
+                        fontSize: '9px',
+                        fontWeight: 800,
+                        backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                        color: '#f87171',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        textTransform: 'uppercase',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        Legacy — incompatible
+                      </span>
+                    )}
                   </div>
-                )}
-              </div>
-              <div className="template-card-content">
-                <h3 className="template-card-title">{template.name}</h3>
-                <div className="template-card-meta">
-                  {template.canvasWidth} x {template.canvasHeight} px • {template.fieldBoxes?.length || 0} fields
+                  
+                  <div className="template-card-meta" style={{ marginTop: '6px', marginBottom: '1.25rem' }}>
+                    {!isLegacy ? (
+                      <span>Theme: {template.styleConfig?.colorTheme || 'Dark'} Theme</span>
+                    ) : (
+                      <span>Old schema detected. Please delete.</span>
+                    )}
+                  </div>
+
+                  <div className="template-card-actions">
+                    {!isLegacy ? (
+                      <Link 
+                        href={`/editor/${template.id}`} 
+                        className="btn btn-secondary btn-sm"
+                        style={{ flexGrow: 1, justifyContent: 'center' }}
+                      >
+                        <Edit style={{ width: '14px', height: '14px' }} />
+                        Edit Configuration
+                      </Link>
+                    ) : (
+                      <div style={{ flexGrow: 1 }} />
+                    )}
+
+                    <button
+                      disabled={actionLoading !== null || isLegacy}
+                      onClick={() => handleDuplicate(template)}
+                      className="btn btn-secondary btn-sm"
+                      title="Duplicate Template"
+                    >
+                      <Copy style={{ width: '14px', height: '14px' }} />
+                    </button>
+                    
+                    <button
+                      disabled={actionLoading !== null}
+                      onClick={() => handleDelete(template.id!)}
+                      className="btn btn-danger btn-sm"
+                      title="Delete Template"
+                    >
+                      <Trash style={{ width: '14px', height: '14px' }} />
+                    </button>
+                  </div>
                 </div>
-                <div className="template-card-actions">
-                  <Link 
-                    href={`/editor/${template.id}`} 
-                    className="btn btn-secondary btn-sm"
-                    style={{ flexGrow: 1, justifyContent: 'center' }}
-                  >
-                    <Edit style={{ width: '14px', height: '14px' }} />
-                    Edit Design
-                  </Link>
-                  <button
-                    disabled={actionLoading !== null}
-                    onClick={() => handleDuplicate(template)}
-                    className="btn btn-secondary btn-sm"
-                    title="Duplicate Template"
-                  >
-                    <Copy style={{ width: '14px', height: '14px' }} />
-                  </button>
-                  <button
-                    disabled={actionLoading !== null}
-                    onClick={() => handleDelete(template.id!)}
-                    className="btn btn-danger btn-sm"
-                    title="Delete Template"
-                  >
-                    <Trash style={{ width: '14px', height: '14px' }} />
-                  </button>
-                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -3,21 +3,167 @@
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { 
   getTemplate, saveTemplate, getTournaments,
-  getFieldCatalog, FieldBox, FieldCatalogItem, OverlayTemplate 
+  OverlayTemplate, TemplateStyleConfig, ColorTheme, TemplateType
 } from '@/lib/db';
-import { getTopStandings } from '@/lib/statsApi';
+import { getTopStandings, getGlobalRankings, getProfile, compareEntities } from '@/lib/statsApi';
 import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, doc } from 'firebase/firestore';
-import { ArrowLeft, Save, Upload, Loader2, Play, Download } from 'lucide-react';
+import { ArrowLeft, Save, Upload, Loader2, Download, ChevronUp, ChevronDown, Check } from 'lucide-react';
 import html2canvas from 'html2canvas';
-import StylePanel from '@/components/editor/StylePanel';
+import { googleFontsLink, cssVarsForTheme } from '@/lib/fonts';
 
-// Dynamically import CanvasEditor with SSR disabled since react-konva relies on browser window/canvas
-const CanvasEditor = dynamic(() => import('@/components/editor/CanvasEditor'), { ssr: false });
+// Import templates
+import { TopStandings } from '@/components/templates/TopStandings';
+import { HeadToHead } from '@/components/templates/HeadToHead';
+import { TeamProfile } from '@/components/templates/TeamProfile';
+import { PlayerProfile } from '@/components/templates/PlayerProfile';
+
+// Columns definitions
+const ALL_COLUMNS = [
+  { key: 'wins', label: 'WINS' },
+  { key: 'matches', label: 'MATCH' },
+  { key: 'events', label: 'EVENTS' },
+  { key: 'placePts', label: 'PLACE' },
+  { key: 'kills', label: 'KILLS' },
+  { key: 'totalPts', label: 'TOTAL PTS' },
+  { key: 'rating', label: 'RATING' },
+  { key: 'ppm', label: 'PPM' },
+  { key: 'kpm', label: 'KPM' },
+  { key: 'killPct', label: 'KILL%' },
+  { key: 'avgPlace', label: 'AVG PL.' },
+  { key: 'top3Rate', label: 'TOP3%' },
+  { key: 'top5Rate', label: 'TOP5%' },
+  { key: 'rankLabel', label: 'RANK' },
+  { key: 'identity', label: 'IDENTITY' },
+];
+
+const DEFAULT_COLUMNS = ['wins', 'matches', 'events', 'placePts', 'kills', 'totalPts', 'rating', 'ppm', 'kpm', 'killPct', 'avgPlace', 'top3Rate'];
+
+// ─── MOCK PREVIEW DATASETS ──────────────────────────────────────────────────
+const MOCK_STANDINGS = {
+  teams: Array.from({ length: 12 }, (_, i) => ({
+    teamName: `TEAM UNICORN ${i + 1}`,
+    logoUrl: '',
+    wins: Math.max(0, 10 - i),
+    matches: 12,
+    events: 2,
+    placementPts: Math.max(0, 240 - i * 15),
+    kills: Math.max(0, 150 - i * 10),
+    totalPts: Math.max(0, 390 - i * 25),
+    scores: {
+      FINAL_RATING: 600 - i * 35,
+      rankLabel: i === 0 ? 'ELITE RANK' : i < 3 ? 'MASTER' : 'CHALLENGER'
+    },
+    analytics: {
+      PPM: 30 - i * 1.5,
+      KPM: 12 - i * 0.8,
+      killPct: 80 - i * 2,
+      avgPlace: 3 + i * 0.8,
+      top3Rate: 60 - i * 4,
+      top5Rate: 80 - i * 4,
+    },
+    identity: i % 2 === 0 ? 'Slayer' : 'Survivalist'
+  }))
+};
+
+const MOCK_H2H = {
+  teamA: {
+    teamName: 'APEX HUNTERS',
+    logoUrl: '',
+    scores: { FINAL_RATING: 720, rankLabel: 'ELITE RANK' },
+    identity: 'Slayer',
+    wins: 4, matches: 12, placementPts: 180, kills: 120, totalPts: 300,
+    analytics: { PPM: 25.0, KPM: 10.0, killPct: 76.5, winRate: 33.3, top5Rate: 66.7, avgPlace: 4.5 }
+  },
+  teamB: {
+    teamName: 'VORTEX ESPORTS',
+    logoUrl: '',
+    scores: { FINAL_RATING: 580, rankLabel: 'MASTER' },
+    identity: 'Survivalist',
+    wins: 2, matches: 12, placementPts: 210, kills: 80, totalPts: 290,
+    analytics: { PPM: 24.2, KPM: 6.6, killPct: 68.0, winRate: 16.7, top5Rate: 83.3, avgPlace: 3.8 }
+  },
+  scope: { type: 'career' }
+};
+
+const MOCK_TEAM_PROFILE = {
+  team: {
+    teamName: 'APEX HUNTERS',
+    logoUrl: '',
+    clanName: 'APEX CLAN',
+    tier: 'TIER 1',
+    identity: 'Slayer',
+    totalPts: 300,
+    kills: 120,
+    analyticsRank: 1,
+    scores: {
+      FINAL_RATING: 720,
+      rankLabel: 'ELITE RANK',
+      POWER: 85.0,
+      PLACEMENT: 78.0,
+      CONVERSION: 90.0,
+      FORM: 88.0,
+      totalPtsRank: 1,
+      killsRank: 2
+    },
+    analytics: {
+      PPM: 25.0,
+      KPM: 10.0,
+      killPct: 76.5,
+      winRate: 33.3,
+      top5Rate: 66.7,
+      avgPlace: 4.5
+    },
+    analyticsRanks: {
+      PPM: 1, KPM: 2, winRate: 1, killPct: 2, top5Rate: 3, avgPlace: 1
+    }
+  }
+};
+
+const MOCK_PLAYER_PROFILE = {
+  player: {
+    ign: 'FABRIZIO',
+    professionalName: 'Fabrizio Mayowa',
+    teamName: 'APEX HUNTERS',
+    logoUrl: '',
+    classBadge: 'SLAYER',
+    device: 'iPad Pro M4',
+    region: 'North America',
+    country: 'Nigeria',
+    careerKills: 850,
+    avgKills: 8.5,
+    avgDamage: 1240,
+    winRate: 28.5,
+    top5Rate: 68.0,
+    avgPlace: 4.8,
+    scores: {
+      FINAL_RATING: 745.0,
+      POWER: 88,
+      CONVERSION: 82,
+      FORM: 78
+    },
+    labels: {
+      powerLabel: 'OUTSTANDING POWER',
+      formLabel: 'RED HOT'
+    },
+    careerStats: {
+      careerKills: 850,
+      avgKills: 8.5,
+      avgDamage: 1240,
+      winRate: 28.5,
+      top5Rate: 68.0,
+      avgPlacement: 4.8,
+      tournaments: [
+        { tournament: 'African BR Championship', kills: 48, matches: 6, kpm: 8.0, rating: 720 },
+        { tournament: 'Heaven Invitational S1', kills: 35, matches: 5, kpm: 7.0, rating: 690 },
+        { tournament: 'CODM Mobile Masters', kills: 52, matches: 6, kpm: 8.6, rating: 780 }
+      ]
+    }
+  }
+};
 
 interface PageProps {
   params: Promise<{ templateId: string }>;
@@ -33,180 +179,285 @@ export default function TemplateBuilderPage({ params }: PageProps) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // Template State
+  // Template base configurations
   const [templateId, setTemplateId] = useState<string>('');
   const [name, setName] = useState('Untitled Template');
-  const [backgroundImageUrl, setBackgroundImageUrl] = useState('');
-  const [canvasWidth, setCanvasWidth] = useState(1920);
-  const [canvasHeight, setCanvasHeight] = useState(1080);
-  const [fieldBoxes, setFieldBoxes] = useState<FieldBox[]>([]);
+  const [templateType, setTemplateType] = useState<TemplateType>('top_standings');
   
-  // Selection State
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [styleConfig, setStyleConfig] = useState<TemplateStyleConfig>({
+    colorTheme: 'dark',
+    accentColor: '#C9A84C',
+    headingFont: 'Inter',
+    bodyFont: 'Inter',
+    brandingLogoUrl: '',
+    brandingName: 'HEAVEN STAT ENGINE\nAfrican CODM BR Coverage',
+    showStatsStamp: true,
+    tournamentLogoCount: 1,
+    tournamentLogos: [
+      { logoUrl: '', tournamentName: '' },
+      { logoUrl: '', tournamentName: '' },
+      { logoUrl: '', tournamentName: '' },
+    ],
+    topN: 10,
+    showColumns: DEFAULT_COLUMNS,
+    graphicTitle: 'OGR T1 COLLATION',
+    graphicSubtitle: 'Full standings — Top 10 · 2 Events Played',
+  });
 
-  // Reference Preview Data
+  // Preview Data Source Selectors
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string>('');
-  const [previewTeams, setPreviewTeams] = useState<any[]>([]);
-  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
-  const [previewTeamData, setPreviewTeamData] = useState<any | null>(null);
+  const [teamsList, setTeamsList] = useState<any[]>([]);
+  const [playersList, setPlayersList] = useState<any[]>([]);
 
-  // Static Catalog
-  const [catalog, setCatalog] = useState<FieldCatalogItem[]>([]);
+  // Selection states for previewing
+  const [previewTeamAId, setPreviewTeamAId] = useState<string>('');
+  const [previewTeamBId, setPreviewTeamBId] = useState<string>('');
+  const [previewTeamId, setPreviewTeamId] = useState<string>('');
+  const [previewPlayerId, setPreviewPlayerId] = useState<string>('');
 
-  // Initialize
+  // Resolved dynamic preview data
+  const [previewData, setPreviewData] = useState<any>(MOCK_STANDINGS);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  // Initialize page
   useEffect(() => {
-    async function loadData() {
+    async function loadInitialData() {
       try {
         setLoading(true);
-        
-        // 1. Fetch Field Catalog & Tournaments
-        const [cat, tourneys] = await Promise.all([
-          getFieldCatalog(),
-          getTournaments()
+        // Load tournaments and rankings lists for selectors
+        const [tourneys, teamsRes, playersRes] = await Promise.all([
+          getTournaments(),
+          getGlobalRankings('team', 50).catch(() => ({ results: [] })),
+          getGlobalRankings('player', 100).catch(() => ({ results: [] })),
         ]);
-        setCatalog(cat);
+
         setTournaments(tourneys);
+        setTeamsList(teamsRes.results || []);
+        setPlayersList(playersRes.results || []);
 
         if (tourneys.length > 0) {
           setSelectedTournamentId(tourneys[0].id);
         }
+        if (teamsRes.results?.length > 0) {
+          setPreviewTeamAId(teamsRes.results[0].teamId || teamsRes.results[0].id);
+          setPreviewTeamBId(teamsRes.results[1]?.teamId || teamsRes.results[1]?.id || teamsRes.results[0].teamId);
+          setPreviewTeamId(teamsRes.results[0].teamId || teamsRes.results[0].id);
+        }
+        if (playersRes.results?.length > 0) {
+          setPreviewPlayerId(playersRes.results[0].playerId || playersRes.results[0].id);
+        }
 
-        // 2. Load template details if editing
         if (!isNew) {
           setTemplateId(rawTemplateId);
           const template = await getTemplate(rawTemplateId);
           if (template) {
             setName(template.name);
-            setBackgroundImageUrl(template.backgroundImageUrl || '');
-            setCanvasWidth(template.canvasWidth || 1920);
-            setCanvasHeight(template.canvasHeight || 1080);
-            setFieldBoxes(template.fieldBoxes || []);
+            setTemplateType(template.templateType);
+            // Mix in default tournament logo slots to avoid length issues
+            const loadedLogos = template.styleConfig.tournamentLogos || [];
+            const standardLogos = [
+              loadedLogos[0] || { logoUrl: '', tournamentName: '' },
+              loadedLogos[1] || { logoUrl: '', tournamentName: '' },
+              loadedLogos[2] || { logoUrl: '', tournamentName: '' },
+            ];
+            setStyleConfig({
+              ...template.styleConfig,
+              tournamentLogos: standardLogos,
+              showColumns: template.styleConfig.showColumns || DEFAULT_COLUMNS,
+            });
           } else {
             alert('Template not found');
             router.push('/editor');
           }
         } else {
-          // Pre-generate document ID for Storage path consistency
           const newId = doc(collection(db, 'overlayTemplates')).id;
           setTemplateId(newId);
         }
       } catch (err) {
-        console.error('Error loading template designer:', err);
+        console.error('Error initializing editor:', err);
       } finally {
         setLoading(false);
       }
     }
 
-    loadData();
+    loadInitialData();
   }, [rawTemplateId, isNew, router]);
 
-  // Load preview data when preview tournament changes
-  // Calls the Stats API (getTopStandings) so the editor previews real computed data,
-  // not locally-fabricated placeholder numbers.
+  // Load preview data when data source inputs change
   useEffect(() => {
-    if (!selectedTournamentId) return;
+    let active = true;
+    async function loadLivePreview() {
+      if (loading) return;
 
-    async function loadPreviewStats() {
       try {
-        const { results } = await getTopStandings(selectedTournamentId, 12, 'team');
-        if (results && results.length > 0) {
-          setPreviewTeams(results);
-          setSelectedTeamId(results[0].teamId ?? results[0].id);
-          setPreviewTeamData(results[0]);
-        } else {
-          // No data from Stats API yet — show honest empty state
-          setPreviewTeams([]);
-          setPreviewTeamData(null);
+        setPreviewLoading(true);
+
+        if (templateType === 'top_standings') {
+          if (!selectedTournamentId) {
+            setPreviewData(MOCK_STANDINGS);
+            return;
+          }
+          const { results } = await getTopStandings(selectedTournamentId, styleConfig.topN || 10, 'team');
+          if (active) {
+            if (results && results.length > 0) {
+              setPreviewData({ teams: results });
+            } else {
+              setPreviewData(MOCK_STANDINGS);
+            }
+          }
+        }
+
+        else if (templateType === 'head_to_head') {
+          if (!previewTeamAId || !previewTeamBId) {
+            setPreviewData(MOCK_H2H);
+            return;
+          }
+          const data = await compareEntities('team', previewTeamAId, previewTeamBId, selectedTournamentId || undefined);
+          if (active) {
+            setPreviewData({
+              teamA: data.teamA ?? data.playerA ?? {},
+              teamB: data.teamB ?? data.playerB ?? {},
+              scope: data.scope ?? { type: selectedTournamentId ? 'tournament' : 'career' }
+            });
+          }
+        }
+
+        else if (templateType === 'team_profile') {
+          if (!previewTeamId) {
+            setPreviewData(MOCK_TEAM_PROFILE);
+            return;
+          }
+          const { profile, careerStats } = await getProfile('team', previewTeamId);
+          if (active) {
+            setPreviewData({ team: { ...profile, careerStats } });
+          }
+        }
+
+        else if (templateType === 'player_profile') {
+          if (!previewPlayerId) {
+            setPreviewData(MOCK_PLAYER_PROFILE);
+            return;
+          }
+          const { profile, careerStats } = await getProfile('player', previewPlayerId);
+          if (active) {
+            setPreviewData({ player: { ...profile, careerStats } });
+          }
         }
       } catch (err) {
-        // Stats API not configured or unreachable — leave preview empty
-        console.warn('Preview stats unavailable (Stats API not reachable or not configured):', err);
-        setPreviewTeams([]);
-        setPreviewTeamData(null);
+        console.warn('Live preview API call failed, falling back to mockups:', err);
+        if (active) {
+          // fallback to mock
+          if (templateType === 'top_standings') setPreviewData(MOCK_STANDINGS);
+          else if (templateType === 'head_to_head') setPreviewData(MOCK_H2H);
+          else if (templateType === 'team_profile') setPreviewData(MOCK_TEAM_PROFILE);
+          else if (templateType === 'player_profile') setPreviewData(MOCK_PLAYER_PROFILE);
+        }
+      } finally {
+        if (active) setPreviewLoading(false);
       }
     }
 
-    loadPreviewStats();
-  }, [selectedTournamentId]);
+    loadLivePreview();
+    return () => { active = false; };
+  }, [templateType, selectedTournamentId, previewTeamAId, previewTeamBId, previewTeamId, previewPlayerId, styleConfig.topN, loading]);
 
-  // Update preview team object when dropdown selection changes
-  useEffect(() => {
-    if (!selectedTeamId) return;
-    const team = previewTeams.find((t) => t.teamId === selectedTeamId);
-    if (team) {
-      setPreviewTeamData(team);
-    }
-  }, [selectedTeamId, previewTeams]);
+  // Update specific style configuration field
+  const updateStyleConfig = (patch: Partial<TemplateStyleConfig>) => {
+    setStyleConfig(prev => ({ ...prev, ...patch }));
+  };
 
-  // Upload background file to Firebase Storage
-  const handleUploadBackground = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload branding logo to Firebase Storage
+  const handleUploadBranding = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
       setUploading(true);
       const fileExt = file.name.split('.').pop();
-      const storagePath = `templates/backgrounds/${templateId || 'new'}_bg.${fileExt}`;
+      const storagePath = `templates/branding/${templateId || 'new'}_logo.${fileExt}`;
       const imageRef = ref(storage, storagePath);
       
       const snapshot = await uploadBytes(imageRef, file);
       const downloadUrl = await getDownloadURL(snapshot.ref);
       
-      setBackgroundImageUrl(downloadUrl);
+      updateStyleConfig({ brandingLogoUrl: downloadUrl });
     } catch (err) {
-      console.error('Failed to upload background image:', err);
-      alert('Upload failed: Ensure Firebase Storage is configured.');
+      console.error('Failed to upload branding image:', err);
+      alert('Upload failed: Make sure Firebase Storage is configured.');
     } finally {
       setUploading(false);
     }
   };
 
-  // Add field box on canvas
-  const handleAddBox = (item: FieldCatalogItem) => {
-    const newBox: FieldBox = {
-      id: Math.random().toString(36).substring(2, 9),
-      dataField: item.key,
-      x: 100,
-      y: 100,
-      width: item.type === 'image' ? 120 : 220,
-      height: item.type === 'image' ? 120 : 50,
-      fontFamily: 'Inter',
-      fontSize: 28,
-      fontWeight: 'bold',
-      color: '#ffffff',
-      textAlign: 'left',
-      boxType: item.type,
-    };
-    
-    setFieldBoxes((prev) => [...prev, newBox]);
-    setSelectedId(newBox.id);
+  // Tournament Logo array editor helpers
+  const handleTournamentLogoChange = (index: number, field: 'logoUrl' | 'tournamentName', value: string) => {
+    const list = [...(styleConfig.tournamentLogos || [])];
+    while (list.length <= index) {
+      list.push({ logoUrl: '', tournamentName: '' });
+    }
+    list[index] = { ...list[index], [field]: value };
+    updateStyleConfig({ tournamentLogos: list });
   };
 
-  // Download canvas preview as PNG
-  const handleDownload = async () => {
-    const canvasEl = document.getElementById('overlay-canvas-preview');
-    if (!canvasEl) return;
-
-    try {
-      const screenshot = await html2canvas(canvasEl, {
-        backgroundColor: null, // preserve transparency
-        scale: 2,              // 2x for high-DPI / retina quality
-        useCORS: true,         // allow cross-origin images (team logos from Firebase Storage)
-        allowTaint: false,
-      });
-
-      const link = document.createElement('a');
-      link.download = `${name.replace(/\s+/g, '_')}_overlay.png`;
-      link.href = screenshot.toDataURL('image/png');
-      link.click();
-    } catch (err) {
-      console.error('Download failed:', err);
-      alert('Failed to export PNG. Ensure preview data is loaded.');
+  // Column Selector helpers
+  const handleColumnToggle = (colKey: string) => {
+    const columns = [...styleConfig.showColumns];
+    if (columns.includes(colKey)) {
+      // Don't allow empty columns completely
+      if (columns.length > 1) {
+        updateStyleConfig({ showColumns: columns.filter(c => c !== colKey) });
+      }
+    } else {
+      // Find where to insert it based on default checklist order
+      const newCols = ALL_COLUMNS.filter(c => columns.includes(c.key) || c.key === colKey).map(c => c.key);
+      updateStyleConfig({ showColumns: newCols });
     }
   };
 
-  // Save changes
+  const moveColumn = (index: number, direction: 'up' | 'down') => {
+    const columns = [...styleConfig.showColumns];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex >= 0 && targetIndex < columns.length) {
+      const temp = columns[index];
+      columns[index] = columns[targetIndex];
+      columns[targetIndex] = temp;
+      updateStyleConfig({ showColumns: columns });
+    }
+  };
+
+  // Export 1920x1080 PNG using html2canvas
+  const handleDownload = async () => {
+    const canvasEl = document.getElementById('broadcast-graphic-preview');
+    if (!canvasEl) return;
+
+    try {
+      // Briefly remove scaling so it renders at full size
+      const originalTransform = canvasEl.style.transform;
+      canvasEl.style.transform = 'scale(1)';
+      
+      const screenshot = await html2canvas(canvasEl, {
+        backgroundColor: null, // transparent
+        scale: 2,              // 2x for full 1920x1080 crisp render
+        useCORS: true,
+        allowTaint: false,
+        width: 1920,
+        height: 1080,
+      });
+
+      canvasEl.style.transform = originalTransform;
+
+      const link = document.createElement('a');
+      link.download = `${name.replace(/\s+/g, '_')}_broadcast.png`;
+      link.href = screenshot.toDataURL('image/png');
+      link.click();
+    } catch (err) {
+      console.error('PNG export failed:', err);
+      alert('Failed to generate PNG image. Ensure preview data is valid.');
+    }
+  };
+
+  // Save Config to Firebase
   const handleSave = async () => {
     if (!name.trim()) {
       alert('Please enter a template name.');
@@ -217,24 +468,45 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       setSaving(true);
       const payload: Omit<OverlayTemplate, 'id'> = {
         name,
-        backgroundImageUrl,
-        canvasWidth,
-        canvasHeight,
-        fieldBoxes: fieldBoxes.map((box) => ({
-          ...box,
-          fontStyle: (box as any).fontStyle || 'normal', // Ensure default matches schema
-        })),
+        templateType,
+        styleConfig,
       };
 
       await saveTemplate(payload, templateId);
       router.push('/editor');
     } catch (err) {
       console.error('Save failed:', err);
-      alert('Error saving template.');
+      alert('Failed to save template configuration.');
     } finally {
       setSaving(false);
     }
   };
+
+  // Branding Split fields
+  const brandingParts = styleConfig.brandingName
+    ? (styleConfig.brandingName.includes('\n') ? styleConfig.brandingName.split('\n') : styleConfig.brandingName.split('/'))
+    : ['', ''];
+  const brandingOrg = brandingParts[0] || '';
+  const brandingMain = brandingParts[1] || '';
+
+  const handleBrandingNameChange = (field: 'org' | 'main', value: string) => {
+    const org = field === 'org' ? value : brandingOrg;
+    const main = field === 'main' ? value : brandingMain;
+    updateStyleConfig({ brandingName: `${org}\n${main}` });
+  };
+
+  // Map template type to component
+  const getTemplateComponent = () => {
+    switch (templateType) {
+      case 'top_standings': return TopStandings;
+      case 'head_to_head': return HeadToHead;
+      case 'team_profile': return TeamProfile;
+      case 'player_profile': return PlayerProfile;
+      default: return TopStandings;
+    }
+  };
+
+  const TemplateComponent = getTemplateComponent();
 
   if (loading) {
     return (
@@ -246,71 +518,32 @@ export default function TemplateBuilderPage({ params }: PageProps) {
   }
 
   return (
-    <div style={{ height: 'calc(100vh - 74px)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: 'calc(100vh - 74px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       
-      {/* EDITOR ACTION BAR */}
-      <div className="flex-between" style={{ padding: '0.75rem 2rem', background: '#0a0a0f', borderBottom: '1px solid var(--border-glass)', gap: '1rem', flexWrap: 'wrap' }}>
+      {/* Editor Action Bar */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '0.75rem 2rem',
+        background: '#0a0a0f',
+        borderBottom: '1px solid var(--border-glass)',
+        gap: '1rem'
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <Link href="/editor" className="btn btn-secondary btn-sm" title="Back to library">
             <ArrowLeft style={{ width: '16px', height: '16px' }} />
           </Link>
           <span style={{ fontWeight: 600, fontSize: '1.1rem' }}>
-            {isNew ? 'New Template' : 'Edit Template'}
+            {isNew ? 'New Broadcast Template' : 'Edit Style Configuration'}
           </span>
         </div>
 
-        {/* Live Preview Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <div className="editor-preview-selector">
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Preview Tourney:</span>
-            <select 
-              value={selectedTournamentId} 
-              onChange={(e) => setSelectedTournamentId(e.target.value)}
-            >
-              {tournaments.length === 0 && <option value="">No tournaments found</option>}
-              {tournaments.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {previewTeams.length > 0 && (
-            <div className="editor-preview-selector">
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Team:</span>
-              <select 
-                value={selectedTeamId} 
-                onChange={(e) => setSelectedTeamId(e.target.value)}
-              >
-                {previewTeams.map((t) => (
-                  <option key={t.teamId} value={t.teamId}>
-                    #{t.analyticsRank || '?'} {t.teamName}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Upload Background control */}
-          <label className="btn btn-secondary btn-sm" style={{ margin: 0 }}>
-            {uploading ? (
-              <Loader2 className="animate-spin" style={{ width: '14px', height: '14px' }} />
-            ) : (
-              <Upload style={{ width: '14px', height: '14px' }} />
-            )}
-            Background
-            <input 
-              type="file" 
-              accept="image/*" 
-              style={{ display: 'none' }} 
-              onChange={handleUploadBackground} 
-              disabled={uploading}
-            />
-          </label>
-
-          {/* Download PNG Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {/* Download PNG */}
           <button onClick={handleDownload} className="btn btn-secondary btn-sm">
             <Download style={{ width: '14px', height: '14px' }} />
-            Download PNG
+            Download PNG (2x)
           </button>
 
           {/* Save Button */}
@@ -325,49 +558,538 @@ export default function TemplateBuilderPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* EDITOR SPLIT WORKSPACE */}
-      <div className="editor-root" style={{ flexGrow: 1 }}>
+      {/* Main Split Panels */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '400px 1fr',
+        flexGrow: 1,
+        overflow: 'hidden',
+      }}>
         
-        {/* Stage Container */}
-        <div className="editor-canvas-container" id="overlay-canvas-preview">
-          <CanvasEditor
-            backgroundImageUrl={backgroundImageUrl}
-            canvasWidth={canvasWidth}
-            canvasHeight={canvasHeight}
-            fieldBoxes={fieldBoxes}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            onChangeBoxes={setFieldBoxes}
-            previewData={{
-              team: previewTeamData || {},
-              team1: previewTeams[0] || {},
-              team2: previewTeams[1] || {},
-              team3: previewTeams[2] || {},
-              team4: previewTeams[3] || {},
-              team5: previewTeams[4] || {},
-              teams: previewTeams
-            }}
-          />
+        {/* Left Side: Form Configurator */}
+        <div style={{
+          backgroundColor: 'rgba(15, 15, 22, 0.95)',
+          borderRight: '1px solid var(--border-glass)',
+          padding: '1.5rem',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.5rem',
+          boxSizing: 'border-box',
+        }}>
+          
+          {/* Section 1: Template & Name */}
+          <div>
+            <div className="sidebar-section-title">Template & Title</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="property-field">
+                <span className="property-label">Template Name</span>
+                <input 
+                  type="text" 
+                  className="text-input" 
+                  value={name} 
+                  onChange={(e) => setName(e.target.value)} 
+                />
+              </div>
+
+              <div className="property-field">
+                <span className="property-label">Template Type</span>
+                <select 
+                  className="select-input"
+                  value={templateType}
+                  onChange={(e) => setTemplateType(e.target.value as TemplateType)}
+                >
+                  <option value="top_standings">Top Standings Table</option>
+                  <option value="head_to_head">Head to Head Comparison</option>
+                  <option value="team_profile">Team Profile</option>
+                  <option value="player_profile">Player Profile</option>
+                </select>
+              </div>
+
+              <div className="property-field">
+                <span className="property-label">Graphic Title</span>
+                <input 
+                  type="text" 
+                  className="text-input" 
+                  value={styleConfig.graphicTitle} 
+                  placeholder="e.g. OGR T1 COLLATION"
+                  onChange={(e) => updateStyleConfig({ graphicTitle: e.target.value })} 
+                />
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Wrap [word] or *word* to force accent highlight.</span>
+              </div>
+
+              <div className="property-field">
+                <span className="property-label">Graphic Subtitle</span>
+                <input 
+                  type="text" 
+                  className="text-input" 
+                  value={styleConfig.graphicSubtitle} 
+                  placeholder="e.g. Full Standings"
+                  onChange={(e) => updateStyleConfig({ graphicSubtitle: e.target.value })} 
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Theme Settings */}
+          <div>
+            <div className="sidebar-section-title">Color Theme</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="property-field">
+                <span className="property-label">Theme Mode</span>
+                <div className="toggle-group">
+                  <button 
+                    className={`toggle-btn ${styleConfig.colorTheme === 'dark' ? 'active' : ''}`}
+                    onClick={() => updateStyleConfig({ colorTheme: 'dark' })}
+                  >
+                    Dark
+                  </button>
+                  <button 
+                    className={`toggle-btn ${styleConfig.colorTheme === 'light' ? 'active' : ''}`}
+                    onClick={() => updateStyleConfig({ colorTheme: 'light' })}
+                  >
+                    Light
+                  </button>
+                </div>
+              </div>
+
+              <div className="property-field">
+                <span className="property-label">Accent Color</span>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <input 
+                    type="color" 
+                    className="color-picker-input" 
+                    value={styleConfig.accentColor || '#C9A84C'} 
+                    onChange={(e) => updateStyleConfig({ accentColor: e.target.value })}
+                  />
+                  <input 
+                    type="text" 
+                    className="text-input" 
+                    style={{ width: '100px', fontSize: '0.85rem' }} 
+                    value={styleConfig.accentColor || '#C9A84C'} 
+                    onChange={(e) => updateStyleConfig({ accentColor: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Typography */}
+          <div>
+            <div className="sidebar-section-title">Typography (Google Fonts)</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="property-field">
+                <span className="property-label">Heading Font</span>
+                <input 
+                  type="text" 
+                  className="text-input" 
+                  value={styleConfig.headingFont} 
+                  placeholder="Inter"
+                  onChange={(e) => updateStyleConfig({ headingFont: e.target.value })} 
+                />
+              </div>
+
+              <div className="property-field">
+                <span className="property-label">Body Font</span>
+                <input 
+                  type="text" 
+                  className="text-input" 
+                  value={styleConfig.bodyFont} 
+                  placeholder="Inter"
+                  onChange={(e) => updateStyleConfig({ bodyFont: e.target.value })} 
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 4: Branding Settings */}
+          <div>
+            <div className="sidebar-section-title">Branding</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="property-field">
+                <span className="property-label">Branding Logo</span>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                  {styleConfig.brandingLogoUrl && (
+                    <img 
+                      src={styleConfig.brandingLogoUrl} 
+                      alt="preview" 
+                      style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} 
+                    />
+                  )}
+                  <label className="btn btn-secondary btn-sm" style={{ margin: 0, flexGrow: 1, justifyContent: 'center' }}>
+                    {uploading ? (
+                      <Loader2 className="animate-spin" style={{ width: '14px', height: '14px' }} />
+                    ) : (
+                      <Upload style={{ width: '14px', height: '14px' }} />
+                    )}
+                    Upload Logo
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      style={{ display: 'none' }} 
+                      onChange={handleUploadBranding} 
+                      disabled={uploading}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="property-field">
+                <span className="property-label">Org Name (Line 1)</span>
+                <input 
+                  type="text" 
+                  className="text-input" 
+                  value={brandingOrg} 
+                  placeholder="e.g. HEAVEN STAT ENGINE"
+                  onChange={(e) => handleBrandingNameChange('org', e.target.value)} 
+                />
+              </div>
+
+              <div className="property-field">
+                <span className="property-label">Main Title (Line 2)</span>
+                <input 
+                  type="text" 
+                  className="text-input" 
+                  value={brandingMain} 
+                  placeholder="e.g. CODM BR Coverage"
+                  onChange={(e) => handleBrandingNameChange('main', e.target.value)} 
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '4px' }}>
+                <input 
+                  type="checkbox" 
+                  id="chk-stamp"
+                  checked={styleConfig.showStatsStamp}
+                  onChange={(e) => updateStyleConfig({ showStatsStamp: e.target.checked })} 
+                />
+                <label htmlFor="chk-stamp" className="property-label" style={{ margin: 0, cursor: 'pointer' }}>
+                  Show "Stats by Heaven" Watermark
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 5: Tournament Logos */}
+          <div>
+            <div className="sidebar-section-title">Tournament Logos</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="property-field">
+                <span className="property-label">Number of Slots</span>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  {[1, 2, 3].map((val) => (
+                    <label key={val} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}>
+                      <input 
+                        type="radio" 
+                        name="logo-slots" 
+                        checked={styleConfig.tournamentLogoCount === val}
+                        onChange={() => updateStyleConfig({ tournamentLogoCount: val as 1 | 2 | 3 })} 
+                      />
+                      <span className="property-label" style={{ margin: 0 }}>{val}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {Array.from({ length: styleConfig.tournamentLogoCount || 1 }).map((_, idx) => {
+                const logo = styleConfig.tournamentLogos?.[idx] || { logoUrl: '', tournamentName: '' };
+                return (
+                  <div key={idx} style={{
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    padding: '0.75rem',
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.01)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem',
+                  }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 'bold', color: 'var(--accent)' }}>SLOT #{idx + 1}</span>
+                    <div className="property-field">
+                      <span className="property-label">Logo URL</span>
+                      <input 
+                        type="text" 
+                        className="text-input" 
+                        style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem' }}
+                        value={logo.logoUrl} 
+                        placeholder="Paste logo URL..."
+                        onChange={(e) => handleTournamentLogoChange(idx, 'logoUrl', e.target.value)} 
+                      />
+                    </div>
+                    <div className="property-field">
+                      <span className="property-label">Tournament Label</span>
+                      <input 
+                        type="text" 
+                        className="text-input" 
+                        style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem' }}
+                        value={logo.tournamentName} 
+                        placeholder="e.g. Major S2"
+                        onChange={(e) => handleTournamentLogoChange(idx, 'tournamentName', e.target.value)} 
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section 6: Top N Rows (Only Top Standings) */}
+          {templateType === 'top_standings' && (
+            <div>
+              <div className="sidebar-section-title">Top Standings Settings</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="property-field">
+                  <span className="property-label">Rows to display (Top N)</span>
+                  <input 
+                    type="number" 
+                    className="text-input" 
+                    min={1} 
+                    max={25}
+                    value={styleConfig.topN} 
+                    onChange={(e) => updateStyleConfig({ topN: Math.max(1, Math.min(25, Number(e.target.value))) })} 
+                  />
+                </div>
+
+                <div className="property-field">
+                  <span className="property-label">Table Columns & Order</span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                    Check to show. Reorder columns using the arrows.
+                  </span>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    padding: '8px',
+                    backgroundColor: 'rgba(0,0,0,0.2)',
+                  }}>
+                    {/* Render currently active columns list in their sorted order */}
+                    {styleConfig.showColumns.map((colKey, index) => {
+                      const colDef = ALL_COLUMNS.find(c => c.key === colKey) || { key: colKey, label: colKey };
+                      return (
+                        <div key={colKey} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '6px 8px',
+                          backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '4px',
+                        }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flexGrow: 1 }}>
+                            <input 
+                              type="checkbox" 
+                              checked={true}
+                              onChange={() => handleColumnToggle(colKey)} 
+                            />
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{colDef.label}</span>
+                          </label>
+                          <div style={{ display: 'flex', gap: '2px' }}>
+                            <button 
+                              disabled={index === 0} 
+                              onClick={() => moveColumn(index, 'up')}
+                              className="element-action-btn"
+                              style={{ padding: '2px' }}
+                            >
+                              <ChevronUp style={{ width: '14px', height: '14px' }} />
+                            </button>
+                            <button 
+                              disabled={index === styleConfig.showColumns.length - 1} 
+                              onClick={() => moveColumn(index, 'down')}
+                              className="element-action-btn"
+                              style={{ padding: '2px' }}
+                            >
+                              <ChevronDown style={{ width: '14px', height: '14px' }} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Render unselected columns at the bottom */}
+                    {ALL_COLUMNS.filter(c => !styleConfig.showColumns.includes(c.key)).map((colDef) => (
+                      <div key={colDef.key} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 8px',
+                        border: '1px dashed var(--border)',
+                        borderRadius: '4px',
+                        opacity: 0.6,
+                      }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flexGrow: 1 }}>
+                          <input 
+                            type="checkbox" 
+                            checked={false}
+                            onChange={() => handleColumnToggle(colDef.key)} 
+                          />
+                          <span style={{ fontSize: '0.8rem' }}>{colDef.label}</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
 
-        {/* Sidebar Style Controls */}
-        <StylePanel
-          templateName={name}
-          setTemplateName={setName}
-          canvasWidth={canvasWidth}
-          setCanvasWidth={setCanvasWidth}
-          canvasHeight={canvasHeight}
-          setCanvasHeight={setCanvasHeight}
-          backgroundImageUrl={backgroundImageUrl}
-          setBackgroundImageUrl={setBackgroundImageUrl}
-          fieldBoxes={fieldBoxes}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-          onChangeBoxes={setFieldBoxes}
-          catalog={catalog}
-          onAddBox={handleAddBox}
-        />
-        
+        {/* Right Side: Preview Panel */}
+        <div style={{
+          backgroundColor: '#121218',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'auto',
+          position: 'relative',
+          padding: '2rem',
+          boxSizing: 'border-box',
+        }}>
+          
+          {/* Preview Source Selector Toolbar (Floating top) */}
+          <div style={{
+            position: 'absolute',
+            top: '1.5rem',
+            left: '1.5rem',
+            right: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            zIndex: 10,
+            gap: '12px',
+          }}>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              
+              {/* Tournament Selector */}
+              <div className="editor-preview-selector">
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Preview Tourney:</span>
+                <select 
+                  value={selectedTournamentId}
+                  onChange={(e) => setSelectedTournamentId(e.target.value)}
+                >
+                  <option value="">-- Choose Tournament --</option>
+                  {tournaments.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Head-to-Head Source Pickers */}
+              {templateType === 'head_to_head' && (
+                <>
+                  <div className="editor-preview-selector">
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Team A:</span>
+                    <select 
+                      value={previewTeamAId}
+                      onChange={(e) => setPreviewTeamAId(e.target.value)}
+                    >
+                      {teamsList.map((t) => (
+                        <option key={t.teamId || t.id} value={t.teamId || t.id}>{t.teamName}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="editor-preview-selector">
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Team B:</span>
+                    <select 
+                      value={previewTeamBId}
+                      onChange={(e) => setPreviewTeamBId(e.target.value)}
+                    >
+                      {teamsList.filter(t => (t.teamId || t.id) !== previewTeamAId).map((t) => (
+                        <option key={t.teamId || t.id} value={t.teamId || t.id}>{t.teamName}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* Team Profile Source Picker */}
+              {templateType === 'team_profile' && (
+                <div className="editor-preview-selector">
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Team:</span>
+                  <select 
+                    value={previewTeamId}
+                    onChange={(e) => setPreviewTeamId(e.target.value)}
+                  >
+                    {teamsList.map((t) => (
+                      <option key={t.teamId || t.id} value={t.teamId || t.id}>{t.teamName}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Player Profile Source Picker */}
+              {templateType === 'player_profile' && (
+                <div className="editor-preview-selector">
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Player:</span>
+                  <select 
+                    value={previewPlayerId}
+                    onChange={(e) => setPreviewPlayerId(e.target.value)}
+                  >
+                    {playersList.map((p) => (
+                      <option key={p.playerId || p.id} value={p.playerId || p.id}>
+                        {p.ign || p.professionalName || p.id}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* Spinner indicator */}
+            {previewLoading && (
+              <div style={{
+                background: 'rgba(0,0,0,0.5)',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '0.8rem',
+                border: '1px solid var(--border-glass)',
+              }}>
+                <Loader2 className="animate-spin" style={{ width: '12px', height: '12px', animation: 'spin 1s linear infinite' }} />
+                <span>Loading preview data...</span>
+              </div>
+            )}
+          </div>
+
+          {/* 1920x1080 graphic scaled down to 50% */}
+          <div style={{
+            width: '960px',
+            height: '540px',
+            position: 'relative',
+            border: '2px dashed rgba(255, 255, 255, 0.15)',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7)',
+            backgroundColor: '#000',
+            overflow: 'hidden',
+          }}>
+            <div 
+              id="broadcast-graphic-preview"
+              style={{
+                width: '1920px',
+                height: '1080px',
+                transform: 'scale(0.5)',
+                transformOrigin: 'top left',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+              }}
+            >
+              <style dangerouslySetInnerHTML={{ __html: `${googleFontsLink(styleConfig)}\n${cssVarsForTheme(styleConfig)}` }} />
+              <TemplateComponent data={previewData} styleConfig={styleConfig} />
+            </div>
+          </div>
+
+          <div style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            Live preview scaled to 50%. Exported image or OBS renders at full 1920x1080.
+          </div>
+
+        </div>
+
       </div>
     </div>
   );
