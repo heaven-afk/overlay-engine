@@ -13,7 +13,9 @@ async function callStatsApi(path: string, params: Record<string, string>) {
     );
   }
 
-  const url = new URL(`${API_BASE}${path}`);
+  const cleanBase = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const url = new URL(`${cleanBase}${cleanPath}`);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
 
   const res = await fetch(url.toString(), {

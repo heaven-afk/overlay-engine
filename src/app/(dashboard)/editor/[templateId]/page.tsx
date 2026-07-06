@@ -209,6 +209,8 @@ export default function TemplateBuilderPage({ params }: PageProps) {
   const [selectedTournamentId, setSelectedTournamentId] = useState<string>('');
   const [teamsList, setTeamsList] = useState<any[]>([]);
   const [playersList, setPlayersList] = useState<any[]>([]);
+  const [filteredTeams, setFilteredTeams] = useState<any[]>([]);
+  const [filteredPlayers, setFilteredPlayers] = useState<any[]>([]);
 
   // Selection states for previewing
   const [previewTeamAId, setPreviewTeamAId] = useState<string>('');
@@ -235,6 +237,8 @@ export default function TemplateBuilderPage({ params }: PageProps) {
         setTournaments(tourneys);
         setTeamsList(teamsRes.results || []);
         setPlayersList(playersRes.results || []);
+        setFilteredTeams(teamsRes.results || []);
+        setFilteredPlayers(playersRes.results || []);
 
         if (tourneys.length > 0) {
           setSelectedTournamentId(tourneys[0].id);
@@ -283,6 +287,67 @@ export default function TemplateBuilderPage({ params }: PageProps) {
 
     loadInitialData();
   }, [rawTemplateId, isNew, router]);
+
+  // Update filtered selection lists when selectedTournamentId changes.
+  // IMPORTANT: We also reset team/player selection IDs here (synchronously within the same
+  // async function) so that by the time this effect finishes and the previewData effect
+  // re-runs, the IDs already reflect the new tournament list — avoiding a race condition
+  // where the preview would fetch with stale IDs.
+  useEffect(() => {
+    let active = true;
+    async function updateFilters() {
+      if (loading) return;
+
+      try {
+        let tList: any[] = teamsList;
+        let pList: any[] = playersList;
+
+        if (selectedTournamentId) {
+          // Fetch tournament-specific standings
+          const [teamsRes, playersRes] = await Promise.all([
+            getTopStandings(selectedTournamentId, 100, 'team').catch(() => ({ results: [] })),
+            getTopStandings(selectedTournamentId, 100, 'player').catch(() => ({ results: [] }))
+          ]);
+          tList = (teamsRes.results?.length > 0 ? teamsRes.results : teamsList);
+          pList = (playersRes.results?.length > 0 ? playersRes.results : playersList);
+        }
+
+        if (!active) return;
+
+        setFilteredTeams(tList);
+        setFilteredPlayers(pList);
+
+        // --- Reset selection IDs to valid entries in the new list ---
+        const teamIds = tList.map((t: any) => t.teamId || t.id);
+        const playerIds = pList.map((p: any) => p.playerId || p.id);
+
+        // Team A: reset if not in new list, always pick index 0
+        if (!previewTeamAId || !teamIds.includes(previewTeamAId)) {
+          setPreviewTeamAId(teamIds[0] ?? '');
+        }
+        // Team B: reset if not in new list, pick index 1 (or 0 if only one entry)
+        if (!previewTeamBId || !teamIds.includes(previewTeamBId)) {
+          setPreviewTeamBId(teamIds[1] ?? teamIds[0] ?? '');
+        }
+        // Also reset single-team and player pickers
+        if (!previewTeamId || !teamIds.includes(previewTeamId)) {
+          setPreviewTeamId(teamIds[0] ?? '');
+        }
+        if (!previewPlayerId || !playerIds.includes(previewPlayerId)) {
+          setPreviewPlayerId(playerIds[0] ?? '');
+        }
+      } catch (err) {
+        console.warn('Failed to fetch tournament-specific teams/players, using global list:', err);
+        if (!active) return;
+        setFilteredTeams(teamsList);
+        setFilteredPlayers(playersList);
+      }
+    }
+
+    updateFilters();
+    return () => { active = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTournamentId, teamsList, playersList, loading]);
 
   // Load preview data when data source inputs change
   useEffect(() => {
@@ -945,22 +1010,18 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'auto',
-          position: 'relative',
-          padding: '2rem',
+          padding: '2.5rem 2rem',
           boxSizing: 'border-box',
         }}>
           
-          {/* Preview Source Selector Toolbar (Floating top) */}
+          {/* Preview Source Selector Toolbar (Static header above the canvas) */}
           <div style={{
-            position: 'absolute',
-            top: '1.5rem',
-            left: '1.5rem',
-            right: '1.5rem',
+            width: '960px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            zIndex: 10,
             gap: '12px',
+            marginBottom: '1.5rem',
           }}>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               
@@ -971,7 +1032,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                   value={selectedTournamentId}
                   onChange={(e) => setSelectedTournamentId(e.target.value)}
                 >
-                  <option value="">-- Choose Tournament --</option>
+                  <option value="">-- Global / Career Stats --</option>
                   {tournaments.map((t) => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
@@ -987,7 +1048,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                       value={previewTeamAId}
                       onChange={(e) => setPreviewTeamAId(e.target.value)}
                     >
-                      {teamsList.map((t) => (
+                      {filteredTeams.map((t) => (
                         <option key={t.teamId || t.id} value={t.teamId || t.id}>{t.teamName}</option>
                       ))}
                     </select>
@@ -998,7 +1059,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                       value={previewTeamBId}
                       onChange={(e) => setPreviewTeamBId(e.target.value)}
                     >
-                      {teamsList.filter(t => (t.teamId || t.id) !== previewTeamAId).map((t) => (
+                      {filteredTeams.filter(t => (t.teamId || t.id) !== previewTeamAId).map((t) => (
                         <option key={t.teamId || t.id} value={t.teamId || t.id}>{t.teamName}</option>
                       ))}
                     </select>
@@ -1014,7 +1075,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     value={previewTeamId}
                     onChange={(e) => setPreviewTeamId(e.target.value)}
                   >
-                    {teamsList.map((t) => (
+                    {filteredTeams.map((t) => (
                       <option key={t.teamId || t.id} value={t.teamId || t.id}>{t.teamName}</option>
                     ))}
                   </select>
@@ -1029,7 +1090,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     value={previewPlayerId}
                     onChange={(e) => setPreviewPlayerId(e.target.value)}
                   >
-                    {playersList.map((p) => (
+                    {filteredPlayers.map((p) => (
                       <option key={p.playerId || p.id} value={p.playerId || p.id}>
                         {p.ign || p.professionalName || p.id}
                       </option>

@@ -35,8 +35,8 @@ export const BrandingHeader: React.FC<SharedProps> = ({ styleConfig }) => {
             src={brandingLogoUrl} 
             alt="logo" 
             style={{
-              width: '48px',
-              height: '48px',
+              width: '72px',
+              height: '72px',
               objectFit: 'cover',
               borderRadius: '4px',
               border: '1px solid var(--border)',
@@ -44,8 +44,8 @@ export const BrandingHeader: React.FC<SharedProps> = ({ styleConfig }) => {
           />
         ) : (
           <div style={{
-            width: '48px',
-            height: '48px',
+            width: '72px',
+            height: '72px',
             borderRadius: '4px',
             backgroundColor: 'var(--accent)',
             opacity: 0.8,
@@ -215,11 +215,16 @@ interface LogoProps {
 }
 
 export const TeamLogoPlaceholder: React.FC<LogoProps> = ({ logoUrl, size = 36, name = '' }) => {
-  if (logoUrl) {
+  // Only render an img if the URL is a valid absolute http(s) URL.
+  // Bare filenames like "Legion.png" will 404 and should fall back to initials.
+  const isValidUrl = logoUrl && (logoUrl.startsWith('http://') || logoUrl.startsWith('https://'));
+  if (isValidUrl) {
     return (
       <img 
         src={logoUrl} 
-        alt={name} 
+        alt={name}
+        referrerPolicy="no-referrer"
+        crossOrigin="anonymous"
         style={{
           width: `${size}px`,
           height: `${size}px`,
