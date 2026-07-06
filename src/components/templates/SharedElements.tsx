@@ -23,10 +23,11 @@ export const BrandingHeader: React.FC<SharedProps> = ({ styleConfig }) => {
       justifyContent: 'space-between',
       alignItems: 'center',
       width: '100%',
-      padding: '24px 48px',
+      padding: '16px 48px',
       borderBottom: '1px solid var(--border)',
       background: 'linear-gradient(to bottom, var(--bg-card), transparent)',
       boxSizing: 'border-box',
+      flexShrink: 0,
     }}>
       {/* Left side branding */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -130,7 +131,7 @@ export const StatsStamp: React.FC<{ show: boolean }> = ({ show }) => {
   return (
     <div style={{
       position: 'absolute',
-      bottom: '24px',
+      bottom: '16px',
       right: '48px',
       fontSize: '10px',
       fontWeight: 700,
@@ -166,7 +167,7 @@ export const SourceLine: React.FC<SourceLineProps> = ({ styleConfig, customText 
   return (
     <div style={{
       position: 'absolute',
-      bottom: '24px',
+      bottom: '16px',
       left: '48px',
       fontSize: '10px',
       fontWeight: 700,

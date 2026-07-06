@@ -44,23 +44,21 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ data, styleConfig 
 
   const statCards = getCardStats();
 
-  // Extract Rating Breakdown values
-  const ratingPower = Number(player.scores?.POWER ?? player.analytics?.power ?? 70.0);
-  const ratingConversion = Number(player.scores?.CONVERSION ?? player.analytics?.conversion ?? 75.0);
-  const ratingForm = Number(player.scores?.FORM ?? player.analytics?.form ?? 60.0);
-  const finalRating = Number(player.scores?.FINAL_RATING ?? 625.0);
+  // Extract Rating Breakdown values — no hardcoded fallbacks
+  const ratingPower      = Number(player.scores?.POWER      ?? player.analytics?.power      ?? 0);
+  const ratingConversion = Number(player.scores?.CONVERSION ?? player.analytics?.conversion ?? 0);
+  const ratingForm       = Number(player.scores?.FORM       ?? player.analytics?.form       ?? 0);
+  const finalRating      = Number(player.scores?.FINAL_RATING ?? player.rating ?? 0);
+  const hasRatings = ratingPower > 0 || ratingConversion > 0 || ratingForm > 0;
 
   const breakdowns = [
-    { label: 'POWER', value: ratingPower },
+    { label: 'POWER',      value: ratingPower },
     { label: 'CONVERSION', value: ratingConversion },
-    { label: 'FORM', value: ratingForm },
+    { label: 'FORM',       value: ratingForm },
   ];
 
-  // Career History
-  const historyList = player.careerStats?.tournaments || player.careerHistory || [
-    { tournament: 'African BR Championship', kills: 48, matches: 6, kpm: 8.0, rating: 620 },
-    { tournament: 'Heaven Invitational S1', kills: 35, matches: 5, kpm: 7.0, rating: 590 }
-  ];
+  // Career History — only show real data, no hardcoded fallback rows
+  const historyList: any[] = player.careerStats?.tournaments ?? player.careerHistory ?? [];
 
   return (
     <div style={{
@@ -155,10 +153,11 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ data, styleConfig 
         display: 'grid',
         gridTemplateColumns: '1.1fr 1fr',
         gap: '40px',
-        padding: '32px 48px 100px',
+        padding: '24px 48px 56px',
         flexGrow: 1,
         boxSizing: 'border-box',
         overflow: 'hidden',
+        minHeight: 0,
       }}>
         {/* Left Side: Stat Cards & Career History Table */}
         <div style={{
@@ -308,6 +307,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ data, styleConfig 
           </div>
 
           {/* Breakdown bars */}
+          {hasRatings ? (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -331,7 +331,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ data, styleConfig 
                 }}>
                   <span>{b.label}</span>
                   <span style={{ fontFamily: 'monospace', color: 'var(--text-primary)' }}>
-                    {b.value.toFixed(2)}
+                    {b.value > 0 ? b.value.toFixed(1) : '—'}
                   </span>
                 </div>
                 {/* Progress bar */}
@@ -353,6 +353,11 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ data, styleConfig 
               </div>
             ))}
           </div>
+          ) : (
+            <div style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', padding: '20px 0', margin: '16px 0' }}>
+              Rating breakdown not available
+            </div>
+          )}
 
           {/* Score & Labels */}
           <div style={{
@@ -390,6 +395,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ data, styleConfig 
               borderTop: '1px solid rgba(255,255,255,0.03)',
               paddingTop: '12px',
             }}>
+              {player.identity && (
               <span style={{
                 fontSize: '11px',
                 fontWeight: 700,
@@ -399,8 +405,10 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ data, styleConfig 
                 borderRadius: '6px',
                 textTransform: 'uppercase',
               }}>
-                {player.identity || 'SLAYER'}
+                {player.identity}
               </span>
+              )}
+              {player.labels?.powerLabel && (
               <span style={{
                 fontSize: '11px',
                 fontWeight: 700,
@@ -411,8 +419,10 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ data, styleConfig 
                 borderRadius: '6px',
                 textTransform: 'uppercase',
               }}>
-                {player.labels?.powerLabel || 'POWER OUTSTANDING'}
+                {player.labels.powerLabel}
               </span>
+              )}
+              {player.labels?.formLabel && (
               <span style={{
                 fontSize: '11px',
                 fontWeight: 700,
@@ -423,8 +433,9 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ data, styleConfig 
                 borderRadius: '6px',
                 textTransform: 'uppercase',
               }}>
-                {player.labels?.formLabel || 'RED HOT'}
+                {player.labels.formLabel}
               </span>
+              )}
             </div>
           </div>
         </div>

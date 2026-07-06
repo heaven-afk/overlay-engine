@@ -151,12 +151,13 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
 
       {/* Title */}
       <div style={{
-        padding: '32px 48px 0',
+        padding: '20px 48px 0',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         gap: '4px',
         boxSizing: 'border-box',
+        flexShrink: 0,
       }}>
         <h1 style={{
           fontSize: '38px',
@@ -184,17 +185,17 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '40px 80px 100px',
+        alignItems: 'stretch',
+        padding: '24px 64px 56px',
         flexGrow: 1,
         boxSizing: 'border-box',
-        gap: '48px',
+        gap: '40px',
+        minHeight: 0,
       }}>
         {/* Team A Card */}
         <div style={{
           flex: '1',
-          maxWidth: '380px',
-          height: '420px',
+          maxWidth: '340px',
           backgroundColor: 'var(--bg-card)',
           borderRadius: '16px',
           border: overallWinner === 'A' ? '2px solid var(--accent)' : '1px solid var(--border)',
@@ -206,7 +207,6 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
           padding: '24px',
           boxSizing: 'border-box',
           position: 'relative',
-          transition: 'all 0.3s ease',
         }}>
           {overallWinner === 'A' && (
             <div style={{
@@ -423,8 +423,7 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
         {/* Team B Card */}
         <div style={{
           flex: '1',
-          maxWidth: '380px',
-          height: '420px',
+          maxWidth: '340px',
           backgroundColor: 'var(--bg-card)',
           borderRadius: '16px',
           border: overallWinner === 'B' ? '2px solid var(--accent)' : '1px solid var(--border)',
@@ -436,7 +435,6 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
           padding: '24px',
           boxSizing: 'border-box',
           position: 'relative',
-          transition: 'all 0.3s ease',
         }}>
           {overallWinner === 'B' && (
             <div style={{

@@ -185,10 +185,11 @@ export const TeamProfile: React.FC<TeamProfileProps> = ({ data, styleConfig }) =
         display: 'grid',
         gridTemplateColumns: tournaments.length > 0 ? '1fr 360px' : '1fr',
         gap: '28px',
-        padding: '24px 48px 88px',
+        padding: '24px 48px 56px',
         flexGrow: 1,
         boxSizing: 'border-box',
         overflow: 'hidden',
+        minHeight: 0,
       }}>
 
         {/* ── Left: Stat cards + Rating breakdown ─────────────────── */}

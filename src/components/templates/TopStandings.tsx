@@ -155,11 +155,12 @@ export const TopStandings: React.FC<TopStandingsProps> = ({ data, styleConfig })
 
       {/* Title block */}
       <div style={{
-        padding: '32px 48px 16px',
+        padding: '20px 48px 12px',
         display: 'flex',
         flexDirection: 'column',
         gap: '4px',
         boxSizing: 'border-box',
+        flexShrink: 0,
       }}>
         <h1 style={{
           fontSize: '44px',
@@ -186,11 +187,12 @@ export const TopStandings: React.FC<TopStandingsProps> = ({ data, styleConfig })
       {/* Table grid container */}
       <div style={{
         flexGrow: 1,
-        padding: '0 48px 80px',
+        padding: '0 48px 52px',
         display: 'flex',
         flexDirection: 'column',
         boxSizing: 'border-box',
         overflow: 'hidden',
+        minHeight: 0,
       }}>
         {/* Header Row */}
         <div style={{
@@ -241,10 +243,11 @@ export const TopStandings: React.FC<TopStandingsProps> = ({ data, styleConfig })
         <div style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '4px',
-          marginTop: '6px',
-          overflowY: 'auto',
+          gap: '3px',
+          marginTop: '4px',
           flexGrow: 1,
+          justifyContent: 'space-between',
+          minHeight: 0,
         }}>
           {teams.length === 0 ? (
             <div style={{
