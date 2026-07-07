@@ -449,37 +449,102 @@ export default function TemplateBuilderPage({ params }: PageProps) {
     setStyleConfig(prev => ({ ...prev, ...patch }));
   };
 
-  // Shared helper: read a File with FileReader (fires real progress 0–95%),
+  // Helper to downscale and compress images to optimized Base64 in the browser,
+  // preventing Firebase Firestore 1MB document size limit issues.
+  const compressAndGetBase64 = (
+    file: File,
+    maxW: number,
+    maxH: number,
+    quality = 0.8
+  ): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxW) {
+              height = Math.round((height * maxW) / width);
+              width = maxW;
+            }
+            if (height > maxH) {
+              width = Math.round((width * maxH) / height);
+              height = maxH;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              resolve(e.target?.result as string);
+              return;
+            }
+
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+            const dataUrl = canvas.toDataURL(mimeType, quality);
+            resolve(dataUrl);
+          } catch (err) {
+            resolve(e.target?.result as string); // fallback to original base64
+          }
+        };
+        img.onerror = () => resolve(e.target?.result as string);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Shared helper: read a File with FileReader (fires real progress 0–60%),
   // then upload the ArrayBuffer via uploadBytes, and resolve with the download URL.
+  // Falls back to direct Base64 Firestore storage if Firebase Storage is not configured.
   const uploadFileWithProgress = (
     file: File,
     storagePath: string,
     onProgress: (pct: number) => void,
     onDone: (url: string) => void,
-    onError: (err: any) => void
+    onError: (err: any) => void,
+    fallbackOpts: { maxW: number; maxH: number; quality?: number }
   ) => {
     const reader = new FileReader();
 
     reader.onprogress = (evt) => {
       if (evt.lengthComputable) {
-        // Reading counts as 0–95%; the final Firebase upload is 95–100%
-        const readPct = Math.round((evt.loaded / evt.total) * 95);
+        // Reading counts as 0–60%; the final Firebase upload or Base64 conversion is 60–100%
+        const readPct = Math.round((evt.loaded / evt.total) * 60);
         onProgress(readPct);
       }
     };
 
     reader.onload = async () => {
       try {
-        onProgress(95);
+        onProgress(75);
         const imageRef = ref(storage, storagePath);
         const buffer = reader.result as ArrayBuffer;
+        
+        // Try uploading to Firebase Storage
         const snapshot = await uploadBytes(imageRef, buffer, { contentType: file.type });
         const url = await getDownloadURL(snapshot.ref);
         onProgress(100);
-        // Small delay so the user sees 100% before it clears
         setTimeout(() => onDone(url), 400);
       } catch (err) {
-        onError(err);
+        console.warn('Firebase Storage upload failed, falling back to local Firestore Base64:', err);
+        // Fall back to browser-side compression & base64 encoding
+        onProgress(80);
+        const base64Url = await compressAndGetBase64(file, fallbackOpts.maxW, fallbackOpts.maxH, fallbackOpts.quality || 0.8);
+        onProgress(100);
+        if (base64Url) {
+          setTimeout(() => onDone(base64Url), 400);
+        } else {
+          onError(new Error('Failed to convert image to base64 fallback'));
+        }
       }
     };
 
@@ -502,7 +567,8 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       `templates/branding/${templateId || 'new'}_logo.${file.name.split('.').pop()}`,
       (pct) => setUploadProgress(pct),
       (url) => { updateStyleConfig({ brandingLogoUrl: url }); setUploading(false); setUploadProgress(0); },
-      (err) => { console.error('Branding upload failed:', err); alert('Upload failed.'); setUploading(false); setUploadProgress(0); }
+      (err) => { console.error('Branding upload failed:', err); alert('Upload failed.'); setUploading(false); setUploadProgress(0); },
+      { maxW: 512, maxH: 512, quality: 0.85 }
     );
   };
 
@@ -520,7 +586,8 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       `templates/backgrounds/${templateId || 'new'}_bg.${file.name.split('.').pop()}`,
       (pct) => setUploadBgProgress(pct),
       (url) => { updateStyleConfig({ customBackgroundUrl: url }); setUploadingBg(false); setUploadBgProgress(0); },
-      (err) => { console.error('Background upload failed:', err); alert('Upload failed.'); setUploadingBg(false); setUploadBgProgress(0); }
+      (err) => { console.error('Background upload failed:', err); alert('Upload failed.'); setUploadingBg(false); setUploadBgProgress(0); },
+      { maxW: 1920, maxH: 1080, quality: 0.75 }
     );
   };
 
