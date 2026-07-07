@@ -529,8 +529,14 @@ export default function TemplateBuilderPage({ params }: PageProps) {
         const imageRef = ref(storage, storagePath);
         const buffer = reader.result as ArrayBuffer;
         
-        // Try uploading to Firebase Storage
-        const snapshot = await uploadBytes(imageRef, buffer, { contentType: file.type });
+        // Try uploading to Firebase Storage with a 2.5 second timeout
+        // (to prevent Firebase SDK from retrying indefinitely when Storage is not configured/enabled)
+        const uploadPromise = uploadBytes(imageRef, buffer, { contentType: file.type });
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Firebase Storage upload timed out')), 2500)
+        );
+        
+        const snapshot = await Promise.race([uploadPromise, timeoutPromise]);
         const url = await getDownloadURL(snapshot.ref);
         onProgress(100);
         setTimeout(() => onDone(url), 400);
