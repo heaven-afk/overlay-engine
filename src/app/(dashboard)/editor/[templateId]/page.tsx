@@ -9,7 +9,7 @@ import {
 } from '@/lib/db';
 import { getTopStandings, getGlobalRankings, getProfile, compareEntities } from '@/lib/statsApi';
 import { db, storage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { collection, doc } from 'firebase/firestore';
 import { ArrowLeft, Save, Upload, Loader2, Download, ChevronUp, ChevronDown, Check } from 'lucide-react';
 import html2canvas from 'html2canvas';
@@ -180,6 +180,9 @@ export default function TemplateBuilderPage({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadingBg, setUploadingBg] = useState(false);
+  const [uploadBgProgress, setUploadBgProgress] = useState<number>(0);
 
   // Template base configurations
   const [templateId, setTemplateId] = useState<string>('');
@@ -437,47 +440,71 @@ export default function TemplateBuilderPage({ params }: PageProps) {
   };
 
   // Upload branding logo to Firebase Storage
-  const handleUploadBranding = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadBranding = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    try {
-      setUploading(true);
-      const fileExt = file.name.split('.').pop();
-      const storagePath = `templates/branding/${templateId || 'new'}_logo.${fileExt}`;
-      const imageRef = ref(storage, storagePath);
-      
-      const snapshot = await uploadBytes(imageRef, file);
-      const downloadUrl = await getDownloadURL(snapshot.ref);
-      
-      updateStyleConfig({ brandingLogoUrl: downloadUrl });
-    } catch (err) {
-      console.error('Failed to upload branding image:', err);
-      alert('Upload failed: Make sure Firebase Storage is configured.');
-    } finally {
-      setUploading(false);
-    }
+    const fileExt = file.name.split('.').pop();
+    const storagePath = `templates/branding/${templateId || 'new'}_logo.${fileExt}`;
+    const imageRef = ref(storage, storagePath);
+    const uploadTask = uploadBytesResumable(imageRef, file);
+
+    setUploading(true);
+    setUploadProgress(0);
+
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+        setUploadProgress(pct);
+      },
+      (err) => {
+        console.error('Failed to upload branding image:', err);
+        alert('Upload failed: Make sure Firebase Storage is configured.');
+        setUploading(false);
+        setUploadProgress(0);
+      },
+      async () => {
+        const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+        updateStyleConfig({ brandingLogoUrl: downloadUrl });
+        setUploading(false);
+        setUploadProgress(0);
+      }
+    );
   };
 
   // Upload custom background image to Firebase Storage
-  const [uploadingBg, setUploadingBg] = useState(false);
-  const handleUploadCustomBackground = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadCustomBackground = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      setUploadingBg(true);
-      const fileExt = file.name.split('.').pop();
-      const storagePath = `templates/backgrounds/${templateId || 'new'}_bg.${fileExt}`;
-      const imageRef = ref(storage, storagePath);
-      const snapshot = await uploadBytes(imageRef, file);
-      const downloadUrl = await getDownloadURL(snapshot.ref);
-      updateStyleConfig({ customBackgroundUrl: downloadUrl });
-    } catch (err) {
-      console.error('Failed to upload background image:', err);
-      alert('Upload failed: Make sure Firebase Storage is configured.');
-    } finally {
-      setUploadingBg(false);
-    }
+
+    const fileExt = file.name.split('.').pop();
+    const storagePath = `templates/backgrounds/${templateId || 'new'}_bg.${fileExt}`;
+    const imageRef = ref(storage, storagePath);
+    const uploadTask = uploadBytesResumable(imageRef, file);
+
+    setUploadingBg(true);
+    setUploadBgProgress(0);
+
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+        setUploadBgProgress(pct);
+      },
+      (err) => {
+        console.error('Failed to upload background image:', err);
+        alert('Upload failed: Make sure Firebase Storage is configured.');
+        setUploadingBg(false);
+        setUploadBgProgress(0);
+      },
+      async () => {
+        const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+        updateStyleConfig({ customBackgroundUrl: downloadUrl });
+        setUploadingBg(false);
+        setUploadBgProgress(0);
+      }
+    );
   };
 
   // Tournament Logo array editor helpers
@@ -772,13 +799,13 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                   )}
 
                   {/* Upload File */}
-                  <label className="btn btn-secondary btn-sm" style={{ margin: 0, justifyContent: 'center' }}>
+                  <label className="btn btn-secondary btn-sm" style={{ margin: 0, justifyContent: 'center', opacity: uploadingBg ? 0.7 : 1 }}>
                     {uploadingBg ? (
                       <Loader2 className="animate-spin" style={{ width: '14px', height: '14px' }} />
                     ) : (
                       <Upload style={{ width: '14px', height: '14px' }} />
                     )}
-                    Upload Image
+                    {uploadingBg ? `Uploading ${uploadBgProgress}%...` : 'Upload Image'}
                     <input
                       type="file"
                       accept="image/*"
@@ -787,6 +814,23 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                       disabled={uploadingBg}
                     />
                   </label>
+
+                  {/* Progress bar */}
+                  {uploadingBg && (
+                    <div style={{ position: 'relative', height: '3px', borderRadius: '2px', backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                      <div style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                        height: '100%',
+                        width: `${uploadBgProgress}%`,
+                        backgroundColor: 'var(--accent)',
+                        borderRadius: '2px',
+                        transition: 'width 0.25s ease',
+                        boxShadow: '0 0 6px var(--accent)',
+                      }} />
+                    </div>
+                  )}
 
                   {/* Or paste URL */}
                   <div className="property-field" style={{ marginTop: 0 }}>
@@ -865,13 +909,13 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                       style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} 
                     />
                   )}
-                  <label className="btn btn-secondary btn-sm" style={{ margin: 0, flexGrow: 1, justifyContent: 'center' }}>
+                  <label className="btn btn-secondary btn-sm" style={{ margin: 0, flexGrow: 1, justifyContent: 'center', opacity: uploading ? 0.7 : 1 }}>
                     {uploading ? (
                       <Loader2 className="animate-spin" style={{ width: '14px', height: '14px' }} />
                     ) : (
                       <Upload style={{ width: '14px', height: '14px' }} />
                     )}
-                    Upload Logo
+                    {uploading ? `Uploading ${uploadProgress}%...` : 'Upload Logo'}
                     <input 
                       type="file" 
                       accept="image/*" 
@@ -881,6 +925,23 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     />
                   </label>
                 </div>
+
+                {/* Branding logo progress bar */}
+                {uploading && (
+                  <div style={{ position: 'relative', height: '3px', borderRadius: '2px', backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginTop: '4px' }}>
+                    <div style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      height: '100%',
+                      width: `${uploadProgress}%`,
+                      backgroundColor: 'var(--accent)',
+                      borderRadius: '2px',
+                      transition: 'width 0.25s ease',
+                      boxShadow: '0 0 6px var(--accent)',
+                    }} />
+                  </div>
+                )}
               </div>
 
               <div className="property-field">
