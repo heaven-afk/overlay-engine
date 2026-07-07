@@ -24,7 +24,7 @@ export type TemplateType =
   | 'team_profile'     // Single team full stat breakdown
   | 'player_profile';  // Single player stats
 
-export type ColorTheme = 'dark' | 'light';
+export type ColorTheme = 'dark' | 'light' | 'custom';
 
 export interface TournamentLogoSlot {
   logoUrl: string;
@@ -33,8 +33,9 @@ export interface TournamentLogoSlot {
 
 export interface TemplateStyleConfig {
   // Theme
-  colorTheme: ColorTheme;             // 'dark' | 'light'
+  colorTheme: ColorTheme;             // 'dark' | 'light' | 'custom'
   accentColor: string;                // hex, default '#C9A84C' (gold)
+  customBackgroundUrl?: string;       // image URL for 'custom' theme (upload or paste)
 
   // Typography
   headingFont: string;                // Google Font name, default 'Inter'

@@ -139,6 +139,11 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
       width: '1920px',
       height: '1080px',
       backgroundColor: 'var(--bg-primary)',
+      backgroundImage: styleConfig.colorTheme === 'custom' && styleConfig.customBackgroundUrl
+        ? `url(${styleConfig.customBackgroundUrl})`
+        : undefined,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
       color: 'var(--text-primary)',
       fontFamily: 'var(--body-font)',
       display: 'flex',
@@ -224,7 +229,7 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
               WINNER
             </div>
           )}
-          <TeamLogoPlaceholder logoUrl={teamA.logoUrl} name={teamA.teamName} size={110} />
+          <TeamLogoPlaceholder logoUrl={teamA.logoUrl} name={teamA.teamName} size={150} />
           <h2 style={{
             fontSize: '24px',
             fontWeight: 800,
@@ -452,7 +457,7 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
               WINNER
             </div>
           )}
-          <TeamLogoPlaceholder logoUrl={teamB.logoUrl} name={teamB.teamName} size={110} />
+                    <TeamLogoPlaceholder logoUrl={teamB.logoUrl} name={teamB.teamName} size={150} />
           <h2 style={{
             fontSize: '24px',
             fontWeight: 800,

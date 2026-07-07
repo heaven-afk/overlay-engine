@@ -98,6 +98,8 @@ const MOCK_TEAM_PROFILE = {
     identity: 'Slayer',
     totalPts: 300,
     kills: 120,
+    wins: 4,
+    matches: 12,
     analyticsRank: 1,
     scores: {
       FINAL_RATING: 720,
@@ -187,6 +189,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
   const [styleConfig, setStyleConfig] = useState<TemplateStyleConfig>({
     colorTheme: 'dark',
     accentColor: '#C9A84C',
+    customBackgroundUrl: '',
     headingFont: 'Inter',
     bodyFont: 'Inter',
     brandingLogoUrl: '',
@@ -267,6 +270,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             ];
             setStyleConfig({
               ...template.styleConfig,
+              customBackgroundUrl: template.styleConfig.customBackgroundUrl || '',
               tournamentLogos: standardLogos,
               showColumns: template.styleConfig.showColumns || DEFAULT_COLUMNS,
             });
@@ -452,6 +456,27 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       alert('Upload failed: Make sure Firebase Storage is configured.');
     } finally {
       setUploading(false);
+    }
+  };
+
+  // Upload custom background image to Firebase Storage
+  const [uploadingBg, setUploadingBg] = useState(false);
+  const handleUploadCustomBackground = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingBg(true);
+      const fileExt = file.name.split('.').pop();
+      const storagePath = `templates/backgrounds/${templateId || 'new'}_bg.${fileExt}`;
+      const imageRef = ref(storage, storagePath);
+      const snapshot = await uploadBytes(imageRef, file);
+      const downloadUrl = await getDownloadURL(snapshot.ref);
+      updateStyleConfig({ customBackgroundUrl: downloadUrl });
+    } catch (err) {
+      console.error('Failed to upload background image:', err);
+      alert('Upload failed: Make sure Firebase Storage is configured.');
+    } finally {
+      setUploadingBg(false);
     }
   };
 
@@ -715,8 +740,67 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                   >
                     Light
                   </button>
+                  <button 
+                    className={`toggle-btn ${styleConfig.colorTheme === 'custom' ? 'active' : ''}`}
+                    onClick={() => updateStyleConfig({ colorTheme: 'custom' })}
+                  >
+                    Custom
+                  </button>
                 </div>
               </div>
+
+              {/* Custom Background Sub-panel */}
+              {styleConfig.colorTheme === 'custom' && (
+                <div style={{
+                  border: '1px solid var(--accent)',
+                  borderRadius: '10px',
+                  padding: '0.85rem',
+                  background: 'rgba(201,168,76,0.06)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Custom Background Image</span>
+
+                  {/* Preview thumbnail */}
+                  {styleConfig.customBackgroundUrl && (
+                    <img
+                      src={styleConfig.customBackgroundUrl}
+                      alt="bg preview"
+                      style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--border)' }}
+                    />
+                  )}
+
+                  {/* Upload File */}
+                  <label className="btn btn-secondary btn-sm" style={{ margin: 0, justifyContent: 'center' }}>
+                    {uploadingBg ? (
+                      <Loader2 className="animate-spin" style={{ width: '14px', height: '14px' }} />
+                    ) : (
+                      <Upload style={{ width: '14px', height: '14px' }} />
+                    )}
+                    Upload Image
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={handleUploadCustomBackground}
+                      disabled={uploadingBg}
+                    />
+                  </label>
+
+                  {/* Or paste URL */}
+                  <div className="property-field" style={{ marginTop: 0 }}>
+                    <span className="property-label">Or Paste URL</span>
+                    <input
+                      type="text"
+                      className="text-input"
+                      placeholder="https://..."
+                      value={styleConfig.customBackgroundUrl || ''}
+                      onChange={(e) => updateStyleConfig({ customBackgroundUrl: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="property-field">
                 <span className="property-label">Accent Color</span>

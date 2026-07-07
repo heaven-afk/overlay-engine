@@ -65,6 +65,11 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ data, styleConfig 
       width: '1920px',
       height: '1080px',
       backgroundColor: 'var(--bg-primary)',
+      backgroundImage: styleConfig.colorTheme === 'custom' && styleConfig.customBackgroundUrl
+        ? `url(${styleConfig.customBackgroundUrl})`
+        : undefined,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
       color: 'var(--text-primary)',
       fontFamily: 'var(--body-font)',
       display: 'flex',

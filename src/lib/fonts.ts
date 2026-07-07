@@ -12,6 +12,7 @@ export function googleFontsLink(styleConfig: TemplateStyleConfig): string {
 
 export function cssVarsForTheme(styleConfig: TemplateStyleConfig): string {
   if (!styleConfig) return '';
+  const isCustom = styleConfig.colorTheme === 'custom';
   const isDark = styleConfig.colorTheme === 'dark';
   const accent = styleConfig.accentColor || '#C9A84C';
 
@@ -32,7 +33,7 @@ export function cssVarsForTheme(styleConfig: TemplateStyleConfig): string {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
 
-  const accentMuted = hexToRgba(accent, isDark ? 0.20 : 0.15);
+  const accentMuted = hexToRgba(accent, (isDark || isCustom) ? 0.20 : 0.15);
 
   const vars = isDark ? `
     --bg-primary: #0D0D12;
@@ -47,6 +48,19 @@ export function cssVarsForTheme(styleConfig: TemplateStyleConfig): string {
     --accent-muted: ${accentMuted};
     --rank-bg: #1E1E2A;
     --rank-border: rgba(255,255,255,0.12);
+  ` : isCustom ? `
+    --bg-primary: transparent;
+    --bg-card: rgba(13,13,18,0.72);
+    --bg-row-alt: rgba(26,26,36,0.75);
+    --bg-row: rgba(19,19,26,0.72);
+    --border: rgba(255,255,255,0.10);
+    --text-primary: #F1F5F9;
+    --text-muted: #94A3B8;
+    --text-heading: #FFFFFF;
+    --accent: ${accent};
+    --accent-muted: ${accentMuted};
+    --rank-bg: rgba(30,30,42,0.80);
+    --rank-border: rgba(255,255,255,0.14);
   ` : `
     --bg-primary: #F8F9FA;
     --bg-card: #FFFFFF;

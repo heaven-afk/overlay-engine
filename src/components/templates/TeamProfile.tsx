@@ -39,23 +39,23 @@ export const TeamProfile: React.FC<TeamProfileProps> = ({ data, styleConfig }) =
   const career = team.careerStats || {};
 
   // ── Core stats ──────────────────────────────────────────────────────────────
-  const totalPts   = num(team.totalPts, team.totalPoints, team.scores?.totalPts, career.totalPts);
-  const totalKills = num(team.kills, team.scores?.kills, career.kills);
-  const wins       = num(team.wins, career.wins);
-  const matches    = num(team.matches, career.matches);
-  const ppm        = num(team.analytics?.PPM, team.analytics?.ppm, team.ppm, career.ppm);
-  const kpm        = num(team.analytics?.KPM, team.analytics?.kpm, team.kpm, career.kpm);
-  const winRate    = toPercent(team.analytics?.winRate ?? team.winRate ?? career.winRate);
-  const killPct    = toPercent(team.analytics?.killPct ?? team.killPct ?? career.killPct);
-  const top5Rate   = toPercent(team.analytics?.top5Rate ?? team.top5Rate ?? career.top5Rate);
-  const avgPlace   = num(team.analytics?.avgPlace, team.avgPlacement, career.avgPlacement);
+  const totalPts   = num(team.totalPts, team.totalPoints, team.scores?.totalPts, career.totalPts, career.totalPoints);
+  const totalKills = num(team.kills, team.totalKills, team.scores?.kills, career.kills, career.totalKills);
+  const wins       = num(team.wins, career.wins, team.careerStats?.wins);
+  const matches    = num(team.matches, career.matches, team.careerStats?.matches);
+  const ppm        = num(team.analytics?.PPM, team.analytics?.ppm, team.ppm, career.PPM, career.ppm, career.analytics?.PPM);
+  const kpm        = num(team.analytics?.KPM, team.analytics?.kpm, team.kpm, career.KPM, career.kpm, career.analytics?.KPM);
+  const winRate    = toPercent(team.analytics?.winRate ?? team.winRate ?? career.winRate ?? career.analytics?.winRate);
+  const killPct    = toPercent(team.analytics?.killPct ?? team.killPct ?? career.killPct ?? career.analytics?.killPct);
+  const top5Rate   = toPercent(team.analytics?.top5Rate ?? team.top5Rate ?? career.top5Rate ?? career.analytics?.top5Rate);
+  const avgPlace   = num(team.analytics?.avgPlace, team.avgPlacement, career.avgPlacement, career.analytics?.avgPlace);
 
   // ── Rating breakdown ─────────────────────────────────────────────────────────
-  const ratingPower      = num(team.scores?.POWER,      team.analytics?.power);
-  const ratingPlacement  = num(team.scores?.PLACEMENT,  team.analytics?.placement);
-  const ratingConversion = num(team.scores?.CONVERSION, team.analytics?.conversion);
-  const ratingForm       = num(team.scores?.FORM,       team.analytics?.form);
-  const finalRating      = num(team.scores?.FINAL_RATING, team.rating);
+  const ratingPower      = num(team.scores?.POWER,      team.scores?.power,      team.analytics?.power,      career.scores?.POWER);
+  const ratingPlacement  = num(team.scores?.PLACEMENT,  team.scores?.placement,  team.analytics?.placement,  career.scores?.PLACEMENT);
+  const ratingConversion = num(team.scores?.CONVERSION, team.scores?.conversion, team.analytics?.conversion, career.scores?.CONVERSION);
+  const ratingForm       = num(team.scores?.FORM,       team.scores?.form,       team.analytics?.form,       career.scores?.FORM);
+  const finalRating      = num(team.scores?.FINAL_RATING, team.scores?.finalRating, team.rating, career.scores?.FINAL_RATING);
   const hasRatings = ratingPower > 0 || ratingPlacement > 0 || ratingConversion > 0 || ratingForm > 0;
 
   const breakdowns = [
@@ -111,6 +111,11 @@ export const TeamProfile: React.FC<TeamProfileProps> = ({ data, styleConfig }) =
       width: '1920px',
       height: '1080px',
       backgroundColor: 'var(--bg-primary)',
+      backgroundImage: styleConfig.colorTheme === 'custom' && styleConfig.customBackgroundUrl
+        ? `url(${styleConfig.customBackgroundUrl})`
+        : undefined,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
       color: 'var(--text-primary)',
       fontFamily: 'var(--body-font)',
       display: 'flex',
