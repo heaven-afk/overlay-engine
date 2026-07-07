@@ -449,6 +449,31 @@ export default function TemplateBuilderPage({ params }: PageProps) {
     setStyleConfig(prev => ({ ...prev, ...patch }));
   };
 
+  const [resolvingUrls, setResolvingUrls] = useState<Record<string, boolean>>({});
+
+  const resolveShortCanvaUrl = async (fieldKey: string, url: string, updateFn: (resolvedUrl: string) => void) => {
+    if (!url) return;
+    const isShortCanva = url.includes('canva.link') || url.includes('canva.me') || url.includes('canv.a');
+    if (isShortCanva) {
+      setResolvingUrls(prev => ({ ...prev, [fieldKey]: true }));
+      try {
+        const res = await fetch(`/api/resolve-link?url=${encodeURIComponent(url)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.resolvedUrl) {
+            updateFn(data.resolvedUrl);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to resolve short Canva URL:', err);
+      } finally {
+        setResolvingUrls(prev => ({ ...prev, [fieldKey]: false }));
+      }
+    } else {
+      updateFn(url);
+    }
+  };
+
   // Helper to downscale and compress images to optimized Base64 in the browser,
   // preventing Firebase Firestore 1MB document size limit issues.
   const compressAndGetBase64 = (
@@ -931,7 +956,18 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                       placeholder="https://..."
                       value={styleConfig.customBackgroundUrl || ''}
                       onChange={(e) => updateStyleConfig({ customBackgroundUrl: e.target.value })}
+                      onBlur={(e) => {
+                        resolveShortCanvaUrl('bg', e.target.value, (resolved) => {
+                          updateStyleConfig({ customBackgroundUrl: resolved });
+                        });
+                      }}
                     />
+                    {resolvingUrls['bg'] && (
+                      <span style={{ fontSize: '0.7rem', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                        <Loader2 className="animate-spin" style={{ width: '10px', height: '10px' }} />
+                        Resolving short Canva link...
+                      </span>
+                    )}
                   </div>
                 </div>
               )}
@@ -1072,7 +1108,18 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                   placeholder="https://..."
                   value={styleConfig.brandingLogoUrl || ''}
                   onChange={(e) => updateStyleConfig({ brandingLogoUrl: e.target.value })}
+                  onBlur={(e) => {
+                    resolveShortCanvaUrl('logo', e.target.value, (resolved) => {
+                      updateStyleConfig({ brandingLogoUrl: resolved });
+                    });
+                  }}
                 />
+                {resolvingUrls['logo'] && (
+                  <span style={{ fontSize: '0.7rem', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                    <Loader2 className="animate-spin" style={{ width: '10px', height: '10px' }} />
+                    Resolving short Canva link...
+                  </span>
+                )}
               </div>
 
               <div className="property-field">
@@ -1154,7 +1201,18 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                         value={logo.logoUrl} 
                         placeholder="Paste logo URL..."
                         onChange={(e) => handleTournamentLogoChange(idx, 'logoUrl', e.target.value)} 
+                        onBlur={(e) => {
+                          resolveShortCanvaUrl(`slot-${idx}`, e.target.value, (resolved) => {
+                            handleTournamentLogoChange(idx, 'logoUrl', resolved);
+                          });
+                        }}
                       />
+                      {resolvingUrls[`slot-${idx}`] && (
+                        <span style={{ fontSize: '0.7rem', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                          <Loader2 className="animate-spin" style={{ width: '10px', height: '10px' }} />
+                          Resolving short Canva link...
+                        </span>
+                      )}
                     </div>
                     <div className="property-field">
                       <span className="property-label">Tournament Label</span>
