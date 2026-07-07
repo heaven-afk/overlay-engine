@@ -42,6 +42,7 @@ export default function SlotsDashboard() {
   const [templates, setTemplates] = useState<OverlayTemplate[]>([]);
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [previewMode, setPreviewMode] = useState<'visual' | 'json'>('visual');
 
   // New Slot form states
   const [showAddForm, setShowAddForm] = useState(false);
@@ -622,6 +623,238 @@ export default function SlotsDashboard() {
     return null;
   }
 
+  // Render a visually clean and styled preview of the currently pushed live data
+  function renderDataPreview(slot: OverlaySlot) {
+    const data = slot.currentData;
+    if (!data) return null;
+
+    if (slot.slotType === 'standings_table' || slot.slotType === 'single_team') {
+      const teams = data.teams || [];
+      const players = data.players || [];
+      
+      if (teams.length > 0) {
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '315px', overflowY: 'auto', paddingRight: '4px' }}>
+            {teams.map((t: any, idx: number) => (
+              <div key={t.teamId || idx} style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: '8px',
+                padding: '0.6rem 0.8rem',
+                gap: '0.75rem',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--accent)', minWidth: '16px' }}>#{idx + 1}</span>
+                  {t.logoUrl ? (
+                    <img src={t.logoUrl} alt={t.teamName} style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '4px' }} />
+                  ) : (
+                    <div style={{ width: '28px', height: '28px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      {t.teamName ? t.teamName.substring(0, 2).toUpperCase() : '??'}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff', textTransform: 'uppercase' }}>{t.teamName}</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{t.identity || 'Slayer'} · Wins: {t.wins ?? 0}</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent)', fontFamily: 'monospace' }}>{t.totalPts ?? t.totalPoints ?? 0} pts</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Kills: {t.kills ?? 0}</span>
+                  </div>
+                  {t.scores?.FINAL_RATING && (
+                    <div style={{
+                      background: 'rgba(201,168,76,0.1)',
+                      border: '1px solid var(--accent)',
+                      borderRadius: '4px',
+                      padding: '2px 6px',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      color: 'var(--accent)',
+                      minWidth: '32px',
+                      textAlign: 'center',
+                    }}>
+                      {Math.round(t.scores.FINAL_RATING)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      if (players.length > 0) {
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '315px', overflowY: 'auto', paddingRight: '4px' }}>
+            {players.map((p: any, idx: number) => (
+              <div key={p.playerId || idx} style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: '8px',
+                padding: '0.6rem 0.8rem',
+                gap: '0.75rem',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--accent)', minWidth: '16px' }}>#{idx + 1}</span>
+                  {p.logoUrl ? (
+                    <img src={p.logoUrl} alt={p.ign} style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '4px' }} />
+                  ) : (
+                    <div style={{ width: '28px', height: '28px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      {p.ign ? p.ign.substring(0, 2).toUpperCase() : '??'}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff' }}>{p.ign || p.professionalName}</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{p.teamName || 'Free Agent'}</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent)', fontFamily: 'monospace' }}>{p.totalKills ?? p.kills ?? 0} kills</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Matches: {p.matches ?? 0}</span>
+                  </div>
+                  {p.scores?.FINAL_RATING && (
+                    <div style={{
+                      background: 'rgba(201,168,76,0.1)',
+                      border: '1px solid var(--accent)',
+                      borderRadius: '4px',
+                      padding: '2px 6px',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      color: 'var(--accent)',
+                      minWidth: '32px',
+                      textAlign: 'center',
+                    }}>
+                      {Math.round(p.scores.FINAL_RATING)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+    }
+
+    if (slot.slotType === 'head_to_head') {
+      const tA = data.teamA || {};
+      const tB = data.teamB || {};
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            {/* Team A Card */}
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: '10px',
+              padding: '1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '0.5rem',
+              textAlign: 'center',
+            }}>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--accent)', letterSpacing: '0.05em' }}>TEAM A</span>
+              {tA.logoUrl ? (
+                <img src={tA.logoUrl} alt={tA.teamName} style={{ width: '48px', height: '48px', objectFit: 'contain' }} />
+              ) : (
+                <div style={{ width: '48px', height: '48px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 'bold' }}>
+                  {tA.teamName ? tA.teamName.substring(0, 2).toUpperCase() : 'A'}
+                </div>
+              )}
+              <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#fff', textTransform: 'uppercase' }}>{tA.teamName || 'Team A'}</span>
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                {tA.scores?.rankLabel && <span style={{ fontSize: '0.65rem', padding: '1px 4px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', color: 'var(--text-muted)' }}>{tA.scores.rankLabel}</span>}
+                {tA.identity && <span style={{ fontSize: '0.65rem', padding: '1px 4px', background: 'rgba(201,168,76,0.15)', borderRadius: '3px', color: 'var(--accent)' }}>{tA.identity}</span>}
+              </div>
+            </div>
+
+            {/* Team B Card */}
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: '10px',
+              padding: '1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '0.5rem',
+              textAlign: 'center',
+            }}>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--accent)', letterSpacing: '0.05em' }}>TEAM B</span>
+              {tB.logoUrl ? (
+                <img src={tB.logoUrl} alt={tB.teamName} style={{ width: '48px', height: '48px', objectFit: 'contain' }} />
+              ) : (
+                <div style={{ width: '48px', height: '48px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 'bold' }}>
+                  {tB.teamName ? tB.teamName.substring(0, 2).toUpperCase() : 'B'}
+                </div>
+              )}
+              <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#fff', textTransform: 'uppercase' }}>{tB.teamName || 'Team B'}</span>
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                {tB.scores?.rankLabel && <span style={{ fontSize: '0.65rem', padding: '1px 4px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', color: 'var(--text-muted)' }}>{tB.scores.rankLabel}</span>}
+                {tB.identity && <span style={{ fontSize: '0.65rem', padding: '1px 4px', background: 'rgba(201,168,76,0.15)', borderRadius: '3px', color: 'var(--accent)' }}>{tB.identity}</span>}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (slot.slotType === 'player_card') {
+      const p = data.player || {};
+      const stats = p.careerStats || {};
+      return (
+        <div style={{
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: '12px',
+          padding: '1rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {p.logoUrl ? (
+              <img src={p.logoUrl} alt={p.ign} style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.1)' }} />
+            ) : (
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                {p.ign ? p.ign.substring(0, 2).toUpperCase() : 'P'}
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#fff' }}>{p.ign || p.professionalName || 'Unknown Player'}</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Team: {p.teamName || 'Free Agent'}</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', textAlign: 'center' }}>
+            <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '6px', padding: '0.35rem 0.5rem' }}>
+              <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>Total Kills</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#fff', fontFamily: 'monospace' }}>{stats.careerKills ?? p.kills ?? 0}</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '6px', padding: '0.35rem 0.5rem' }}>
+              <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>KPM</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#fff', fontFamily: 'monospace' }}>{Number(stats.avgKills ?? p.avgKills ?? p.kpm ?? 0).toFixed(2)}</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '6px', padding: '0.35rem 0.5rem' }}>
+              <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>Rating</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent)', fontFamily: 'monospace' }}>{Number(p.scores?.FINAL_RATING ?? p.rating ?? 0).toFixed(0)}</div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  }
+
   // ─── JSX ──────────────────────────────────────────────────────────────────────
 
   return (
@@ -810,11 +1043,53 @@ export default function SlotsDashboard() {
 
                   {/* Right Column: Live Data Payload preview */}
                   <div className="slot-control-group">
-                    <span className="slot-control-label">Live Data Stream Preview</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                      <span className="slot-control-label" style={{ margin: 0 }}>Live Data Stream Preview</span>
+                      {slot.currentData && (
+                        <div style={{ display: 'flex', gap: '2px', background: 'rgba(255,255,255,0.04)', borderRadius: '6px', padding: '2px' }}>
+                          <button
+                            onClick={() => setPreviewMode('visual')}
+                            style={{
+                              border: 'none',
+                              background: previewMode === 'visual' ? 'var(--accent)' : 'transparent',
+                              color: previewMode === 'visual' ? '#000' : 'var(--text-muted)',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            Visual
+                          </button>
+                          <button
+                            onClick={() => setPreviewMode('json')}
+                            style={{
+                              border: 'none',
+                              background: previewMode === 'json' ? 'var(--accent)' : 'transparent',
+                              color: previewMode === 'json' ? '#000' : 'var(--text-muted)',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            Raw JSON
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     {slot.currentData ? (
-                      <pre className="preview-json-box" style={{ maxHeight: '315px' }}>
-                        {JSON.stringify(slot.currentData, null, 2)}
-                      </pre>
+                      previewMode === 'visual' ? (
+                        renderDataPreview(slot)
+                      ) : (
+                        <pre className="preview-json-box" style={{ maxHeight: '315px', margin: 0 }}>
+                          {JSON.stringify(slot.currentData, null, 2)}
+                        </pre>
+                      )
                     ) : (
                       <div style={{
                         background: 'rgba(0,0,0,0.2)',
