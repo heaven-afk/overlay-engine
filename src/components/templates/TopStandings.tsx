@@ -1,6 +1,6 @@
 import React from 'react';
 import { OverlayTemplate, TemplateStyleConfig } from '@/lib/db';
-import { BrandingHeader, StatsStamp, SourceLine, RankBadge, TeamLogoPlaceholder } from './SharedElements';
+import { BrandingHeader, StatsStamp, SourceLine, RankBadge, TeamLogoPlaceholder, getCanvaEmbedUrl } from './SharedElements';
 
 interface TopStandingsProps {
   data: any;
@@ -138,212 +138,240 @@ export const TopStandings: React.FC<TopStandingsProps> = ({ data, styleConfig })
     col === 'identity' ? 'minmax(140px, 1.8fr)' : col === 'rankLabel' ? 'minmax(110px, 1.4fr)' : 'minmax(80px, 1fr)'
   ).join(' ')}`;
 
+  const canvaBgUrl = styleConfig.colorTheme === 'custom' && styleConfig.customBackgroundUrl
+    ? getCanvaEmbedUrl(styleConfig.customBackgroundUrl)
+    : null;
+
   return (
     <div style={{
       width: '1920px',
       height: '1080px',
       backgroundColor: 'var(--bg-primary)',
-      backgroundImage: styleConfig.colorTheme === 'custom' && styleConfig.customBackgroundUrl
+      backgroundImage: styleConfig.colorTheme === 'custom' && styleConfig.customBackgroundUrl && !canvaBgUrl
         ? `url(${styleConfig.customBackgroundUrl})`
         : undefined,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       color: 'var(--text-primary)',
       fontFamily: 'var(--body-font)',
-      display: 'flex',
-      flexDirection: 'column',
       position: 'relative',
       overflow: 'hidden',
       boxSizing: 'border-box',
     }}>
-      <BrandingHeader styleConfig={styleConfig} />
+      {canvaBgUrl && (
+        <iframe
+          src={canvaBgUrl}
+          scrolling="no"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            zIndex: 0,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
 
-      {/* Title block */}
       <div style={{
-        padding: '20px 48px 12px',
+        position: 'relative',
+        zIndex: 1,
+        width: '100%',
+        height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        gap: '4px',
-        boxSizing: 'border-box',
-        flexShrink: 0,
       }}>
-        <h1 style={{
-          fontSize: '44px',
-          fontWeight: 800,
-          margin: 0,
-          textTransform: 'uppercase',
-          letterSpacing: '-0.025em',
-          color: 'var(--text-heading)',
-          fontFamily: 'var(--heading-font)',
-        }}>
-          {renderTitle(graphicTitle)}
-        </h1>
-        <p style={{
-          fontSize: '14px',
-          fontWeight: 500,
-          color: 'var(--text-muted)',
-          margin: 0,
-          letterSpacing: '0.02em',
-        }}>
-          {graphicSubtitle}
-        </p>
-      </div>
+        <BrandingHeader styleConfig={styleConfig} />
 
-      {/* Table grid container */}
-      <div style={{
-        flexGrow: 1,
-        padding: '0 48px 52px',
-        display: 'flex',
-        flexDirection: 'column',
-        boxSizing: 'border-box',
-        overflow: 'hidden',
-        minHeight: 0,
-      }}>
-        {/* Header Row */}
+        {/* Title block */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: gridTemplate,
-          alignItems: 'center',
-          padding: '12px 16px',
-          borderBottom: '2px solid var(--accent)',
-          background: 'rgba(255, 255, 255, 0.01)',
-          boxSizing: 'border-box',
-        }}>
-          <div style={{
-            fontSize: '12px',
-            fontWeight: 800,
-            color: 'var(--text-muted)',
-            fontFamily: 'var(--heading-font)',
-            textAlign: 'center',
-          }}>
-            RK
-          </div>
-          <div style={{
-            fontSize: '12px',
-            fontWeight: 800,
-            color: 'var(--text-muted)',
-            fontFamily: 'var(--heading-font)',
-            paddingLeft: '12px',
-          }}>
-            TEAM
-          </div>
-          {columnsList.map((col) => (
-            <div 
-              key={col} 
-              style={{
-                fontSize: '12px',
-                fontWeight: 800,
-                color: 'var(--text-muted)',
-                fontFamily: 'var(--heading-font)',
-                textAlign: (col === 'identity' || col === 'rankLabel') ? 'left' : 'right',
-                paddingLeft: (col === 'identity' || col === 'rankLabel') ? '12px' : '0',
-              }}
-            >
-              {COLUMN_HEADERS[col] || col.toUpperCase()}
-            </div>
-          ))}
-        </div>
-
-        {/* Data Rows */}
-        <div style={{
+          padding: '20px 48px 12px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '3px',
-          marginTop: '4px',
+          gap: '4px',
+          boxSizing: 'border-box',
+          flexShrink: 0,
+        }}>
+          <h1 style={{
+            fontSize: '44px',
+            fontWeight: 800,
+            margin: 0,
+            textTransform: 'uppercase',
+            letterSpacing: '-0.025em',
+            color: 'var(--text-heading)',
+            fontFamily: 'var(--heading-font)',
+          }}>
+            {renderTitle(graphicTitle)}
+          </h1>
+          <p style={{
+            fontSize: '14px',
+            fontWeight: 500,
+            color: 'var(--text-muted)',
+            margin: 0,
+            letterSpacing: '0.02em',
+          }}>
+            {graphicSubtitle}
+          </p>
+        </div>
+
+        {/* Table grid container */}
+        <div style={{
           flexGrow: 1,
-          justifyContent: 'space-between',
+          padding: '0 48px 52px',
+          display: 'flex',
+          flexDirection: 'column',
+          boxSizing: 'border-box',
+          overflow: 'hidden',
           minHeight: 0,
         }}>
-          {teams.length === 0 ? (
+          {/* Header Row */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: gridTemplate,
+            alignItems: 'center',
+            padding: '12px 16px',
+            borderBottom: '2px solid var(--accent)',
+            background: 'rgba(255, 255, 255, 0.01)',
+            boxSizing: 'border-box',
+          }}>
             <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '200px',
+              fontSize: '12px',
+              fontWeight: 800,
               color: 'var(--text-muted)',
-              fontSize: '16px',
+              fontFamily: 'var(--heading-font)',
+              textAlign: 'center',
             }}>
-              No standings data pushed to this slot yet
+              RK
             </div>
-          ) : (
-            teams.map((team: any, index: number) => {
-              const rank = index + 1;
-              const isAlternative = index % 2 === 1;
-              const isTop3 = rank <= 3;
+            <div style={{
+              fontSize: '12px',
+              fontWeight: 800,
+              color: 'var(--text-muted)',
+              fontFamily: 'var(--heading-font)',
+              paddingLeft: '12px',
+            }}>
+              TEAM
+            </div>
+            {columnsList.map((col) => (
+              <div 
+                key={col} 
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  color: 'var(--text-muted)',
+                  fontFamily: 'var(--heading-font)',
+                  textAlign: (col === 'identity' || col === 'rankLabel') ? 'left' : 'right',
+                  paddingLeft: (col === 'identity' || col === 'rankLabel') ? '12px' : '0',
+                }}
+              >
+                {COLUMN_HEADERS[col] || col.toUpperCase()}
+              </div>
+            ))}
+          </div>
 
-              return (
-                <div 
-                  key={team.id || team.teamId || index} 
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: gridTemplate,
-                    alignItems: 'center',
-                    padding: '10px 16px',
-                    backgroundColor: isAlternative ? 'var(--bg-row-alt)' : 'var(--bg-row)',
-                    borderLeft: isTop3 ? '3px solid var(--accent)' : '3px solid transparent',
-                    borderRadius: '4px',
-                    border: '1px solid var(--border)',
-                    boxSizing: 'border-box',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  {/* Rank */}
-                  <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <RankBadge rank={rank} />
-                  </div>
+          {/* Data Rows */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '3px',
+            marginTop: '4px',
+            flexGrow: 1,
+            justifyContent: 'space-between',
+            minHeight: 0,
+          }}>
+            {teams.length === 0 ? (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '200px',
+                color: 'var(--text-muted)',
+                fontSize: '16px',
+              }}>
+                No standings data pushed to this slot yet
+              </div>
+            ) : (
+              teams.map((team: any, index: number) => {
+                const rank = index + 1;
+                const isAlternative = index % 2 === 1;
+                const isTop3 = rank <= 3;
 
-                  {/* Team Info */}
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '12px',
-                    paddingLeft: '12px',
-                  }}>
-                    <TeamLogoPlaceholder logoUrl={team.logoUrl} name={team.teamName} size={36} />
-                    <span style={{
-                      fontSize: '15px',
-                      fontWeight: 700,
-                      color: 'var(--text-heading)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
+                return (
+                  <div 
+                    key={team.id || team.teamId || index} 
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: gridTemplate,
+                      alignItems: 'center',
+                      padding: '10px 16px',
+                      backgroundColor: isAlternative ? 'var(--bg-row-alt)' : 'var(--bg-row)',
+                      borderLeft: isTop3 ? '3px solid var(--accent)' : '3px solid transparent',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border)',
+                      boxSizing: 'border-box',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    {/* Rank */}
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <RankBadge rank={rank} />
+                    </div>
+
+                    {/* Team Info */}
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '12px',
+                      paddingLeft: '12px',
                     }}>
-                      {team.teamName}
-                    </span>
+                      <TeamLogoPlaceholder logoUrl={team.logoUrl} name={team.teamName} size={36} />
+                      <span style={{
+                        fontSize: '15px',
+                        fontWeight: 700,
+                        color: 'var(--text-heading)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}>
+                        {team.teamName}
+                      </span>
+                    </div>
+
+                    {/* Columns */}
+                    {columnsList.map((col) => {
+                      const value = resolveColumnValue(team, col);
+                      const isTotalPts = col === 'totalPts';
+                      const isRating = col === 'rating';
+                      const textAccent = (isTotalPts || isRating);
+
+                      return (
+                        <div 
+                          key={col} 
+                          style={{
+                            fontSize: isRating ? '16px' : '14px',
+                            fontWeight: textAccent ? 800 : 500,
+                            color: textAccent ? 'var(--accent)' : 'var(--text-primary)',
+                            textAlign: (col === 'identity' || col === 'rankLabel') ? 'left' : 'right',
+                            fontFamily: (col === 'identity' || col === 'rankLabel') ? 'var(--body-font)' : 'monospace',
+                            paddingLeft: (col === 'identity' || col === 'rankLabel') ? '12px' : '0',
+                            letterSpacing: (col === 'identity' || col === 'rankLabel') ? '0' : '0.05em',
+                          }}
+                        >
+                          {value}
+                        </div>
+                      );
+                    })}
                   </div>
-
-                  {/* Columns */}
-                  {columnsList.map((col) => {
-                    const value = resolveColumnValue(team, col);
-                    const isTotalPts = col === 'totalPts';
-                    const isRating = col === 'rating';
-                    const textAccent = (isTotalPts || isRating);
-
-                    return (
-                      <div 
-                        key={col} 
-                        style={{
-                          fontSize: isRating ? '16px' : '14px',
-                          fontWeight: textAccent ? 800 : 500,
-                          color: textAccent ? 'var(--accent)' : 'var(--text-primary)',
-                          textAlign: (col === 'identity' || col === 'rankLabel') ? 'left' : 'right',
-                          fontFamily: (col === 'identity' || col === 'rankLabel') ? 'var(--body-font)' : 'monospace',
-                          paddingLeft: (col === 'identity' || col === 'rankLabel') ? '12px' : '0',
-                          letterSpacing: (col === 'identity' || col === 'rankLabel') ? '0' : '0.05em',
-                        }}
-                      >
-                        {value}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })
-          )}
+                );
+              })
+            )}
+          </div>
         </div>
-      </div>
 
-      <SourceLine styleConfig={styleConfig} />
-      <StatsStamp show={showStatsStamp} />
+        <SourceLine styleConfig={styleConfig} />
+        <StatsStamp show={showStatsStamp} />
+      </div>
     </div>
   );
 };

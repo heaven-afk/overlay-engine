@@ -1,6 +1,6 @@
 import React from 'react';
 import { OverlayTemplate, TemplateStyleConfig } from '@/lib/db';
-import { BrandingHeader, StatsStamp, SourceLine } from './SharedElements';
+import { BrandingHeader, StatsStamp, SourceLine, getCanvaEmbedUrl } from './SharedElements';
 
 interface PlayerProfileProps {
   data: any;
@@ -60,24 +60,51 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ data, styleConfig 
   // Career History — only show real data, no hardcoded fallback rows
   const historyList: any[] = player.careerStats?.tournaments ?? player.careerHistory ?? [];
 
+  const canvaBgUrl = styleConfig.colorTheme === 'custom' && styleConfig.customBackgroundUrl
+    ? getCanvaEmbedUrl(styleConfig.customBackgroundUrl)
+    : null;
+
   return (
     <div style={{
       width: '1920px',
       height: '1080px',
       backgroundColor: 'var(--bg-primary)',
-      backgroundImage: styleConfig.colorTheme === 'custom' && styleConfig.customBackgroundUrl
+      backgroundImage: styleConfig.colorTheme === 'custom' && styleConfig.customBackgroundUrl && !canvaBgUrl
         ? `url(${styleConfig.customBackgroundUrl})`
         : undefined,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       color: 'var(--text-primary)',
       fontFamily: 'var(--body-font)',
-      display: 'flex',
-      flexDirection: 'column',
       position: 'relative',
       overflow: 'hidden',
       boxSizing: 'border-box',
     }}>
+      {canvaBgUrl && (
+        <iframe
+          src={canvaBgUrl}
+          scrolling="no"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            zIndex: 0,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+
+      <div style={{
+        position: 'relative',
+        zIndex: 1,
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+      }}>
       <BrandingHeader styleConfig={styleConfig} />
 
       {/* Header section (Player IGN and Info) */}
@@ -444,6 +471,8 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ data, styleConfig 
             </div>
           </div>
         </div>
+      </div>
+
       </div>
 
       <SourceLine styleConfig={styleConfig} />

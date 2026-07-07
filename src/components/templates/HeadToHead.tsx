@@ -1,6 +1,6 @@
 import React from 'react';
 import { OverlayTemplate, TemplateStyleConfig } from '@/lib/db';
-import { BrandingHeader, StatsStamp, SourceLine, TeamLogoPlaceholder } from './SharedElements';
+import { BrandingHeader, StatsStamp, SourceLine, TeamLogoPlaceholder, getCanvaEmbedUrl } from './SharedElements';
 
 interface HeadToHeadProps {
   data: any;
@@ -134,374 +134,403 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
 
   const overallWinner = winsA === winsB ? null : winsA > winsB ? 'A' : 'B';
 
+  const canvaBgUrl = styleConfig.colorTheme === 'custom' && styleConfig.customBackgroundUrl
+    ? getCanvaEmbedUrl(styleConfig.customBackgroundUrl)
+    : null;
+
   return (
     <div style={{
       width: '1920px',
       height: '1080px',
       backgroundColor: 'var(--bg-primary)',
-      backgroundImage: styleConfig.colorTheme === 'custom' && styleConfig.customBackgroundUrl
+      backgroundImage: styleConfig.colorTheme === 'custom' && styleConfig.customBackgroundUrl && !canvaBgUrl
         ? `url(${styleConfig.customBackgroundUrl})`
         : undefined,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       color: 'var(--text-primary)',
       fontFamily: 'var(--body-font)',
-      display: 'flex',
-      flexDirection: 'column',
       position: 'relative',
       overflow: 'hidden',
       boxSizing: 'border-box',
     }}>
-      <BrandingHeader styleConfig={styleConfig} />
+      {canvaBgUrl && (
+        <iframe
+          src={canvaBgUrl}
+          scrolling="no"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            zIndex: 0,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
 
-      {/* Title */}
       <div style={{
-        padding: '20px 48px 0',
+        position: 'relative',
+        zIndex: 1,
+        width: '100%',
+        height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
-        gap: '4px',
-        boxSizing: 'border-box',
-        flexShrink: 0,
       }}>
-        <h1 style={{
-          fontSize: '38px',
-          fontWeight: 800,
-          margin: 0,
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          color: 'var(--accent)',
-          fontFamily: 'var(--heading-font)',
-        }}>
-          {graphicTitle || 'HEAD TO HEAD'}
-        </h1>
-        <p style={{
-          fontSize: '14px',
-          fontWeight: 500,
-          color: 'var(--text-muted)',
-          margin: 0,
-          letterSpacing: '0.02em',
-        }}>
-          {graphicSubtitle || 'TEAM COMPARISON'}
-        </p>
-      </div>
+        <BrandingHeader styleConfig={styleConfig} />
 
-      {/* Main content grid */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'stretch',
-        padding: '24px 64px 56px',
-        flexGrow: 1,
-        boxSizing: 'border-box',
-        gap: '40px',
-        minHeight: 0,
-      }}>
-        {/* Team A Card */}
+        {/* Title */}
         <div style={{
-          flex: '1',
-          maxWidth: '340px',
-          backgroundColor: 'var(--bg-card)',
-          borderRadius: '16px',
-          border: overallWinner === 'A' ? '2px solid var(--accent)' : '1px solid var(--border)',
-          boxShadow: overallWinner === 'A' ? '0 0 30px var(--accent-muted)' : 'none',
+          padding: '20px 48px 0',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
-          padding: '24px',
+          gap: '4px',
           boxSizing: 'border-box',
-          position: 'relative',
+          flexShrink: 0,
         }}>
-          {overallWinner === 'A' && (
-            <div style={{
-              position: 'absolute',
-              top: '16px',
-              right: '16px',
-              fontSize: '10px',
-              fontWeight: 800,
-              backgroundColor: 'var(--accent)',
-              color: '#000',
-              padding: '4px 8px',
-              borderRadius: '4px',
-              letterSpacing: '0.05em',
-            }}>
-              WINNER
-            </div>
-          )}
-          <TeamLogoPlaceholder logoUrl={teamA.logoUrl} name={teamA.teamName} size={150} />
-          <h2 style={{
-            fontSize: '24px',
+          <h1 style={{
+            fontSize: '38px',
             fontWeight: 800,
+            margin: 0,
             textTransform: 'uppercase',
-            color: 'var(--text-heading)',
-            marginTop: '20px',
-            marginBottom: '12px',
-            textAlign: 'center',
+            letterSpacing: '0.05em',
+            color: 'var(--accent)',
             fontFamily: 'var(--heading-font)',
           }}>
-            {teamA.teamName || 'TEAM A'}
-          </h2>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {teamA.scores?.rankLabel && (
-              <span style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                backgroundColor: 'var(--rank-bg)',
-                border: '1px solid var(--rank-border)',
-                color: 'var(--text-primary)',
-                padding: '4px 10px',
-                borderRadius: '6px',
-              }}>
-                {teamA.scores.rankLabel}
-              </span>
-            )}
-            {teamA.identity && (
-              <span style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                backgroundColor: 'var(--accent-muted)',
-                color: 'var(--accent)',
-                padding: '4px 10px',
-                borderRadius: '6px',
-              }}>
-                {teamA.identity}
-              </span>
-            )}
-          </div>
+            {graphicTitle || 'HEAD TO HEAD'}
+          </h1>
+          <p style={{
+            fontSize: '14px',
+            fontWeight: 500,
+            color: 'var(--text-muted)',
+            margin: 0,
+            letterSpacing: '0.02em',
+          }}>
+            {graphicSubtitle || 'TEAM COMPARISON'}
+          </p>
         </div>
 
-        {/* VS Separator & Comparison Table */}
+        {/* Main content grid */}
         <div style={{
-          flex: '2',
           display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: 'space-between',
+          alignItems: 'stretch',
+          padding: '24px 64px 56px',
+          flexGrow: 1,
+          boxSizing: 'border-box',
+          overflow: 'hidden',
+          gap: '40px',
+          minHeight: 0,
         }}>
-          {/* Comparisons Table */}
+          {/* Team A Card */}
           <div style={{
-            width: '100%',
+            flex: '1',
+            maxWidth: '340px',
             backgroundColor: 'var(--bg-card)',
             borderRadius: '16px',
-            border: '1px solid var(--border)',
-            padding: '24px 32px',
-            boxSizing: 'border-box',
+            border: overallWinner === 'A' ? '2px solid var(--accent)' : '1px solid var(--border)',
+            boxShadow: overallWinner === 'A' ? '0 0 30px var(--accent-muted)' : 'none',
             display: 'flex',
             flexDirection: 'column',
-            gap: '16px',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            boxSizing: 'border-box',
+            position: 'relative',
           }}>
-            {statsList.map((stat) => {
-              // Calculate proportion for comparison bars
-              let pctA = 0;
-              let pctB = 0;
-              const { valA, valB, isLowerBetter } = stat;
-
-              if (valA > 0 || valB > 0) {
-                if (isLowerBetter) {
-                  // Invert avg placement (lower is better)
-                  const invA = valA > 0 ? 1 / valA : 0.001;
-                  const invB = valB > 0 ? 1 / valB : 0.001;
-                  const total = invA + invB;
-                  pctA = (invA / total) * 100;
-                  pctB = (invB / total) * 100;
-                } else {
-                  const total = valA + valB;
-                  pctA = (valA / total) * 100;
-                  pctB = (valB / total) * 100;
-                }
-              }
-
-              // Determine winner of this stat
-              const isWinnerA = isLowerBetter 
-                ? (valA < valB && valA > 0) 
-                : (valA > valB);
-              const isWinnerB = isLowerBetter 
-                ? (valB < valA && valB > 0) 
-                : (valB > valA);
-
-              const colorA = isWinnerA ? 'var(--accent)' : 'rgba(255, 255, 255, 0.15)';
-              const colorB = isWinnerB ? 'var(--accent)' : 'rgba(255, 255, 255, 0.15)';
-
-              return (
-                <div key={stat.name} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  width: '100%',
-                  height: '36px',
-                }}>
-                  {/* Team A value */}
-                  <div style={{
-                    width: '90px',
-                    textAlign: 'right',
-                    fontSize: '18px',
-                    fontWeight: 700,
-                    color: isWinnerA ? 'var(--accent)' : 'var(--text-primary)',
-                    fontFamily: 'monospace',
-                  }}>
-                    {stat.displayA}
-                  </div>
-
-                  {/* Comparison Bar */}
-                  <div style={{
-                    flexGrow: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    padding: '0 24px',
-                    boxSizing: 'border-box',
-                  }}>
-                    {/* Stat Label */}
-                    <div style={{
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      textTransform: 'uppercase',
-                      color: 'var(--text-muted)',
-                      marginBottom: '6px',
-                      letterSpacing: '0.05em',
-                      fontFamily: 'var(--heading-font)',
-                    }}>
-                      {stat.name}
-                    </div>
-                    {/* Double Bar */}
-                    <div style={{
-                      display: 'flex',
-                      width: '100%',
-                      height: '8px',
-                      borderRadius: '4px',
-                      overflow: 'hidden',
-                      backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                    }}>
-                      {/* Left bar (A) - fills right to left */}
-                      <div style={{
-                        width: '50%',
-                        display: 'flex',
-                        justifyContent: 'flex-end',
-                        background: 'rgba(255, 255, 255, 0.01)',
-                      }}>
-                        <div style={{
-                          width: `${pctA}%`,
-                          height: '100%',
-                          backgroundColor: colorA,
-                          borderRadius: '4px 0 0 4px',
-                          boxShadow: isWinnerA ? '0 0 8px var(--accent)' : 'none',
-                        }} />
-                      </div>
-                      {/* Divider */}
-                      <div style={{ width: '2px', backgroundColor: 'var(--bg-card)' }} />
-                      {/* Right bar (B) - fills left to right */}
-                      <div style={{
-                        width: '50%',
-                        display: 'flex',
-                        justifyContent: 'flex-start',
-                        background: 'rgba(255, 255, 255, 0.01)',
-                      }}>
-                        <div style={{
-                          width: `${pctB}%`,
-                          height: '100%',
-                          backgroundColor: colorB,
-                          borderRadius: '0 4px 4px 0',
-                          boxShadow: isWinnerB ? '0 0 8px var(--accent)' : 'none',
-                        }} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Team B value */}
-                  <div style={{
-                    width: '90px',
-                    textAlign: 'left',
-                    fontSize: '18px',
-                    fontWeight: 700,
-                    color: isWinnerB ? 'var(--accent)' : 'var(--text-primary)',
-                    fontFamily: 'monospace',
-                  }}>
-                    {stat.displayB}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Team B Card */}
-        <div style={{
-          flex: '1',
-          maxWidth: '340px',
-          backgroundColor: 'var(--bg-card)',
-          borderRadius: '16px',
-          border: overallWinner === 'B' ? '2px solid var(--accent)' : '1px solid var(--border)',
-          boxShadow: overallWinner === 'B' ? '0 0 30px var(--accent-muted)' : 'none',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '24px',
-          boxSizing: 'border-box',
-          position: 'relative',
-        }}>
-          {overallWinner === 'B' && (
-            <div style={{
-              position: 'absolute',
-              top: '16px',
-              right: '16px',
-              fontSize: '10px',
+            {overallWinner === 'A' && (
+              <div style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                fontSize: '10px',
+                fontWeight: 800,
+                backgroundColor: 'var(--accent)',
+                color: '#000',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                letterSpacing: '0.05em',
+              }}>
+                WINNER
+              </div>
+            )}
+            <TeamLogoPlaceholder logoUrl={teamA.logoUrl} name={teamA.teamName} size={150} />
+            <h2 style={{
+              fontSize: '24px',
               fontWeight: 800,
-              backgroundColor: 'var(--accent)',
-              color: '#000',
-              padding: '4px 8px',
-              borderRadius: '4px',
-              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              color: 'var(--text-heading)',
+              marginTop: '20px',
+              marginBottom: '12px',
+              textAlign: 'center',
+              fontFamily: 'var(--heading-font)',
             }}>
-              WINNER
+              {teamA.teamName || 'TEAM A'}
+            </h2>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {teamA.scores?.rankLabel && (
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  backgroundColor: 'var(--rank-bg)',
+                  border: '1px solid var(--rank-border)',
+                  color: 'var(--text-primary)',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                }}>
+                  {teamA.scores.rankLabel}
+                </span>
+              )}
+              {teamA.identity && (
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  backgroundColor: 'var(--accent-muted)',
+                  color: 'var(--accent)',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                }}>
+                  {teamA.identity}
+                </span>
+              )}
             </div>
-          )}
-                    <TeamLogoPlaceholder logoUrl={teamB.logoUrl} name={teamB.teamName} size={150} />
-          <h2 style={{
-            fontSize: '24px',
-            fontWeight: 800,
-            textTransform: 'uppercase',
-            color: 'var(--text-heading)',
-            marginTop: '20px',
-            marginBottom: '12px',
-            textAlign: 'center',
-            fontFamily: 'var(--heading-font)',
+          </div>
+
+          {/* VS Separator & Comparison Table */}
+          <div style={{
+            flex: '2',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}>
-            {teamB.teamName || 'TEAM B'}
-          </h2>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {teamB.scores?.rankLabel && (
-              <span style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                backgroundColor: 'var(--rank-bg)',
-                border: '1px solid var(--rank-border)',
-                color: 'var(--text-primary)',
-                padding: '4px 10px',
-                borderRadius: '6px',
+            {/* Comparisons Table */}
+            <div style={{
+              width: '100%',
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: '16px',
+              border: '1px solid var(--border)',
+              padding: '24px 32px',
+              boxSizing: 'border-box',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}>
+              {statsList.map((stat) => {
+                // Calculate proportion for comparison bars
+                let pctA = 0;
+                let pctB = 0;
+                const { valA, valB, isLowerBetter } = stat;
+
+                if (valA > 0 || valB > 0) {
+                  if (isLowerBetter) {
+                    // Invert avg placement (lower is better)
+                    const invA = valA > 0 ? 1 / valA : 0.001;
+                    const invB = valB > 0 ? 1 / valB : 0.001;
+                    const total = invA + invB;
+                    pctA = (invA / total) * 100;
+                    pctB = (invB / total) * 100;
+                  } else {
+                    const total = valA + valB;
+                    pctA = (valA / total) * 100;
+                    pctB = (valB / total) * 100;
+                  }
+                }
+
+                // Determine winner of this stat
+                const isWinnerA = isLowerBetter 
+                  ? (valA < valB && valA > 0) 
+                  : (valA > valB);
+                const isWinnerB = isLowerBetter 
+                  ? (valB < valA && valB > 0) 
+                  : (valB > valA);
+
+                const colorA = isWinnerA ? 'var(--accent)' : 'rgba(255, 255, 255, 0.15)';
+                const colorB = isWinnerB ? 'var(--accent)' : 'rgba(255, 255, 255, 0.15)';
+
+                return (
+                  <div key={stat.name} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    height: '36px',
+                  }}>
+                    {/* Team A value */}
+                    <div style={{
+                      width: '90px',
+                      textAlign: 'right',
+                      fontSize: '18px',
+                      fontWeight: 700,
+                      color: isWinnerA ? 'var(--accent)' : 'var(--text-primary)',
+                      fontFamily: 'monospace',
+                    }}>
+                      {stat.displayA}
+                    </div>
+
+                    {/* Comparison Bar */}
+                    <div style={{
+                      flexGrow: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      padding: '0 24px',
+                      boxSizing: 'border-box',
+                    }}>
+                      {/* Stat Label */}
+                      <div style={{
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        color: 'var(--text-muted)',
+                        marginBottom: '6px',
+                        letterSpacing: '0.05em',
+                        fontFamily: 'var(--heading-font)',
+                      }}>
+                        {stat.name}
+                      </div>
+                      {/* Double Bar */}
+                      <div style={{
+                        display: 'flex',
+                        width: '100%',
+                        height: '8px',
+                        borderRadius: '4px',
+                        overflow: 'hidden',
+                        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                      }}>
+                        {/* Left bar (A) - fills right to left */}
+                        <div style={{
+                          width: '50%',
+                          display: 'flex',
+                          justifyContent: 'flex-end',
+                          background: 'rgba(255, 255, 255, 0.01)',
+                        }}>
+                          <div style={{
+                            width: `${pctA}%`,
+                            height: '100%',
+                            backgroundColor: colorA,
+                            borderRadius: '4px 0 0 4px',
+                            boxShadow: isWinnerA ? '0 0 8px var(--accent)' : 'none',
+                          }} />
+                        </div>
+                        {/* Divider */}
+                        <div style={{ width: '2px', backgroundColor: 'var(--bg-card)' }} />
+                        {/* Right bar (B) - fills left to right */}
+                        <div style={{
+                          width: '50%',
+                          display: 'flex',
+                          justifyContent: 'flex-start',
+                          background: 'rgba(255, 255, 255, 0.01)',
+                        }}>
+                          <div style={{
+                            width: `${pctB}%`,
+                            height: '100%',
+                            backgroundColor: colorB,
+                            borderRadius: '0 4px 4px 0',
+                            boxShadow: isWinnerB ? '0 0 8px var(--accent)' : 'none',
+                          }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Team B value */}
+                    <div style={{
+                      width: '90px',
+                      textAlign: 'left',
+                      fontSize: '18px',
+                      fontWeight: 700,
+                      color: isWinnerB ? 'var(--accent)' : 'var(--text-primary)',
+                      fontFamily: 'monospace',
+                    }}>
+                      {stat.displayB}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Team B Card */}
+          <div style={{
+            flex: '1',
+            maxWidth: '340px',
+            backgroundColor: 'var(--bg-card)',
+            borderRadius: '16px',
+            border: overallWinner === 'B' ? '2px solid var(--accent)' : '1px solid var(--border)',
+            boxShadow: overallWinner === 'B' ? '0 0 30px var(--accent-muted)' : 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            boxSizing: 'border-box',
+            position: 'relative',
+          }}>
+            {overallWinner === 'B' && (
+              <div style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                fontSize: '10px',
+                fontWeight: 800,
+                backgroundColor: 'var(--accent)',
+                color: '#000',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                letterSpacing: '0.05em',
               }}>
-                {teamB.scores.rankLabel}
-              </span>
+                WINNER
+              </div>
             )}
-            {teamB.identity && (
-              <span style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                backgroundColor: 'var(--accent-muted)',
-                color: 'var(--accent)',
-                padding: '4px 10px',
-                borderRadius: '6px',
-              }}>
-                {teamB.identity}
-              </span>
-            )}
+            <TeamLogoPlaceholder logoUrl={teamB.logoUrl} name={teamB.teamName} size={150} />
+            <h2 style={{
+              fontSize: '24px',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              color: 'var(--text-heading)',
+              marginTop: '20px',
+              marginBottom: '12px',
+              textAlign: 'center',
+              fontFamily: 'var(--heading-font)',
+            }}>
+              {teamB.teamName || 'TEAM B'}
+            </h2>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {teamB.scores?.rankLabel && (
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  backgroundColor: 'var(--rank-bg)',
+                  border: '1px solid var(--rank-border)',
+                  color: 'var(--text-primary)',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                }}>
+                  {teamB.scores.rankLabel}
+                </span>
+              )}
+              {teamB.identity && (
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  backgroundColor: 'var(--accent-muted)',
+                  color: 'var(--accent)',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                }}>
+                  {teamB.identity}
+                </span>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <SourceLine styleConfig={styleConfig} />
-      <StatsStamp show={showStatsStamp} />
+        <SourceLine styleConfig={styleConfig} />
+        <StatsStamp show={showStatsStamp} />
+      </div>
     </div>
   );
 };

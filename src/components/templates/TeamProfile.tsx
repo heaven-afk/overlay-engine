@@ -1,6 +1,6 @@
 import React from 'react';
 import { TemplateStyleConfig } from '@/lib/db';
-import { BrandingHeader, StatsStamp, SourceLine, TeamLogoPlaceholder } from './SharedElements';
+import { BrandingHeader, StatsStamp, SourceLine, TeamLogoPlaceholder, getCanvaEmbedUrl } from './SharedElements';
 
 interface TeamProfileProps {
   data: any;
@@ -139,24 +139,51 @@ export const TeamProfile: React.FC<TeamProfileProps> = ({ data, styleConfig }) =
   if (team.identity)          metaBadges.push({ label: team.identity, accent: true });
   if (team.tier)              metaBadges.push({ label: team.tier });
 
+  const canvaBgUrl = styleConfig.colorTheme === 'custom' && styleConfig.customBackgroundUrl
+    ? getCanvaEmbedUrl(styleConfig.customBackgroundUrl)
+    : null;
+
   return (
     <div style={{
       width: '1920px',
       height: '1080px',
       backgroundColor: 'var(--bg-primary)',
-      backgroundImage: styleConfig.colorTheme === 'custom' && styleConfig.customBackgroundUrl
+      backgroundImage: styleConfig.colorTheme === 'custom' && styleConfig.customBackgroundUrl && !canvaBgUrl
         ? `url(${styleConfig.customBackgroundUrl})`
         : undefined,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       color: 'var(--text-primary)',
       fontFamily: 'var(--body-font)',
-      display: 'flex',
-      flexDirection: 'column',
       position: 'relative',
       overflow: 'hidden',
       boxSizing: 'border-box',
     }}>
+      {canvaBgUrl && (
+        <iframe
+          src={canvaBgUrl}
+          scrolling="no"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            zIndex: 0,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+
+      <div style={{
+        position: 'relative',
+        zIndex: 1,
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+      }}>
       <BrandingHeader styleConfig={styleConfig} />
 
       {/* ── Team hero row ─────────────────────────────────────────── */}
@@ -485,6 +512,8 @@ export const TeamProfile: React.FC<TeamProfileProps> = ({ data, styleConfig }) =
             </div>
           </div>
         )}
+      </div>
+
       </div>
 
       <SourceLine styleConfig={styleConfig} />

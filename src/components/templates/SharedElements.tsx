@@ -5,6 +5,22 @@ interface SharedProps {
   styleConfig: TemplateStyleConfig;
 }
 
+export function getCanvaEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  // Regex to match canva.com/design/xxx/yyy/view or canva.com/design/xxx/view
+  // Supporting view, watch, play, edit paths
+  const match = url.match(/https?:\/\/(?:www\.)?canva\.com\/design\/([A-Za-z0-9_-]+)(?:\/([A-Za-z0-9_-]+))?\/(?:view|watch|edit|play|design)/);
+  if (match) {
+    const designId = match[1];
+    const slug = match[2];
+    if (slug) {
+      return `https://www.canva.com/design/${designId}/${slug}/view?embed`;
+    }
+    return `https://www.canva.com/design/${designId}/view?embed`;
+  }
+  return null;
+}
+
 export const BrandingHeader: React.FC<SharedProps> = ({ styleConfig }) => {
   const { brandingLogoUrl, brandingName, tournamentLogoCount, tournamentLogos } = styleConfig;
 
@@ -32,17 +48,33 @@ export const BrandingHeader: React.FC<SharedProps> = ({ styleConfig }) => {
       {/* Left side branding */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         {brandingLogoUrl ? (
-          <img 
-            src={brandingLogoUrl} 
-            alt="logo" 
-            style={{
-              width: '72px',
-              height: '72px',
-              objectFit: 'cover',
-              borderRadius: '4px',
-              border: '1px solid var(--border)',
-            }}
-          />
+          getCanvaEmbedUrl(brandingLogoUrl) ? (
+            <iframe
+              src={getCanvaEmbedUrl(brandingLogoUrl)!}
+              scrolling="no"
+              style={{
+                width: '72px',
+                height: '72px',
+                border: 'none',
+                borderRadius: '4px',
+                overflow: 'hidden',
+                backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                pointerEvents: 'none',
+              }}
+            />
+          ) : (
+            <img 
+              src={brandingLogoUrl} 
+              alt="logo" 
+              style={{
+                width: '72px',
+                height: '72px',
+                objectFit: 'cover',
+                borderRadius: '4px',
+                border: '1px solid var(--border)',
+              }}
+            />
+          )
         ) : (
           <div style={{
             width: '72px',
@@ -97,15 +129,29 @@ export const BrandingHeader: React.FC<SharedProps> = ({ styleConfig }) => {
             border: '1px solid var(--border)',
           }}>
             {slot.logoUrl ? (
-              <img 
-                src={slot.logoUrl} 
-                alt={slot.tournamentName || `tourney-${index}`} 
-                style={{
-                  height: '32px',
-                  maxWidth: '60px',
-                  objectFit: 'contain',
-                }}
-              />
+              getCanvaEmbedUrl(slot.logoUrl) ? (
+                <iframe
+                  src={getCanvaEmbedUrl(slot.logoUrl)!}
+                  scrolling="no"
+                  style={{
+                    height: '32px',
+                    width: '60px',
+                    border: 'none',
+                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                    pointerEvents: 'none',
+                  }}
+                />
+              ) : (
+                <img 
+                  src={slot.logoUrl} 
+                  alt={slot.tournamentName || `tourney-${index}`} 
+                  style={{
+                    height: '32px',
+                    maxWidth: '60px',
+                    objectFit: 'contain',
+                  }}
+                />
+              )
             ) : null}
             {slot.tournamentName && (
               <span style={{
@@ -220,6 +266,23 @@ export const TeamLogoPlaceholder: React.FC<LogoProps> = ({ logoUrl, size = 36, n
   // Bare filenames like "Legion.png" will 404 and should fall back to initials.
   const isValidUrl = logoUrl && (logoUrl.startsWith('http://') || logoUrl.startsWith('https://'));
   if (isValidUrl) {
+    const canvaUrl = getCanvaEmbedUrl(logoUrl);
+    if (canvaUrl) {
+      return (
+        <iframe
+          src={canvaUrl}
+          scrolling="no"
+          style={{
+            width: `${size}px`,
+            height: `${size}px`,
+            border: 'none',
+            borderRadius: '4px',
+            backgroundColor: 'rgba(255, 255, 255, 0.02)',
+            pointerEvents: 'none',
+          }}
+        />
+      );
+    }
     return (
       <img 
         src={logoUrl} 
