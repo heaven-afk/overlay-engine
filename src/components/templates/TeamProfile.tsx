@@ -35,27 +35,60 @@ export const TeamProfile: React.FC<TeamProfileProps> = ({ data, styleConfig }) =
 
   // The API returns { profile: {...}, careerStats: {...} }
   // page.tsx merges them as { team: { ...profile, careerStats } }
+  // careerStats shape (from aggregateGlobalTeams / aggregateGlobalPlayers):
+  //   careerWins, careerMatches, careerKills, careerTotalPts, careerPlacementPts
+  //   tournamentPPM, tournamentKPM, tournamentTop5Rate, tournamentTop3Rate
+  //   winRate (already 0-100), careerAvgTeamRating, avgRankedPosition
   const team = data?.team || data || {};
   const career = team.careerStats || {};
 
   // ── Core stats ──────────────────────────────────────────────────────────────
-  const totalPts   = num(team.totalPts, team.totalPoints, team.scores?.totalPts, career.totalPts, career.totalPoints);
-  const totalKills = num(team.kills, team.totalKills, team.scores?.kills, career.kills, career.totalKills);
-  const wins       = num(team.wins, career.wins, team.careerStats?.wins);
-  const matches    = num(team.matches, career.matches, team.careerStats?.matches);
-  const ppm        = num(team.analytics?.PPM, team.analytics?.ppm, team.ppm, career.PPM, career.ppm, career.analytics?.PPM);
-  const kpm        = num(team.analytics?.KPM, team.analytics?.kpm, team.kpm, career.KPM, career.kpm, career.analytics?.KPM);
-  const winRate    = toPercent(team.analytics?.winRate ?? team.winRate ?? career.winRate ?? career.analytics?.winRate);
-  const killPct    = toPercent(team.analytics?.killPct ?? team.killPct ?? career.killPct ?? career.analytics?.killPct);
-  const top5Rate   = toPercent(team.analytics?.top5Rate ?? team.top5Rate ?? career.top5Rate ?? career.analytics?.top5Rate);
-  const avgPlace   = num(team.analytics?.avgPlace, team.avgPlacement, career.avgPlacement, career.analytics?.avgPlace);
+  const totalPts   = num(
+    team.totalPts, team.totalPoints, team.scores?.totalPts,
+    career.careerTotalPts, career.totalPts, career.totalPoints
+  );
+  const totalKills = num(
+    team.kills, team.totalKills, team.scores?.kills,
+    career.careerKills, career.kills, career.totalKills
+  );
+  const wins = num(
+    team.wins,
+    career.careerWins, career.wins, career.tournamentWins
+  );
+  const matches = num(
+    team.matches,
+    career.careerMatches, career.matches
+  );
+  const ppm = num(
+    team.analytics?.PPM, team.analytics?.ppm, team.ppm,
+    career.tournamentPPM, career.PPM, career.ppm, career.avgPointsPerMatch
+  );
+  const kpm = num(
+    team.analytics?.KPM, team.analytics?.kpm, team.kpm,
+    career.tournamentKPM, career.KPM, career.kpm, career.avgKillsPerMatch
+  );
+  const winRate = toPercent(
+    team.analytics?.winRate ?? team.winRate ?? career.winRate
+  );
+  const killPct = toPercent(
+    team.analytics?.killPct ?? team.killPct ?? career.killPct
+  );
+  const top5Rate = toPercent(
+    team.analytics?.top5Rate ?? team.top5Rate ??
+    career.tournamentTop5Rate ?? career.top5Rate
+  );
+  const avgPlace = num(
+    team.analytics?.avgPlace, team.avgPlacement,
+    career.avgRankedPosition, career.avgPlacement, career.avgPlace
+  );
 
   // ── Rating breakdown ─────────────────────────────────────────────────────────
-  const ratingPower      = num(team.scores?.POWER,      team.scores?.power,      team.analytics?.power,      career.scores?.POWER);
-  const ratingPlacement  = num(team.scores?.PLACEMENT,  team.scores?.placement,  team.analytics?.placement,  career.scores?.PLACEMENT);
-  const ratingConversion = num(team.scores?.CONVERSION, team.scores?.conversion, team.analytics?.conversion, career.scores?.CONVERSION);
-  const ratingForm       = num(team.scores?.FORM,       team.scores?.form,       team.analytics?.form,       career.scores?.FORM);
-  const finalRating      = num(team.scores?.FINAL_RATING, team.scores?.finalRating, team.rating, career.scores?.FINAL_RATING);
+  // Ratings come from per-tournament scores; career has careerAvgTeamRating
+  const ratingPower      = num(team.scores?.POWER,      team.scores?.power,      team.analytics?.power);
+  const ratingPlacement  = num(team.scores?.PLACEMENT,  team.scores?.placement,  team.analytics?.placement);
+  const ratingConversion = num(team.scores?.CONVERSION, team.scores?.conversion, team.analytics?.conversion);
+  const ratingForm       = num(team.scores?.FORM,       team.scores?.form,       team.analytics?.form);
+  const finalRating      = num(team.scores?.FINAL_RATING, team.scores?.finalRating, team.rating, career.careerAvgTeamRating);
   const hasRatings = ratingPower > 0 || ratingPlacement > 0 || ratingConversion > 0 || ratingForm > 0;
 
   const breakdowns = [

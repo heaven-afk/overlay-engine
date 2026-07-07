@@ -96,10 +96,6 @@ const MOCK_TEAM_PROFILE = {
     clanName: 'APEX CLAN',
     tier: 'TIER 1',
     identity: 'Slayer',
-    totalPts: 300,
-    kills: 120,
-    wins: 4,
-    matches: 12,
     analyticsRank: 1,
     scores: {
       FINAL_RATING: 720,
@@ -109,7 +105,7 @@ const MOCK_TEAM_PROFILE = {
       CONVERSION: 90.0,
       FORM: 88.0,
       totalPtsRank: 1,
-      killsRank: 2
+      killsRank: 2,
     },
     analytics: {
       PPM: 25.0,
@@ -117,12 +113,26 @@ const MOCK_TEAM_PROFILE = {
       killPct: 76.5,
       winRate: 33.3,
       top5Rate: 66.7,
-      avgPlace: 4.5
+      avgPlace: 4.5,
     },
     analyticsRanks: {
-      PPM: 1, KPM: 2, winRate: 1, killPct: 2, top5Rate: 3, avgPlace: 1
-    }
-  }
+      PPM: 1, KPM: 2, winRate: 1, killPct: 2, top5Rate: 3, avgPlace: 1,
+    },
+    // careerStats mirrors the exact shape from aggregateGlobalTeams()
+    careerStats: {
+      careerTotalPts: 300,
+      careerKills: 120,
+      careerWins: 4,
+      careerMatches: 12,
+      tournamentPPM: 25.0,
+      tournamentKPM: 10.0,
+      tournamentTop5Rate: 66.7,
+      winRate: 33.3,
+      avgRankedPosition: 4.5,
+      careerAvgTeamRating: 720,
+      tournamentsCount: 2,
+    },
+  },
 };
 
 const MOCK_PLAYER_PROFILE = {
