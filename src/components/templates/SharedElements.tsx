@@ -293,7 +293,7 @@ export const TeamLogoPlaceholder: React.FC<LogoProps> = ({ logoUrl, size = 36, n
           width: `${size}px`,
           height: `${size}px`,
           objectFit: 'cover',
-          borderRadius: '4px',
+          borderRadius: size >= 100 ? '12px' : '4px',
           border: '1px solid var(--border)',
           backgroundColor: 'rgba(255, 255, 255, 0.02)',
         }}
@@ -304,7 +304,7 @@ export const TeamLogoPlaceholder: React.FC<LogoProps> = ({ logoUrl, size = 36, n
     <div style={{
       width: `${size}px`,
       height: `${size}px`,
-      borderRadius: '4px',
+      borderRadius: size >= 100 ? '12px' : '4px',
       backgroundColor: 'rgba(255, 255, 255, 0.05)',
       border: '1px solid var(--border)',
       display: 'flex',

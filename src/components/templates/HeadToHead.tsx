@@ -238,7 +238,6 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
           {/* Team A Card */}
           <div style={{
             flex: '1',
-            maxWidth: '450px',
             backgroundColor: 'var(--bg-card)',
             borderRadius: '16px',
             border: overallWinner === 'A' ? '2px solid var(--accent)' : '1px solid var(--border)',
@@ -247,7 +246,7 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '24px',
+            padding: '32px 24px',
             boxSizing: 'border-box',
             position: 'relative',
           }}>
@@ -267,14 +266,14 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
                 WINNER
               </div>
             )}
-            <TeamLogoPlaceholder logoUrl={teamA.logoUrl} name={teamA.teamName} size={160} />
+            <TeamLogoPlaceholder logoUrl={teamA.logoUrl} name={teamA.teamName} size={200} />
             <h2 style={{
-              fontSize: '24px',
+              fontSize: '28px',
               fontWeight: 800,
               textTransform: 'uppercase',
               color: 'var(--text-heading)',
-              marginTop: '20px',
-              marginBottom: '12px',
+              marginTop: '24px',
+              marginBottom: '14px',
               textAlign: 'center',
               fontFamily: 'var(--heading-font)',
             }}>
@@ -311,8 +310,7 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
 
           {/* VS Separator & Comparison Table */}
           <div style={{
-            flex: '1 1 auto',
-            maxWidth: '600px',
+            flex: '2',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -324,11 +322,11 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
               backgroundColor: 'var(--bg-card)',
               borderRadius: '16px',
               border: '1px solid var(--border)',
-              padding: '24px 32px',
+              padding: '32px 40px',
               boxSizing: 'border-box',
               display: 'flex',
               flexDirection: 'column',
-              gap: '16px',
+              gap: '20px',
             }}>
               {statsList.map((stat) => {
                 // Calculate proportion for comparison bars
@@ -368,14 +366,14 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     width: '100%',
-                    height: '36px',
+                    height: '52px',
                   }}>
                     {/* Team A value */}
                     <div style={{
-                      width: '90px',
+                      width: '110px',
                       textAlign: 'right',
-                      fontSize: '18px',
-                      fontWeight: 700,
+                      fontSize: '26px',
+                      fontWeight: 800,
                       color: isWinnerA ? 'var(--accent)' : 'var(--text-primary)',
                       fontFamily: 'monospace',
                     }}>
@@ -393,11 +391,11 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
                     }}>
                       {/* Stat Label */}
                       <div style={{
-                        fontSize: '11px',
+                        fontSize: '13px',
                         fontWeight: 800,
                         textTransform: 'uppercase',
                         color: 'var(--text-muted)',
-                        marginBottom: '6px',
+                        marginBottom: '8px',
                         letterSpacing: '0.05em',
                         fontFamily: 'var(--heading-font)',
                       }}>
@@ -449,10 +447,10 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
 
                     {/* Team B value */}
                     <div style={{
-                      width: '90px',
+                      width: '110px',
                       textAlign: 'left',
-                      fontSize: '18px',
-                      fontWeight: 700,
+                      fontSize: '26px',
+                      fontWeight: 800,
                       color: isWinnerB ? 'var(--accent)' : 'var(--text-primary)',
                       fontFamily: 'monospace',
                     }}>
@@ -467,7 +465,6 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
           {/* Team B Card */}
           <div style={{
             flex: '1',
-            maxWidth: '450px',
             backgroundColor: 'var(--bg-card)',
             borderRadius: '16px',
             border: overallWinner === 'B' ? '2px solid var(--accent)' : '1px solid var(--border)',
@@ -476,7 +473,7 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '24px',
+            padding: '32px 24px',
             boxSizing: 'border-box',
             position: 'relative',
           }}>
@@ -496,14 +493,14 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
                 WINNER
               </div>
             )}
-            <TeamLogoPlaceholder logoUrl={teamB.logoUrl} name={teamB.teamName} size={160} />
+            <TeamLogoPlaceholder logoUrl={teamB.logoUrl} name={teamB.teamName} size={200} />
             <h2 style={{
-              fontSize: '24px',
+              fontSize: '28px',
               fontWeight: 800,
               textTransform: 'uppercase',
               color: 'var(--text-heading)',
-              marginTop: '20px',
-              marginBottom: '12px',
+              marginTop: '24px',
+              marginBottom: '14px',
               textAlign: 'center',
               fontFamily: 'var(--heading-font)',
             }}>
