@@ -176,6 +176,16 @@ export const TeamProfile: React.FC<TeamProfileProps> = ({ data, styleConfig }) =
         />
       )}
 
+      {/* Semi-transparent dark overlay for custom backgrounds to ensure readability */}
+      {styleConfig.colorTheme === 'custom' && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.55)',
+          zIndex: 0,
+        }} />
+      )}
+
       <div style={{
         position: 'relative',
         zIndex: 1,

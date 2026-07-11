@@ -7,7 +7,7 @@ import {
   getTemplate, saveTemplate, getTournaments,
   OverlayTemplate, TemplateStyleConfig, ColorTheme, TemplateType
 } from '@/lib/db';
-import { getTopStandings, getGlobalRankings, getProfile, compareEntities } from '@/lib/statsApi';
+import { getTopStandings, getGlobalRankings, getProfile, compareEntities, getDailyStandings } from '@/lib/statsApi';
 import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, doc } from 'firebase/firestore';
@@ -17,6 +17,7 @@ import { googleFontsLink, cssVarsForTheme } from '@/lib/fonts';
 
 // Import templates
 import { TopStandings } from '@/components/templates/TopStandings';
+import { DailyStandings } from '@/components/templates/DailyStandings';
 import { HeadToHead } from '@/components/templates/HeadToHead';
 import { TeamProfile } from '@/components/templates/TeamProfile';
 import { PlayerProfile } from '@/components/templates/PlayerProfile';
@@ -43,6 +44,21 @@ const ALL_COLUMNS = [
 const DEFAULT_COLUMNS = ['wins', 'matches', 'events', 'placePts', 'kills', 'totalPts', 'rating', 'ppm', 'kpm', 'killPct', 'avgPlace', 'top3Rate'];
 
 // ─── MOCK PREVIEW DATASETS ──────────────────────────────────────────────────
+const MOCK_DAILY_STANDINGS = {
+  results: Array.from({ length: 5 }, (_, i) => ({
+    rank: i + 1,
+    teamId: `team-${i}`,
+    teamName: i === 0 ? 'REMEDIUM INVICTUS' : i === 1 ? 'KYZON ESPORTS' : `DAILY TEAM ${i + 1}`,
+    clanName: `CLAN ${i + 1}`,
+    logoUrl: '',
+    wins: i === 0 ? 2 : 1,
+    matches: 4,
+    kills: 25 - i * 3,
+    totalPts: 270 - i * 9,
+    lobbiesPlayed: [],
+  }))
+};
+
 const MOCK_STANDINGS = {
   teams: Array.from({ length: 12 }, (_, i) => ({
     teamName: `TEAM UNICORN ${i + 1}`,
@@ -390,6 +406,26 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           }
         }
 
+        else if (templateType === 'daily_standings') {
+          if (!selectedTournamentId) {
+            setPreviewData(MOCK_DAILY_STANDINGS);
+            return;
+          }
+          const day = styleConfig.dailyStandingsDay || 1;
+          const lobby = (styleConfig.dailyStandingsMode === 'single_lobby' && styleConfig.dailyStandingsLobby !== undefined && styleConfig.dailyStandingsLobby !== null)
+            ? styleConfig.dailyStandingsLobby
+            : undefined;
+          const n = styleConfig.topN || 5;
+          const data = await getDailyStandings(selectedTournamentId, day, { lobby, n });
+          if (active) {
+            if (data.results && data.results.length > 0) {
+              setPreviewData(data);
+            } else {
+              setPreviewData(MOCK_DAILY_STANDINGS);
+            }
+          }
+        }
+
         else if (templateType === 'head_to_head') {
           if (!previewTeamAId || !previewTeamBId) {
             setPreviewData(MOCK_H2H);
@@ -431,6 +467,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
         if (active) {
           // fallback to mock
           if (templateType === 'top_standings') setPreviewData(MOCK_STANDINGS);
+          else if (templateType === 'daily_standings') setPreviewData(MOCK_DAILY_STANDINGS);
           else if (templateType === 'head_to_head') setPreviewData(MOCK_H2H);
           else if (templateType === 'team_profile') setPreviewData(MOCK_TEAM_PROFILE);
           else if (templateType === 'player_profile') setPreviewData(MOCK_PLAYER_PROFILE);
@@ -442,7 +479,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
 
     loadLivePreview();
     return () => { active = false; };
-  }, [templateType, selectedTournamentId, previewTeamAId, previewTeamBId, previewTeamId, previewPlayerId, styleConfig.topN, loading]);
+  }, [templateType, selectedTournamentId, previewTeamAId, previewTeamBId, previewTeamId, previewPlayerId, styleConfig.topN, styleConfig.dailyStandingsDay, styleConfig.dailyStandingsLobby, styleConfig.dailyStandingsMode, loading]);
 
   // Update specific style configuration field
   const updateStyleConfig = (patch: Partial<TemplateStyleConfig>) => {
@@ -731,6 +768,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
   const getTemplateComponent = () => {
     switch (templateType) {
       case 'top_standings': return TopStandings;
+      case 'daily_standings': return DailyStandings;
       case 'head_to_head': return HeadToHead;
       case 'team_profile': return TeamProfile;
       case 'player_profile': return PlayerProfile;
@@ -832,6 +870,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                   onChange={(e) => setTemplateType(e.target.value as TemplateType)}
                 >
                   <option value="top_standings">Top Standings Table</option>
+                  <option value="daily_standings">Daily Standings Table</option>
                   <option value="head_to_head">Head to Head Comparison</option>
                   <option value="team_profile">Team Profile</option>
                   <option value="player_profile">Player Profile</option>
@@ -1329,6 +1368,70 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section 6b: Daily Standings Settings */}
+          {templateType === 'daily_standings' && (
+            <div>
+              <div className="sidebar-section-title">Daily Standings Settings</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="property-field">
+                  <span className="property-label">Mode</span>
+                  <div className="toggle-group">
+                    <button 
+                      className={`toggle-btn ${styleConfig.dailyStandingsMode !== 'single_lobby' ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ dailyStandingsMode: 'full_day', dailyStandingsLobby: null })}
+                    >
+                      Full Day
+                    </button>
+                    <button 
+                      className={`toggle-btn ${styleConfig.dailyStandingsMode === 'single_lobby' ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ dailyStandingsMode: 'single_lobby', dailyStandingsLobby: styleConfig.dailyStandingsLobby || 1 })}
+                    >
+                      Single Lobby
+                    </button>
+                  </div>
+                </div>
+
+                <div className="property-field">
+                  <span className="property-label">Day Number</span>
+                  <input 
+                    type="number" 
+                    className="text-input" 
+                    min={1} 
+                    max={20}
+                    value={styleConfig.dailyStandingsDay || 1} 
+                    onChange={(e) => updateStyleConfig({ dailyStandingsDay: Math.max(1, Number(e.target.value)) })} 
+                  />
+                </div>
+
+                {styleConfig.dailyStandingsMode === 'single_lobby' && (
+                  <div className="property-field">
+                    <span className="property-label">Lobby Number</span>
+                    <input 
+                      type="number" 
+                      className="text-input" 
+                      min={1} 
+                      max={20}
+                      value={styleConfig.dailyStandingsLobby || 1} 
+                      onChange={(e) => updateStyleConfig({ dailyStandingsLobby: Math.max(1, Number(e.target.value)) })} 
+                    />
+                  </div>
+                )}
+
+                <div className="property-field">
+                  <span className="property-label">Rows to display (Top N)</span>
+                  <input 
+                    type="number" 
+                    className="text-input" 
+                    min={1} 
+                    max={20}
+                    value={styleConfig.topN || 5} 
+                    onChange={(e) => updateStyleConfig({ topN: Math.max(1, Math.min(20, Number(e.target.value))) })} 
+                  />
                 </div>
               </div>
             </div>

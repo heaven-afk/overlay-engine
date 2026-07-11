@@ -171,6 +171,16 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
         />
       )}
 
+      {/* Semi-transparent dark overlay for custom backgrounds to ensure readability */}
+      {styleConfig.colorTheme === 'custom' && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.55)',
+          zIndex: 0,
+        }} />
+      )}
+
       <div style={{
         position: 'relative',
         zIndex: 1,
@@ -228,7 +238,7 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
           {/* Team A Card */}
           <div style={{
             flex: '1',
-            maxWidth: '340px',
+            maxWidth: '450px',
             backgroundColor: 'var(--bg-card)',
             borderRadius: '16px',
             border: overallWinner === 'A' ? '2px solid var(--accent)' : '1px solid var(--border)',
@@ -257,7 +267,7 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
                 WINNER
               </div>
             )}
-            <TeamLogoPlaceholder logoUrl={teamA.logoUrl} name={teamA.teamName} size={150} />
+            <TeamLogoPlaceholder logoUrl={teamA.logoUrl} name={teamA.teamName} size={160} />
             <h2 style={{
               fontSize: '24px',
               fontWeight: 800,
@@ -301,7 +311,8 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
 
           {/* VS Separator & Comparison Table */}
           <div style={{
-            flex: '2',
+            flex: '1 1 auto',
+            maxWidth: '600px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -456,7 +467,7 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
           {/* Team B Card */}
           <div style={{
             flex: '1',
-            maxWidth: '340px',
+            maxWidth: '450px',
             backgroundColor: 'var(--bg-card)',
             borderRadius: '16px',
             border: overallWinner === 'B' ? '2px solid var(--accent)' : '1px solid var(--border)',
@@ -485,7 +496,7 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
                 WINNER
               </div>
             )}
-            <TeamLogoPlaceholder logoUrl={teamB.logoUrl} name={teamB.teamName} size={150} />
+            <TeamLogoPlaceholder logoUrl={teamB.logoUrl} name={teamB.teamName} size={160} />
             <h2 style={{
               fontSize: '24px',
               fontWeight: 800,

@@ -4,13 +4,14 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   getSlots, getTemplates, saveSlot, deleteSlot,
   getTournaments,
-  OverlaySlot, OverlayTemplate,
+  OverlaySlot, OverlayTemplate, TemplateType
 } from '@/lib/db';
 import {
   getTopStandings,
   getGlobalRankings,
   getProfile,
   compareEntities,
+  getDailyStandings,
 } from '@/lib/statsApi';
 import {
   Layers, Plus, Link as LinkIcon, Check, Copy,
@@ -18,6 +19,18 @@ import {
 } from 'lucide-react';
 
 // ─── Per-slot configuration state shapes ─────────────────────────────────────
+
+interface DailyStandingsConfig {
+  tournamentId: string;
+  day: number;
+  mode: 'full_day' | 'single_lobby';
+  lobby: number | '';
+  n: number;
+}
+
+interface TeamProfileConfig {
+  teamId: string;
+}
 
 interface StandingsConfig {
   n: number;
@@ -47,7 +60,7 @@ export default function SlotsDashboard() {
   // New Slot form states
   const [showAddForm, setShowAddForm] = useState(false);
   const [newSlotName, setNewSlotName] = useState('');
-  const [newSlotType, setNewSlotType] = useState<'single_team' | 'standings_table' | 'head_to_head' | 'player_card'>('single_team');
+  const [newDataShapeType, setNewDataShapeType] = useState<TemplateType>('top_standings');
   const [creating, setCreating] = useState(false);
 
   // Push status
@@ -61,6 +74,8 @@ export default function SlotsDashboard() {
 
   // Per-slot configuration state
   const [standingsConfig, setStandingsConfig] = useState<Record<string, StandingsConfig>>({});
+  const [dailyConfig, setDailyConfig] = useState<Record<string, DailyStandingsConfig>>({});
+  const [teamProfileConfig, setTeamProfileConfig] = useState<Record<string, TeamProfileConfig>>({});
   const [h2hConfig, setH2HConfig] = useState<Record<string, H2HConfig>>({});
   const [playerCardConfig, setPlayerCardConfig] = useState<Record<string, PlayerCardConfig>>({});
 
@@ -128,7 +143,7 @@ export default function SlotsDashboard() {
       setCreating(true);
       const newSlot: Omit<OverlaySlot, 'id'> = {
         name: newSlotName,
-        slotType: newSlotType,
+        dataShapeType: newDataShapeType,
         assignedTemplateId: null,
         currentData: null,
         publicRenderToken: generateToken(),
@@ -152,7 +167,7 @@ export default function SlotsDashboard() {
     try {
       const updatedSlot: Omit<OverlaySlot, 'id'> = {
         name: slot.name,
-        slotType: slot.slotType,
+        dataShapeType: slot.dataShapeType,
         assignedTemplateId: templateId || null,
         currentData: slot.currentData,
         publicRenderToken: slot.publicRenderToken,
@@ -166,6 +181,27 @@ export default function SlotsDashboard() {
     }
   }
 
+  async function handleUpdateSlotDataShape(slotId: string, type: TemplateType) {
+    const slot = slots.find((s) => s.id === slotId);
+    if (!slot) return;
+
+    try {
+      const updatedSlot: Omit<OverlaySlot, 'id'> = {
+        name: slot.name,
+        dataShapeType: type,
+        assignedTemplateId: slot.assignedTemplateId,
+        currentData: slot.currentData,
+        publicRenderToken: slot.publicRenderToken,
+      };
+      await saveSlot(updatedSlot, slotId);
+      setSlots((prev) =>
+        prev.map((s) => (s.id === slotId ? { ...s, dataShapeType: type } : s))
+      );
+    } catch (err) {
+      console.error('Error updating data shape:', err);
+    }
+  }
+
   async function handleDeleteSlot(slotId: string) {
     if (!confirm('Are you sure you want to delete this slot? All live OBS targets will go offline.')) return;
     try {
@@ -176,7 +212,7 @@ export default function SlotsDashboard() {
     }
   }
 
-  // ─── PART 3 — Standings push (team or player, configurable N) ──────────────
+  // ─── Standings push (team or player, configurable N) ─────────────────────────
 
   async function pushTournamentStandings(slot: OverlaySlot) {
     const cfg = standingsConfig[slot.id!];
@@ -219,7 +255,7 @@ export default function SlotsDashboard() {
 
       const updatedSlot: Omit<OverlaySlot, 'id'> = {
         name: slot.name,
-        slotType: slot.slotType,
+        dataShapeType: slot.dataShapeType,
         assignedTemplateId: slot.assignedTemplateId,
         currentData: payload,
         publicRenderToken: slot.publicRenderToken,
@@ -235,7 +271,44 @@ export default function SlotsDashboard() {
     }
   }
 
-  // ─── PART 5 — Head to Head push ─────────────────────────────────────────────
+  // ─── Daily standings push ───────────────────────────────────────────────────
+
+  async function pushDailyStandings(slot: OverlaySlot) {
+    const cfg = dailyConfig[slot.id!];
+    const tournamentId = cfg?.tournamentId;
+    const day = cfg?.day ?? 1;
+    const mode = cfg?.mode ?? 'full_day';
+    const lobby = mode === 'single_lobby' && cfg?.lobby !== '' ? Number(cfg.lobby) : undefined;
+    const n = cfg?.n ?? 5;
+
+    if (!tournamentId) {
+      alert('Please select a tournament first.');
+      return;
+    }
+
+    try {
+      setPushingId(slot.id!);
+      const data = await getDailyStandings(tournamentId, day, { lobby, n });
+
+      const updatedSlot: Omit<OverlaySlot, 'id'> = {
+        name: slot.name,
+        dataShapeType: slot.dataShapeType,
+        assignedTemplateId: slot.assignedTemplateId,
+        currentData: data,
+        publicRenderToken: slot.publicRenderToken,
+      };
+
+      await saveSlot(updatedSlot, slot.id);
+      setSlots((prev) => prev.map((s) => (s.id === slot.id ? { ...s, currentData: data } : s)));
+    } catch (err) {
+      console.error('Error pushing daily standings:', err);
+      alert('Failed to push daily standings. Check stats API.');
+    } finally {
+      setPushingId(null);
+    }
+  }
+
+  // ─── Head to Head push ─────────────────────────────────────────────────────
 
   async function pushHeadToHead(slot: OverlaySlot) {
     const cfg = h2hConfig[slot.id!];
@@ -267,7 +340,7 @@ export default function SlotsDashboard() {
 
       const updatedSlot: Omit<OverlaySlot, 'id'> = {
         name: slot.name,
-        slotType: slot.slotType,
+        dataShapeType: slot.dataShapeType,
         assignedTemplateId: slot.assignedTemplateId,
         currentData: payload,
         publicRenderToken: slot.publicRenderToken,
@@ -283,7 +356,39 @@ export default function SlotsDashboard() {
     }
   }
 
-  // ─── PART 6 — Player Card push ───────────────────────────────────────────────
+  // ─── Team Profile push ───────────────────────────────────────────────────────
+
+  async function pushTeamProfile(slot: OverlaySlot) {
+    const cfg = teamProfileConfig[slot.id!];
+    if (!cfg?.teamId) {
+      alert('Please select a team first.');
+      return;
+    }
+
+    try {
+      setPushingId(slot.id!);
+      const { profile, careerStats } = await getProfile('team', cfg.teamId);
+      const payload = { team: { ...profile, careerStats } };
+
+      const updatedSlot: Omit<OverlaySlot, 'id'> = {
+        name: slot.name,
+        dataShapeType: slot.dataShapeType,
+        assignedTemplateId: slot.assignedTemplateId,
+        currentData: payload,
+        publicRenderToken: slot.publicRenderToken,
+      };
+
+      await saveSlot(updatedSlot, slot.id);
+      setSlots((prev) => prev.map((s) => (s.id === slot.id ? { ...s, currentData: payload } : s)));
+    } catch (err) {
+      console.error('Error pushing team profile:', err);
+      alert('Failed to push team profile.');
+    } finally {
+      setPushingId(null);
+    }
+  }
+
+  // ─── Player Card push ───────────────────────────────────────────────────────
 
   async function pushPlayerCard(slot: OverlaySlot) {
     const cfg = playerCardConfig[slot.id!];
@@ -300,7 +405,7 @@ export default function SlotsDashboard() {
 
       const updatedSlot: Omit<OverlaySlot, 'id'> = {
         name: slot.name,
-        slotType: slot.slotType,
+        dataShapeType: slot.dataShapeType,
         assignedTemplateId: slot.assignedTemplateId,
         currentData: payload,
         publicRenderToken: slot.publicRenderToken,
@@ -322,7 +427,7 @@ export default function SlotsDashboard() {
     try {
       const updatedSlot: Omit<OverlaySlot, 'id'> = {
         name: slot.name,
-        slotType: slot.slotType,
+        dataShapeType: slot.dataShapeType,
         assignedTemplateId: slot.assignedTemplateId,
         currentData: null,
         publicRenderToken: slot.publicRenderToken,
@@ -353,6 +458,22 @@ export default function SlotsDashboard() {
     }));
   }
 
+  function updateDailyConfig(slotId: string, patch: Partial<DailyStandingsConfig>) {
+    const defaults: DailyStandingsConfig = { tournamentId: '', day: 1, mode: 'full_day', lobby: '', n: 5 };
+    setDailyConfig((prev) => ({
+      ...prev,
+      [slotId]: { ...defaults, ...prev[slotId], ...patch },
+    }));
+  }
+
+  function updateTeamProfileConfig(slotId: string, patch: Partial<TeamProfileConfig>) {
+    const defaults: TeamProfileConfig = { teamId: '' };
+    setTeamProfileConfig((prev) => ({
+      ...prev,
+      [slotId]: { ...defaults, ...prev[slotId], ...patch },
+    }));
+  }
+
   function updateH2HConfig(slotId: string, patch: Partial<H2HConfig>) {
     const defaults: H2HConfig = { idA: '', idB: '', scopeTournamentId: '' };
     setH2HConfig((prev) => ({
@@ -373,8 +494,9 @@ export default function SlotsDashboard() {
 
   function renderPushControls(slot: OverlaySlot) {
     const isPushing = pushingId === slot.id;
+    const dataShape = slot.dataShapeType || (slot.slotType === 'standings_table' || slot.slotType === 'single_team' ? 'top_standings' : slot.slotType === 'head_to_head' ? 'head_to_head' : 'player_profile');
 
-    if (slot.slotType === 'standings_table' || slot.slotType === 'single_team') {
+    if (dataShape === 'top_standings') {
       const cfg = standingsConfig[slot.id!] ?? { n: 5, type: 'team', tournamentId: '' };
       const warning = partialWarning[slot.id!];
 
@@ -462,7 +584,125 @@ export default function SlotsDashboard() {
       );
     }
 
-    if (slot.slotType === 'head_to_head') {
+    if (dataShape === 'daily_standings') {
+      const cfg = dailyConfig[slot.id!] ?? { tournamentId: '', day: 1, mode: 'full_day', lobby: '', n: 5 };
+      return (
+        <div style={{
+          background: 'rgba(255,255,255,0.02)',
+          padding: '0.75rem',
+          borderRadius: '8px',
+          border: '1px solid rgba(255,255,255,0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem',
+        }}>
+          <span className="slot-control-label" style={{ margin: 0, fontWeight: 600 }}>
+            Push Daily Standings Data
+          </span>
+
+          <select
+            className="select-input"
+            style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+            value={cfg.tournamentId}
+            onChange={(e) => updateDailyConfig(slot.id!, { tournamentId: e.target.value })}
+          >
+            <option value="">-- Choose Tournament --</option>
+            {tournaments.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Day</span>
+            <input
+              type="number"
+              min={1}
+              value={cfg.day}
+              onChange={(e) => updateDailyConfig(slot.id!, { day: Math.max(1, Number(e.target.value)) })}
+              style={{
+                width: '45px',
+                padding: '0.2rem 0.4rem',
+                fontSize: '0.8rem',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '6px',
+                color: '#fff',
+                textAlign: 'center',
+              }}
+            />
+
+            <select
+              className="select-input"
+              style={{ padding: '0.25rem 0.4rem', fontSize: '0.8rem', height: '28px', flex: 1 }}
+              value={cfg.mode}
+              onChange={(e) => updateDailyConfig(slot.id!, { mode: e.target.value as 'full_day' | 'single_lobby', lobby: e.target.value === 'full_day' ? '' : 1 })}
+            >
+              <option value="full_day">Full Day</option>
+              <option value="single_lobby">Single Lobby</option>
+            </select>
+
+            {cfg.mode === 'single_lobby' && (
+              <>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Lobby</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={cfg.lobby}
+                  onChange={(e) => updateDailyConfig(slot.id!, { lobby: Math.max(1, Number(e.target.value)) })}
+                  style={{
+                    width: '45px',
+                    padding: '0.2rem 0.4rem',
+                    fontSize: '0.8rem',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    textAlign: 'center',
+                  }}
+                />
+              </>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Top N</span>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={cfg.n}
+              onChange={(e) => updateDailyConfig(slot.id!, { n: Math.max(1, Number(e.target.value)) })}
+              style={{
+                width: '45px',
+                padding: '0.2rem 0.4rem',
+                fontSize: '0.8rem',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '6px',
+                color: '#fff',
+                textAlign: 'center',
+              }}
+            />
+
+            <button
+              onClick={() => pushDailyStandings(slot)}
+              className="btn btn-primary btn-sm"
+              style={{ height: '32px', fontSize: '0.8rem', flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+              disabled={isPushing}
+            >
+              {isPushing ? (
+                <Loader2 style={{ width: '13px', height: '13px', animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <Send style={{ width: '13px', height: '13px' }} />
+              )}
+              Push
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (dataShape === 'head_to_head') {
       const cfg = h2hConfig[slot.id!] ?? { idA: '', idB: '', scopeTournamentId: '' };
 
       return (
@@ -562,7 +802,61 @@ export default function SlotsDashboard() {
       );
     }
 
-    if (slot.slotType === 'player_card') {
+    if (dataShape === 'team_profile') {
+      const cfg = teamProfileConfig[slot.id!] ?? { teamId: '' };
+      return (
+        <div style={{
+          background: 'rgba(255,255,255,0.02)',
+          padding: '0.75rem',
+          borderRadius: '8px',
+          border: '1px solid rgba(255,255,255,0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span className="slot-control-label" style={{ margin: 0, fontWeight: 600 }}>
+              Team Profile
+            </span>
+            {pickerLoading && (
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <Loader2 style={{ width: '11px', height: '11px', animation: 'spin 1s linear infinite' }} />
+                Loading teams…
+              </span>
+            )}
+          </div>
+          <select
+            className="select-input"
+            style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+            value={cfg.teamId}
+            onFocus={ensurePickerData}
+            onChange={(e) => updateTeamProfileConfig(slot.id!, { teamId: e.target.value })}
+          >
+            <option value="">-- Select Team --</option>
+            {globalTeams.map((t: any) => (
+              <option key={t.teamId ?? t.id} value={t.teamId ?? t.id}>
+                {t.teamName}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => pushTeamProfile(slot)}
+            className="btn btn-primary btn-sm"
+            style={{ height: '32px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.25rem', justifyContent: 'center' }}
+            disabled={isPushing || !cfg.teamId}
+          >
+            {isPushing ? (
+              <Loader2 style={{ width: '13px', height: '13px', animation: 'spin 1s linear infinite' }} />
+            ) : (
+              <Users style={{ width: '13px', height: '13px' }} />
+            )}
+            Push Team Profile
+          </button>
+        </div>
+      );
+    }
+
+    if (dataShape === 'player_profile') {
       const cfg = playerCardConfig[slot.id!] ?? { playerId: '' };
 
       return (
@@ -628,8 +922,10 @@ export default function SlotsDashboard() {
     const data = slot.currentData;
     if (!data) return null;
 
-    if (slot.slotType === 'standings_table' || slot.slotType === 'single_team') {
-      const teams = data.teams || [];
+    const dataShape = slot.dataShapeType || (slot.slotType === 'standings_table' || slot.slotType === 'single_team' ? 'top_standings' : slot.slotType === 'head_to_head' ? 'head_to_head' : 'player_profile');
+
+    if (dataShape === 'top_standings' || dataShape === 'daily_standings') {
+      const teams = data.teams || data.results || [];
       const players = data.players || [];
       
       if (teams.length > 0) {
@@ -743,7 +1039,7 @@ export default function SlotsDashboard() {
       }
     }
 
-    if (slot.slotType === 'head_to_head') {
+    if (dataShape === 'head_to_head') {
       const tA = data.teamA || {};
       const tB = data.teamB || {};
       return (
@@ -807,7 +1103,52 @@ export default function SlotsDashboard() {
       );
     }
 
-    if (slot.slotType === 'player_card') {
+    if (dataShape === 'team_profile') {
+      const t = data.team || {};
+      const stats = t.careerStats || {};
+      return (
+        <div style={{
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: '12px',
+          padding: '1rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {t.logoUrl ? (
+              <img src={t.logoUrl} alt={t.teamName} style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '4px' }} />
+            ) : (
+              <div style={{ width: '36px', height: '36px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                {t.teamName ? t.teamName.substring(0, 2).toUpperCase() : 'T'}
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#fff', textTransform: 'uppercase' }}>{t.teamName || 'Unknown Team'}</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{t.clanName || 'No Clan'}</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', textAlign: 'center' }}>
+            <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '6px', padding: '0.35rem 0.5rem' }}>
+              <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>Total Pts</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#fff', fontFamily: 'monospace' }}>{stats.careerTotalPts ?? t.totalPts ?? 0}</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '6px', padding: '0.35rem 0.5rem' }}>
+              <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>Matches</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#fff', fontFamily: 'monospace' }}>{stats.careerMatches ?? t.matches ?? 0}</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '6px', padding: '0.35rem 0.5rem' }}>
+              <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>Wins</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent)', fontFamily: 'monospace' }}>{stats.careerWins ?? t.wins ?? 0}</div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (dataShape === 'player_profile') {
       const p = data.player || {};
       const stats = p.careerStats || {};
       return (
@@ -908,13 +1249,14 @@ export default function SlotsDashboard() {
             <span className="slot-control-label">Data Shape Type</span>
             <select
               className="select-input"
-              value={newSlotType}
-              onChange={(e: any) => setNewSlotType(e.target.value)}
+              value={newDataShapeType}
+              onChange={(e: any) => setNewDataShapeType(e.target.value as TemplateType)}
             >
-              <option value="single_team">Single Team Card</option>
-              <option value="standings_table">Standings Table</option>
+              <option value="top_standings">Top Standings Table</option>
+              <option value="daily_standings">Daily Standings Table</option>
               <option value="head_to_head">Head to Head</option>
-              <option value="player_card">Player Card</option>
+              <option value="team_profile">Team Profile</option>
+              <option value="player_profile">Player Profile</option>
             </select>
           </div>
 
@@ -971,7 +1313,7 @@ export default function SlotsDashboard() {
                   <div className="slot-title-group">
                     <h3 style={{ fontSize: '1.25rem', fontFamily: 'Outfit' }}>{slot.name}</h3>
                     <span className="slot-badge">
-                      {slot.slotType.replace(/_/g, ' ').toUpperCase()}
+                      {(slot.dataShapeType || '').replace(/_/g, ' ').toUpperCase()}
                     </span>
                   </div>
                   <button
@@ -987,6 +1329,22 @@ export default function SlotsDashboard() {
                 <div className="slot-grid">
                   {/* Left Column */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {/* Data Shape assignment */}
+                    <div className="slot-control-group">
+                      <span className="slot-control-label">Data Shape Type</span>
+                      <select
+                        className="select-input"
+                        value={slot.dataShapeType || ''}
+                        onChange={(e) => handleUpdateSlotDataShape(slot.id!, e.target.value as TemplateType)}
+                      >
+                        <option value="top_standings">Top Standings Table</option>
+                        <option value="daily_standings">Daily Standings Table</option>
+                        <option value="head_to_head">Head to Head Comparison</option>
+                        <option value="team_profile">Team Profile</option>
+                        <option value="player_profile">Player Profile</option>
+                      </select>
+                    </div>
+
                     {/* Template assignment */}
                     <div className="slot-control-group">
                       <span className="slot-control-label">Assigned Template</span>
@@ -998,7 +1356,7 @@ export default function SlotsDashboard() {
                         <option value="">-- No template assigned (blank overlay) --</option>
                         {templates.map((t) => (
                           <option key={t.id} value={t.id}>
-                            {t.name} (1920x1080)
+                            {t.name} ({t.templateType.replace(/_/g, ' ')})
                           </option>
                         ))}
                       </select>

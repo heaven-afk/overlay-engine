@@ -20,6 +20,7 @@ import {
 
 export type TemplateType = 
   | 'top_standings'    // Top N teams standings table
+  | 'daily_standings'   // NEW
   | 'head_to_head'     // Two teams/players side by side
   | 'team_profile'     // Single team full stat breakdown
   | 'player_profile';  // Single player stats
@@ -55,6 +56,11 @@ export interface TemplateStyleConfig {
   showColumns: string[];              // which stat columns to show (see column list below)
   graphicTitle: string;               // e.g. "OGR T1 COLLATION", "HEAD TO HEAD"
   graphicSubtitle: string;            // e.g. "Full standings — Top 13 · 2 Events Played"
+
+  // Daily standings specific
+  dailyStandingsDay?: number;           // which day to show
+  dailyStandingsLobby?: number | null;  // null = all lobbies that day, number = specific lobby
+  dailyStandingsMode?: 'full_day' | 'single_lobby'; // toggle between modes
 }
 
 export interface OverlayTemplate {
@@ -69,11 +75,12 @@ export interface OverlayTemplate {
 export interface OverlaySlot {
   id?: string;
   name: string;
-  slotType: 'single_team' | 'standings_table' | 'head_to_head' | 'player_card';
-  assignedTemplateId: string | null;
+  dataShapeType: TemplateType;        // what KIND of data this slot currently holds
+  assignedTemplateId: string | null;  // which visual template renders it (independent of data shape)
   currentData: any | null;
   publicRenderToken: string;
   updatedAt?: any;
+  slotType?: any;                     // keeping for fallback/migration purposes
 }
 
 // ─── TOURNAMENTS & REGISTRY (READ-ONLY) ───────────────────────────────────────
@@ -166,10 +173,36 @@ export async function deleteTemplate(id: string): Promise<void> {
 
 // ─── SLOTS CRUD (overlaySlots) ───────────────────────────────────────────────
 
+export function normalizeSlot(id: string, data: any): OverlaySlot {
+  let dataShapeType = data.dataShapeType;
+  if (!dataShapeType) {
+    const st = data.slotType;
+    if (st === 'standings_table' || st === 'single_team') {
+      dataShapeType = 'top_standings';
+    } else if (st === 'head_to_head') {
+      dataShapeType = 'head_to_head';
+    } else if (st === 'player_card') {
+      dataShapeType = 'player_profile';
+    } else {
+      dataShapeType = 'top_standings';
+    }
+  }
+  return {
+    id,
+    name: data.name,
+    dataShapeType,
+    assignedTemplateId: data.assignedTemplateId,
+    currentData: data.currentData,
+    publicRenderToken: data.publicRenderToken,
+    updatedAt: data.updatedAt,
+    slotType: data.slotType || (dataShapeType === 'top_standings' ? 'standings_table' : dataShapeType === 'head_to_head' ? 'head_to_head' : 'player_card'),
+  };
+}
+
 export async function getSlots(): Promise<OverlaySlot[]> {
   try {
     const snap = await getDocs(collection(db, 'overlaySlots'));
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as OverlaySlot));
+    return snap.docs.map((d) => normalizeSlot(d.id, d.data()));
   } catch (err) {
     console.error('Failed to getSlots:', err);
     return [];
@@ -179,7 +212,7 @@ export async function getSlots(): Promise<OverlaySlot[]> {
 export async function getSlot(id: string): Promise<OverlaySlot | null> {
   try {
     const d = await getDoc(doc(db, 'overlaySlots', id));
-    return d.exists() ? ({ id: d.id, ...d.data() } as OverlaySlot) : null;
+    return d.exists() ? normalizeSlot(d.id, d.data()) : null;
   } catch (err) {
     console.error(`Failed to getSlot ${id}:`, err);
     return null;
@@ -193,7 +226,7 @@ export async function getSlotByToken(token: string): Promise<OverlaySlot | null>
     );
     if (snap.empty) return null;
     const d = snap.docs[0];
-    return { id: d.id, ...d.data() } as OverlaySlot;
+    return normalizeSlot(d.id, d.data());
   } catch (err) {
     console.error(`Failed to getSlotByToken ${token}:`, err);
     return null;

@@ -1,19 +1,21 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { getSlotByToken, getTemplate, OverlaySlot, OverlayTemplate } from '@/lib/db';
+import { getSlotByToken, getTemplate, OverlaySlot, OverlayTemplate, normalizeSlot } from '@/lib/db';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { googleFontsLink, cssVarsForTheme } from '@/lib/fonts';
 
 // Import templates
 import { TopStandings } from '@/components/templates/TopStandings';
+import { DailyStandings } from '@/components/templates/DailyStandings';
 import { HeadToHead } from '@/components/templates/HeadToHead';
 import { TeamProfile } from '@/components/templates/TeamProfile';
 import { PlayerProfile } from '@/components/templates/PlayerProfile';
 
 const templateMap = {
   top_standings: TopStandings,
+  daily_standings: DailyStandings,
   head_to_head: HeadToHead,
   team_profile: TeamProfile,
   player_profile: PlayerProfile,
@@ -64,7 +66,7 @@ export default function PublicRenderPage({ params }: PageProps) {
 
         unsubscribeSlot = onSnapshot(doc(db, 'overlaySlots', s.id!), async (snapshot) => {
           if (snapshot.exists()) {
-            const data = snapshot.data() as OverlaySlot;
+            const data = normalizeSlot(snapshot.id, snapshot.data());
             setSlot(data);
 
             if (data.assignedTemplateId) {

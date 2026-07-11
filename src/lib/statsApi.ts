@@ -82,3 +82,17 @@ export async function compareEntities(
   if (tournamentId) params.tournamentId = tournamentId;
   return callStatsApi('/api/overlay/compare', params);
 }
+
+export async function getDailyStandings(
+  tournamentId: string,
+  day: number,
+  options: { lobby?: number; n?: number } = {}
+) {
+  const params: Record<string, string> = {
+    tournamentId,
+    day: String(day),
+    n: String(options.n ?? 5),
+  };
+  if (options.lobby !== undefined) params.lobby = String(options.lobby);
+  return callStatsApi('/api/overlay/standings/daily', params);
+}
