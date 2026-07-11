@@ -1257,6 +1257,7 @@ export default function SlotsDashboard() {
               <option value="head_to_head">Head to Head</option>
               <option value="team_profile">Team Profile</option>
               <option value="player_profile">Player Profile</option>
+              <option value="custom_media">Custom Media</option>
             </select>
           </div>
 
@@ -1342,6 +1343,7 @@ export default function SlotsDashboard() {
                         <option value="head_to_head">Head to Head Comparison</option>
                         <option value="team_profile">Team Profile</option>
                         <option value="player_profile">Player Profile</option>
+                        <option value="custom_media">Custom Media</option>
                       </select>
                     </div>
 

@@ -11,7 +11,7 @@ import { getTopStandings, getGlobalRankings, getProfile, compareEntities, getDai
 import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, doc } from 'firebase/firestore';
-import { ArrowLeft, Save, Upload, Loader2, Download, ChevronUp, ChevronDown, Check } from 'lucide-react';
+import { ArrowLeft, Save, Upload, Loader2, Download, ChevronUp, ChevronDown, Check, Video } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { googleFontsLink, cssVarsForTheme } from '@/lib/fonts';
 
@@ -21,6 +21,7 @@ import { DailyStandings } from '@/components/templates/DailyStandings';
 import { HeadToHead } from '@/components/templates/HeadToHead';
 import { TeamProfile } from '@/components/templates/TeamProfile';
 import { PlayerProfile } from '@/components/templates/PlayerProfile';
+import { CustomMedia } from '@/components/templates/CustomMedia';
 
 // Columns definitions
 const ALL_COLUMNS = [
@@ -210,6 +211,8 @@ export default function TemplateBuilderPage({ params }: PageProps) {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [uploadingBg, setUploadingBg] = useState(false);
   const [uploadBgProgress, setUploadBgProgress] = useState<number>(0);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [uploadMediaProgress, setUploadMediaProgress] = useState<number>(0);
 
   // Template base configurations
   const [templateId, setTemplateId] = useState<string>('');
@@ -605,14 +608,24 @@ export default function TemplateBuilderPage({ params }: PageProps) {
         setTimeout(() => onDone(url), 400);
       } catch (err) {
         console.warn('Firebase Storage upload failed, falling back to local Firestore Base64:', err);
-        // Fall back to browser-side compression & base64 encoding
         onProgress(80);
-        const base64Url = await compressAndGetBase64(file, fallbackOpts.maxW, fallbackOpts.maxH, fallbackOpts.quality || 0.8);
-        onProgress(100);
-        if (base64Url) {
-          setTimeout(() => onDone(base64Url), 400);
+        if (file.type.startsWith('video/')) {
+          const r = new FileReader();
+          r.onload = () => {
+            onProgress(100);
+            onDone(r.result as string);
+          };
+          r.onerror = () => onError(new Error('Failed to read video file as base64'));
+          r.readAsDataURL(file);
         } else {
-          onError(new Error('Failed to convert image to base64 fallback'));
+          // Fall back to browser-side compression & base64 encoding
+          const base64Url = await compressAndGetBase64(file, fallbackOpts.maxW, fallbackOpts.maxH, fallbackOpts.quality || 0.8);
+          onProgress(100);
+          if (base64Url) {
+            setTimeout(() => onDone(base64Url), 400);
+          } else {
+            onError(new Error('Failed to convert image to base64 fallback'));
+          }
         }
       }
     };
@@ -657,6 +670,37 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       (url) => { updateStyleConfig({ customBackgroundUrl: url }); setUploadingBg(false); setUploadBgProgress(0); },
       (err) => { console.error('Background upload failed:', err); alert('Upload failed.'); setUploadingBg(false); setUploadBgProgress(0); },
       { maxW: 1920, maxH: 1080, quality: 0.75 }
+    );
+  };
+
+  // Upload custom media file (image/video/gif) to Firebase Storage
+  const handleUploadMedia = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    setUploadingMedia(true);
+    setUploadMediaProgress(0);
+
+    const folder = `custom_media/${templateId || 'new'}_${Date.now()}.${file.name.split('.').pop()}`;
+
+    uploadFileWithProgress(
+      file,
+      folder,
+      (pct) => setUploadMediaProgress(pct),
+      (url) => {
+        const type = file.type.startsWith('video/') ? 'video' : 'image';
+        updateStyleConfig({ customMediaUrl: url, customMediaType: type });
+        setUploadingMedia(false);
+        setUploadMediaProgress(0);
+      },
+      (err) => {
+        console.error('Media upload failed:', err);
+        alert('Upload failed.');
+        setUploadingMedia(false);
+        setUploadMediaProgress(0);
+      },
+      { maxW: 1920, maxH: 1080, quality: 0.85 }
     );
   };
 
@@ -773,6 +817,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       case 'head_to_head': return HeadToHead;
       case 'team_profile': return TeamProfile;
       case 'player_profile': return PlayerProfile;
+      case 'custom_media': return CustomMedia;
       default: return TopStandings;
     }
   };
@@ -865,43 +910,66 @@ export default function TemplateBuilderPage({ params }: PageProps) {
 
               <div className="property-field">
                 <span className="property-label">Template Type</span>
-                <select 
-                  className="select-input"
-                  value={templateType}
-                  onChange={(e) => setTemplateType(e.target.value as TemplateType)}
-                >
-                  <option value="top_standings">Top Standings Table</option>
-                  <option value="daily_standings">Daily Standings Table</option>
-                  <option value="head_to_head">Head to Head Comparison</option>
-                  <option value="team_profile">Team Profile</option>
-                  <option value="player_profile">Player Profile</option>
-                </select>
+                {templateType === 'custom_media' ? (
+                  <div style={{
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    backgroundColor: 'rgba(217, 70, 239, 0.1)',
+                    border: '1px solid rgba(217, 70, 239, 0.3)',
+                    color: '#d946ef',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}>
+                    Custom Media Slot (Fixed)
+                  </div>
+                ) : (
+                  <select 
+                    className="select-input"
+                    value={templateType}
+                    onChange={(e) => setTemplateType(e.target.value as TemplateType)}
+                  >
+                    <option value="top_standings">Top Standings Table</option>
+                    <option value="daily_standings">Daily Standings Table</option>
+                    <option value="head_to_head">Head to Head Comparison</option>
+                    <option value="team_profile">Team Profile</option>
+                    <option value="player_profile">Player Profile</option>
+                  </select>
+                )}
               </div>
 
-              <div className="property-field">
-                <span className="property-label">Graphic Title</span>
-                <input 
-                  type="text" 
-                  className="text-input" 
-                  value={styleConfig.graphicTitle} 
-                  placeholder="e.g. OGR T1 COLLATION"
-                  onChange={(e) => updateStyleConfig({ graphicTitle: e.target.value })} 
-                />
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Wrap [word] or *word* to force accent highlight.</span>
-              </div>
+              {templateType !== 'custom_media' && (
+                <>
+                  <div className="property-field">
+                    <span className="property-label">Graphic Title</span>
+                    <input 
+                      type="text" 
+                      className="text-input" 
+                      value={styleConfig.graphicTitle} 
+                      placeholder="e.g. OGR T1 COLLATION"
+                      onChange={(e) => updateStyleConfig({ graphicTitle: e.target.value })} 
+                    />
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Wrap [word] or *word* to force accent highlight.</span>
+                  </div>
 
-              <div className="property-field">
-                <span className="property-label">Graphic Subtitle</span>
-                <input 
-                  type="text" 
-                  className="text-input" 
-                  value={styleConfig.graphicSubtitle} 
-                  placeholder="e.g. Full Standings"
-                  onChange={(e) => updateStyleConfig({ graphicSubtitle: e.target.value })} 
-                />
-              </div>
+                  <div className="property-field">
+                    <span className="property-label">Graphic Subtitle</span>
+                    <input 
+                      type="text" 
+                      className="text-input" 
+                      value={styleConfig.graphicSubtitle} 
+                      placeholder="e.g. Full Standings"
+                      onChange={(e) => updateStyleConfig({ graphicSubtitle: e.target.value })} 
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>
+
+          {/* Wrapper to hide standard settings for custom_media */}
+          <div style={{ display: templateType === 'custom_media' ? 'none' : 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
           {/* Section 2: Theme Settings */}
           <div>
@@ -1452,6 +1520,123 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             </div>
           )}
 
+          </div>
+
+          {/* Section 7: Custom Media Configurator */}
+          {templateType === 'custom_media' && (
+            <div>
+              <div className="sidebar-section-title" style={{ color: '#d946ef' }}>Media Settings</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div style={{
+                  border: '1px solid #d946ef',
+                  borderRadius: '10px',
+                  padding: '1rem',
+                  background: 'rgba(217, 70, 239, 0.05)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.85rem',
+                }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#d946ef', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    Upload Media File
+                  </span>
+
+                  {/* Thumbnail / Video preview */}
+                  {styleConfig.customMediaUrl ? (
+                    <div style={{ width: '100%', height: '140px', border: '1px solid var(--border)', borderRadius: '6px', overflow: 'hidden', position: 'relative', backgroundColor: '#000' }}>
+                      {styleConfig.customMediaType === 'video' ? (
+                        <video src={styleConfig.customMediaUrl} muted loop autoPlay style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      ) : (
+                        <img src={styleConfig.customMediaUrl} alt="custom media" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      )}
+                      
+                      <button
+                        onClick={() => updateStyleConfig({ customMediaUrl: '', customMediaType: 'image' })}
+                        title="Remove Media"
+                        style={{
+                          position: 'absolute',
+                          top: '6px',
+                          right: '6px',
+                          backgroundColor: 'rgba(0,0,0,0.6)',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          color: '#fff',
+                          borderRadius: '4px',
+                          padding: '2px 6px',
+                          fontSize: '11px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{
+                      height: '80px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '1px dashed rgba(217, 70, 239, 0.3)',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      color: 'var(--text-muted)',
+                    }}>
+                      No media uploaded yet
+                    </div>
+                  )}
+
+                  {/* Upload button */}
+                  <label className="btn btn-secondary btn-sm" style={{ margin: 0, justifyContent: 'center', opacity: uploadingMedia ? 0.7 : 1, borderColor: 'rgba(217, 70, 239, 0.4)', color: '#d946ef' }}>
+                    {uploadingMedia ? (
+                      <Loader2 className="animate-spin" style={{ width: '14px', height: '14px' }} />
+                    ) : (
+                      <Upload style={{ width: '14px', height: '14px' }} />
+                    )}
+                    {uploadingMedia ? `Uploading ${uploadMediaProgress}%...` : 'Upload Video, GIF or Image'}
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      style={{ display: 'none' }}
+                      onChange={handleUploadMedia}
+                      disabled={uploadingMedia}
+                    />
+                  </label>
+
+                  {/* Progress bar */}
+                  {uploadingMedia && (
+                    <div style={{ position: 'relative', height: '3px', borderRadius: '2px', backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                      <div style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                        height: '100%',
+                        width: `${uploadMediaProgress}%`,
+                        backgroundColor: '#d946ef',
+                        borderRadius: '2px',
+                        transition: 'width 0.25s ease',
+                        boxShadow: '0 0 6px #d946ef',
+                      }} />
+                    </div>
+                  )}
+
+                  {/* Or paste direct URL */}
+                  <div className="property-field" style={{ marginTop: 0 }}>
+                    <span className="property-label">Or Paste Media URL</span>
+                    <input
+                      type="text"
+                      className="text-input"
+                      placeholder="https://..."
+                      value={styleConfig.customMediaUrl || ''}
+                      onChange={(e) => {
+                        const url = e.target.value;
+                        const isVid = url.endsWith('.mp4') || url.endsWith('.webm') || url.includes('video');
+                        updateStyleConfig({ customMediaUrl: url, customMediaType: isVid ? 'video' : 'image' });
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
 
         {/* Right Side: Preview Panel */}
@@ -1475,98 +1660,116 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             gap: '12px',
             marginBottom: '1.5rem',
           }}>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              
-              {/* Tournament Selector */}
-              <div className="editor-preview-selector">
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Preview Tourney:</span>
-                <select 
-                  value={selectedTournamentId}
-                  onChange={(e) => setSelectedTournamentId(e.target.value)}
-                >
-                  <option value="">-- Global / Career Stats --</option>
-                  {tournaments.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Head-to-Head Source Pickers */}
-              {templateType === 'head_to_head' && (
-                <>
-                  <div className="editor-preview-selector">
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Team A:</span>
-                    <select 
-                      value={previewTeamAId}
-                      onChange={(e) => setPreviewTeamAId(e.target.value)}
-                    >
-                      {filteredTeams.map((t) => (
-                        <option key={t.teamId || t.id} value={t.teamId || t.id}>{t.teamName}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="editor-preview-selector">
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Team B:</span>
-                    <select 
-                      value={previewTeamBId}
-                      onChange={(e) => setPreviewTeamBId(e.target.value)}
-                    >
-                      {filteredTeams.filter(t => (t.teamId || t.id) !== previewTeamAId).map((t) => (
-                        <option key={t.teamId || t.id} value={t.teamId || t.id}>{t.teamName}</option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              )}
-
-              {/* Team Profile Source Picker */}
-              {templateType === 'team_profile' && (
-                <div className="editor-preview-selector">
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Team:</span>
-                  <select 
-                    value={previewTeamId}
-                    onChange={(e) => setPreviewTeamId(e.target.value)}
-                  >
-                    {filteredTeams.map((t) => (
-                      <option key={t.teamId || t.id} value={t.teamId || t.id}>{t.teamName}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Player Profile Source Picker */}
-              {templateType === 'player_profile' && (
-                <div className="editor-preview-selector">
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Player:</span>
-                  <select 
-                    value={previewPlayerId}
-                    onChange={(e) => setPreviewPlayerId(e.target.value)}
-                  >
-                    {filteredPlayers.map((p) => (
-                      <option key={p.playerId || p.id} value={p.playerId || p.id}>
-                        {p.ign || p.professionalName || p.id}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-
-            {/* Spinner indicator */}
-            {previewLoading && (
+            {templateType === 'custom_media' ? (
               <div style={{
-                background: 'rgba(0,0,0,0.5)',
-                padding: '6px 12px',
-                borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                fontSize: '0.8rem',
-                border: '1px solid var(--border-glass)',
+                fontSize: '0.9rem',
+                fontWeight: 700,
+                color: '#d946ef',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
               }}>
-                <Loader2 className="animate-spin" style={{ width: '12px', height: '12px', animation: 'spin 1s linear infinite' }} />
-                <span>Loading preview data...</span>
+                <Video style={{ width: '16px', height: '16px' }} />
+                <span>Custom Media Broadcast Scene (No Data Binding)</span>
               </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  
+                  {/* Tournament Selector */}
+                  <div className="editor-preview-selector">
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Preview Tourney:</span>
+                    <select 
+                      value={selectedTournamentId}
+                      onChange={(e) => setSelectedTournamentId(e.target.value)}
+                    >
+                      <option value="">-- Global / Career Stats --</option>
+                      {tournaments.map((t) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Head-to-Head Source Pickers */}
+                  {templateType === 'head_to_head' && (
+                    <>
+                      <div className="editor-preview-selector">
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Team A:</span>
+                        <select 
+                          value={previewTeamAId}
+                          onChange={(e) => setPreviewTeamAId(e.target.value)}
+                        >
+                          {filteredTeams.map((t) => (
+                            <option key={t.teamId || t.id} value={t.teamId || t.id}>{t.teamName}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="editor-preview-selector">
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Team B:</span>
+                        <select 
+                          value={previewTeamBId}
+                          onChange={(e) => setPreviewTeamBId(e.target.value)}
+                        >
+                          {filteredTeams.filter(t => (t.teamId || t.id) !== previewTeamAId).map((t) => (
+                            <option key={t.teamId || t.id} value={t.teamId || t.id}>{t.teamName}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Team Profile Source Picker */}
+                  {templateType === 'team_profile' && (
+                    <div className="editor-preview-selector">
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Team:</span>
+                      <select 
+                        value={previewTeamId}
+                        onChange={(e) => setPreviewTeamId(e.target.value)}
+                      >
+                        {filteredTeams.map((t) => (
+                          <option key={t.teamId || t.id} value={t.teamId || t.id}>{t.teamName}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Player Profile Source Picker */}
+                  {templateType === 'player_profile' && (
+                    <div className="editor-preview-selector">
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Player:</span>
+                      <select 
+                        value={previewPlayerId}
+                        onChange={(e) => setPreviewPlayerId(e.target.value)}
+                      >
+                        {filteredPlayers.map((p) => (
+                          <option key={p.playerId || p.id} value={p.playerId || p.id}>
+                            {p.ign || p.professionalName || p.id}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {/* Spinner indicator */}
+                {previewLoading && (
+                  <div style={{
+                    background: 'rgba(0,0,0,0.5)',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '0.8rem',
+                    border: '1px solid var(--border-glass)',
+                  }}>
+                    <Loader2 className="animate-spin" style={{ width: '12px', height: '12px', animation: 'spin 1s linear infinite' }} />
+                    <span>Loading preview data...</span>
+                  </div>
+                )}
+              </>
             )}
           </div>
 

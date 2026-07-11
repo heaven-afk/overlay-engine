@@ -23,7 +23,8 @@ export type TemplateType =
   | 'daily_standings'   // NEW
   | 'head_to_head'     // Two teams/players side by side
   | 'team_profile'     // Single team full stat breakdown
-  | 'player_profile';  // Single player stats
+  | 'player_profile'   // Single player stats
+  | 'custom_media';    // NEW: Media-based Custom Template
 
 export type ColorTheme = 'dark' | 'light' | 'custom';
 
@@ -62,6 +63,10 @@ export interface TemplateStyleConfig {
   dailyStandingsLobby?: number | null;  // null = all lobbies that day, number = specific lobby
   dailyStandingsMode?: 'full_day' | 'single_lobby'; // toggle between modes
   dailyPointsColumn?: 'totalPts' | 'kills' | 'placementPts'; // which value to show in Points column
+  
+  // Custom Media template specific
+  customMediaUrl?: string;            // URL or base64 of custom uploaded video/gif/image
+  customMediaType?: 'image' | 'video' | 'gif'; // type of custom media
 }
 
 export interface OverlayTemplate {
@@ -128,12 +133,17 @@ export async function getTeams() {
 export async function getTemplates(): Promise<OverlayTemplate[]> {
   try {
     const snap = await getDocs(collection(db, 'overlayTemplates'));
-    if (snap.empty) {
-      await seedDefaultTemplates();
+    let list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as OverlayTemplate));
+    
+    // Ensure exactly 2 custom_media templates exist
+    const customMediaTemplates = list.filter((t) => t.templateType === 'custom_media');
+    if (customMediaTemplates.length < 2) {
+      await seedCustomMediaTemplates(2 - customMediaTemplates.length);
       const freshSnap = await getDocs(collection(db, 'overlayTemplates'));
-      return freshSnap.docs.map((d) => ({ id: d.id, ...d.data() } as OverlayTemplate));
+      list = freshSnap.docs.map((d) => ({ id: d.id, ...d.data() } as OverlayTemplate));
     }
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as OverlayTemplate));
+    
+    return list;
   } catch (err) {
     console.error('Failed to getTemplates:', err);
     return [];
@@ -169,6 +179,10 @@ export async function saveTemplate(template: Omit<OverlayTemplate, 'id'>, id?: s
 }
 
 export async function deleteTemplate(id: string): Promise<void> {
+  const t = await getTemplate(id);
+  if (t && t.templateType === 'custom_media') {
+    throw new Error('Custom Media templates cannot be deleted.');
+  }
   await deleteDoc(doc(db, 'overlayTemplates', id));
 }
 
@@ -288,3 +302,41 @@ async function seedDefaultTemplates() {
     console.error('Failed to seed default templates:', err);
   }
 }
+
+async function seedCustomMediaTemplates(countNeeded: number) {
+  for (let i = 0; i < countNeeded; i++) {
+    const defaultCustomMedia: Omit<OverlayTemplate, 'id'> = {
+      name: `Custom Media Slot ${i + 1}`,
+      templateType: 'custom_media',
+      styleConfig: {
+        colorTheme: 'custom',
+        accentColor: '#d946ef', // premium purple/pink accent
+        headingFont: 'Outfit',
+        bodyFont: 'Outfit',
+        brandingLogoUrl: '',
+        brandingName: 'HEAVEN STAT ENGINE\nAfrican CODM BR Coverage',
+        showStatsStamp: false,
+        tournamentLogoCount: 1,
+        tournamentLogos: [
+          { logoUrl: '', tournamentName: '' }
+        ],
+        topN: 1,
+        showColumns: [],
+        graphicTitle: 'LIVE MEDIA BROADCAST',
+        graphicSubtitle: 'Custom Graphics Slot',
+        customMediaUrl: '',
+        customMediaType: 'image',
+      }
+    };
+    try {
+      await addDoc(collection(db, 'overlayTemplates'), {
+        ...defaultCustomMedia,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+    } catch (err) {
+      console.error('Failed to seed custom media template:', err);
+    }
+  }
+}
+

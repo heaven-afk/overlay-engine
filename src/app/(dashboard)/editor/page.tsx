@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getTemplates, deleteTemplate, saveTemplate, OverlayTemplate } from '@/lib/db';
-import { Plus, Trash, Copy, Edit, Image as ImageIcon, Loader2, AlertTriangle, Layers, Award, User, Users } from 'lucide-react';
+import { Plus, Trash, Copy, Edit, Image as ImageIcon, Loader2, AlertTriangle, Layers, Award, User, Users, Video } from 'lucide-react';
 
 export default function TemplateLibrary() {
   const router = useRouter();
@@ -47,6 +47,10 @@ export default function TemplateLibrary() {
       alert('Legacy templates cannot be duplicated. Please create a new template.');
       return;
     }
+    if (template.templateType === 'custom_media') {
+      alert('Custom Media templates cannot be duplicated. Only two slots can exist.');
+      return;
+    }
     try {
       setActionLoading(`dup-${template.id}`);
       const newTemplate: Omit<OverlayTemplate, 'id'> = {
@@ -76,6 +80,8 @@ export default function TemplateLibrary() {
         return <Layers style={{ width: '20px', height: '20px', color: '#38bdf8' }} />;
       case 'player_profile':
         return <User style={{ width: '20px', height: '20px', color: '#34d399' }} />;
+      case 'custom_media':
+        return <Video style={{ width: '20px', height: '20px', color: '#d946ef' }} />;
       default:
         return <AlertTriangle style={{ width: '20px', height: '20px', color: '#f87171' }} />;
     }
@@ -87,6 +93,7 @@ export default function TemplateLibrary() {
       case 'head_to_head': return 'Head to Head';
       case 'team_profile': return 'Team Profile';
       case 'player_profile': return 'Player Profile';
+      case 'custom_media': return 'Custom Media';
       default: return 'Legacy Template';
     }
   };
@@ -132,19 +139,33 @@ export default function TemplateLibrary() {
         <div className="template-grid">
           {templates.map((template) => {
             const isLegacy = !template.templateType;
+            const isCustomMedia = template.templateType === 'custom_media';
 
             return (
-              <div key={template.id} className="template-card">
+              <div 
+                key={template.id} 
+                className="template-card"
+                style={isCustomMedia ? {
+                  border: '1px solid #d946ef',
+                  boxShadow: '0 0 15px rgba(217, 70, 239, 0.15)',
+                  background: 'linear-gradient(135deg, rgba(20, 10, 30, 0.95) 0%, rgba(10, 10, 15, 0.95) 100%)',
+                } : undefined}
+              >
                 <div 
                   className="template-card-preview"
                   style={{
-                    backgroundColor: isLegacy ? 'rgba(239, 68, 68, 0.05)' : 'rgba(0, 0, 0, 0.3)',
+                    backgroundColor: isCustomMedia 
+                      ? 'rgba(217, 70, 239, 0.04)' 
+                      : isLegacy 
+                        ? 'rgba(239, 68, 68, 0.05)' 
+                        : 'rgba(0, 0, 0, 0.3)',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '12px',
                     height: '140px',
+                    borderBottom: isCustomMedia ? '1px solid rgba(217, 70, 239, 0.15)' : undefined,
                   }}
                 >
                   {getTemplateTypeIcon(template.templateType)}
@@ -153,7 +174,7 @@ export default function TemplateLibrary() {
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
-                    color: isLegacy ? '#ef4444' : 'var(--text-muted)',
+                    color: isCustomMedia ? '#d946ef' : isLegacy ? '#ef4444' : 'var(--text-muted)',
                   }}>
                     {getTemplateTypeName(template.templateType)}
                   </span>
@@ -202,23 +223,45 @@ export default function TemplateLibrary() {
                       <div style={{ flexGrow: 1 }} />
                     )}
 
-                    <button
-                      disabled={actionLoading !== null || isLegacy}
-                      onClick={() => handleDuplicate(template)}
-                      className="btn btn-secondary btn-sm"
-                      title="Duplicate Template"
-                    >
-                      <Copy style={{ width: '14px', height: '14px' }} />
-                    </button>
+                    {isCustomMedia ? (
+                      <button
+                        disabled={true}
+                        className="btn btn-secondary btn-sm"
+                        style={{ opacity: 0.35, cursor: 'not-allowed' }}
+                        title="Custom Media templates cannot be duplicated"
+                      >
+                        <Copy style={{ width: '14px', height: '14px' }} />
+                      </button>
+                    ) : (
+                      <button
+                        disabled={actionLoading !== null || isLegacy}
+                        onClick={() => handleDuplicate(template)}
+                        className="btn btn-secondary btn-sm"
+                        title="Duplicate Template"
+                      >
+                        <Copy style={{ width: '14px', height: '14px' }} />
+                      </button>
+                    )}
                     
-                    <button
-                      disabled={actionLoading !== null}
-                      onClick={() => handleDelete(template.id!)}
-                      className="btn btn-danger btn-sm"
-                      title="Delete Template"
-                    >
-                      <Trash style={{ width: '14px', height: '14px' }} />
-                    </button>
+                    {isCustomMedia ? (
+                      <button
+                        disabled={true}
+                        className="btn btn-secondary btn-sm"
+                        style={{ opacity: 0.35, cursor: 'not-allowed' }}
+                        title="Custom Media templates cannot be deleted"
+                      >
+                        <Trash style={{ width: '14px', height: '14px' }} />
+                      </button>
+                    ) : (
+                      <button
+                        disabled={actionLoading !== null}
+                        onClick={() => handleDelete(template.id!)}
+                        className="btn btn-danger btn-sm"
+                        title="Delete Template"
+                      >
+                        <Trash style={{ width: '14px', height: '14px' }} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

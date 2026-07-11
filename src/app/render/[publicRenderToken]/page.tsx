@@ -12,6 +12,7 @@ import { DailyStandings } from '@/components/templates/DailyStandings';
 import { HeadToHead } from '@/components/templates/HeadToHead';
 import { TeamProfile } from '@/components/templates/TeamProfile';
 import { PlayerProfile } from '@/components/templates/PlayerProfile';
+import { CustomMedia } from '@/components/templates/CustomMedia';
 
 const templateMap = {
   top_standings: TopStandings,
@@ -19,6 +20,7 @@ const templateMap = {
   head_to_head: HeadToHead,
   team_profile: TeamProfile,
   player_profile: PlayerProfile,
+  custom_media: CustomMedia,
 };
 
 interface PageProps {
