@@ -45,16 +45,17 @@ const DEFAULT_COLUMNS = ['wins', 'matches', 'events', 'placePts', 'kills', 'tota
 
 // ─── MOCK PREVIEW DATASETS ──────────────────────────────────────────────────
 const MOCK_DAILY_STANDINGS = {
-  results: Array.from({ length: 5 }, (_, i) => ({
+  results: Array.from({ length: 8 }, (_, i) => ({
     rank: i + 1,
     teamId: `team-${i}`,
-    teamName: i === 0 ? 'REMEDIUM INVICTUS' : i === 1 ? 'KYZON ESPORTS' : `DAILY TEAM ${i + 1}`,
+    teamName: i === 0 ? 'REMEDIUM INVICTUS' : i === 1 ? 'KYZON ESPORTS' : i === 2 ? 'HYPERION SQUAD' : `DAILY TEAM ${i + 1}`,
     clanName: `CLAN ${i + 1}`,
     logoUrl: '',
-    wins: i === 0 ? 2 : 1,
+    wins: i === 0 ? 2 : i === 1 ? 1 : 0,
     matches: 4,
-    kills: 25 - i * 3,
-    totalPts: 270 - i * 9,
+    kills: 28 - i * 3,
+    placementPts: 120 - i * 12,
+    totalPts: 270 - i * 28,
     lobbiesPlayed: [],
   }))
 };
@@ -1432,6 +1433,20 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     value={styleConfig.topN || 5} 
                     onChange={(e) => updateStyleConfig({ topN: Math.max(1, Math.min(20, Number(e.target.value))) })} 
                   />
+                </div>
+
+                <div className="property-field">
+                  <span className="property-label">Points Column</span>
+                  <select
+                    className="select-input"
+                    value={styleConfig.dailyPointsColumn || 'totalPts'}
+                    onChange={(e) => updateStyleConfig({ dailyPointsColumn: e.target.value as 'totalPts' | 'kills' | 'placementPts' })}
+                  >
+                    <option value="totalPts">Total Points</option>
+                    <option value="kills">Total Kills</option>
+                    <option value="placementPts">Placement Points</option>
+                  </select>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Choose what the right-hand column shows.</span>
                 </div>
               </div>
             </div>

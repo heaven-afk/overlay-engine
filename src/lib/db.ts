@@ -61,6 +61,7 @@ export interface TemplateStyleConfig {
   dailyStandingsDay?: number;           // which day to show
   dailyStandingsLobby?: number | null;  // null = all lobbies that day, number = specific lobby
   dailyStandingsMode?: 'full_day' | 'single_lobby'; // toggle between modes
+  dailyPointsColumn?: 'totalPts' | 'kills' | 'placementPts'; // which value to show in Points column
 }
 
 export interface OverlayTemplate {
