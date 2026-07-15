@@ -106,7 +106,7 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
             fontFamily: 'var(--heading-font)',
             textAlign: 'center',
           }}>
-            RK
+            RANK
           </div>
           <div style={{
             fontSize: '11px',
@@ -140,8 +140,7 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
             fontWeight: 800,
             color: 'var(--text-muted)',
             fontFamily: 'var(--heading-font)',
-            textAlign: 'right',
-            paddingRight: '4px',
+            textAlign: 'center',
           }}>
             TOTAL
           </div>
@@ -239,15 +238,21 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
                   {team.kills}
                 </div>
 
-                {/* Total Points */}
+                {/* Total Points (Score Box) */}
                 <div style={{
                   fontSize: `${textFontSize + 1}px`,
                   fontWeight: 800,
                   color: 'var(--accent)',
-                  textAlign: 'right',
                   fontFamily: 'monospace',
                   letterSpacing: '0.05em',
-                  paddingRight: '4px',
+                  backgroundColor: 'rgba(0, 0, 0, 0.35)', // Darker score box
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  alignSelf: 'stretch',
+                  borderLeft: '1px solid var(--border)',
+                  boxSizing: 'border-box',
                 }}>
                   {team.totalPoints}
                 </div>
