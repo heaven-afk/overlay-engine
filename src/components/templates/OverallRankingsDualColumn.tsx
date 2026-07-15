@@ -19,6 +19,7 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
     const teamName = team.teamName || team.clanName || `Team ${index + 1}`;
     const placementPoints = Number(team.placementPoints ?? team.placementPts ?? team.placePts ?? team.scores?.placementPts ?? 0);
     const kills = Number(team.kills ?? team.scores?.kills ?? 0);
+    const wins = Number(team.wins ?? team.scores?.wins ?? team.winsCount ?? 0);
     const totalPoints = Number(
       team.totalPoints ?? 
       team.totalPts ?? 
@@ -32,6 +33,7 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
       placementPoints,
       kills,
       totalPoints,
+      wins,
       id: team.id || team.teamId || index,
     };
   });
@@ -46,45 +48,10 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
     ? getCanvaEmbedUrl(styleConfig.customBackgroundUrl)
     : null;
 
-  // Dynamic row sizing for best fit
-  const maxRowsPerCol = Math.max(1, leftColumnRows.length);
-  // Available height for content: ~700px. Calculate dynamic row height
-  const rowHeight = Math.min(54, Math.floor(700 / maxRowsPerCol));
-  const rankFontSize = Math.min(14, Math.max(11, Math.floor(rowHeight * 0.35)));
-  const textFontSize = Math.min(15, Math.max(12, Math.floor(rowHeight * 0.35)));
-
-  // Title renderer highlighting logic matching other templates
-  const renderTitle = (text: string) => {
-    if (!text) return null;
-    const bracketMatch = text.match(/\[(.*?)\]/);
-    if (bracketMatch) {
-      const parts = text.split(bracketMatch[0]);
-      return (
-        <>
-          {parts[0]}<span style={{ color: 'var(--accent)' }}>{bracketMatch[1]}</span>{parts[1]}
-        </>
-      );
-    }
-    const starMatch = text.match(/\*(.*?)\*/);
-    if (starMatch) {
-      const parts = text.split(starMatch[0]);
-      return (
-        <>
-          {parts[0]}<span style={{ color: 'var(--accent)' }}>{starMatch[1]}</span>{parts[1]}
-        </>
-      );
-    }
-    const words = text.split(' ');
-    if (words.length <= 1) {
-      return <span style={{ color: 'var(--accent)' }}>{text}</span>;
-    }
-    const lastWord = words.pop();
-    return (
-      <>
-        {words.join(' ')} <span style={{ color: 'var(--accent)' }}>{lastWord}</span>
-      </>
-    );
-  };
+  // Fixed larger font sizes and heights designed for a 1920x1080 canvas
+  const rowHeight = 62;
+  const rankFontSize = 18;
+  const textFontSize = 20;
 
   const renderColumn = (colRows: typeof rows, startIndexOffset: number) => {
     return (
@@ -92,68 +59,87 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
         {/* Column Header */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '60px minmax(180px, 1fr) 80px 80px 90px',
+          gridTemplateColumns: '70px minmax(200px, 1fr) 90px 90px 90px 90px',
           alignItems: 'center',
-          padding: '10px 16px',
-          borderBottom: '2px solid var(--accent)',
-          background: 'rgba(255, 255, 255, 0.01)',
+          padding: '12px 0',
+          borderTop: '1px solid rgba(255, 255, 255, 0.15)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
+          background: 'rgba(0, 0, 0, 0.45)',
           boxSizing: 'border-box',
         }}>
           <div style={{
-            fontSize: '11px',
+            fontSize: '13px',
             fontWeight: 800,
-            color: 'var(--text-muted)',
+            color: 'var(--accent)',
             fontFamily: 'var(--heading-font)',
             textAlign: 'center',
+            letterSpacing: '0.05em',
           }}>
             RANK
           </div>
           <div style={{
-            fontSize: '11px',
+            fontSize: '13px',
             fontWeight: 800,
             color: 'var(--text-muted)',
             fontFamily: 'var(--heading-font)',
-            paddingLeft: '12px',
+            paddingLeft: '20px',
+            letterSpacing: '0.05em',
           }}>
             TEAM NAME
           </div>
           <div style={{
-            fontSize: '11px',
-            fontWeight: 800,
-            color: 'var(--text-muted)',
-            fontFamily: 'var(--heading-font)',
-            textAlign: 'right',
-          }}>
-            PL PTS
-          </div>
-          <div style={{
-            fontSize: '11px',
-            fontWeight: 800,
-            color: 'var(--text-muted)',
-            fontFamily: 'var(--heading-font)',
-            textAlign: 'right',
-          }}>
-            KILLS
-          </div>
-          <div style={{
-            fontSize: '11px',
+            fontSize: '13px',
             fontWeight: 800,
             color: 'var(--text-muted)',
             fontFamily: 'var(--heading-font)',
             textAlign: 'center',
+            letterSpacing: '0.05em',
+          }}>
+            PL PTS
+          </div>
+          <div style={{
+            fontSize: '13px',
+            fontWeight: 800,
+            color: 'var(--text-muted)',
+            fontFamily: 'var(--heading-font)',
+            textAlign: 'center',
+            letterSpacing: '0.05em',
+          }}>
+            KILLS
+          </div>
+          <div style={{
+            fontSize: '13px',
+            fontWeight: 800,
+            color: 'var(--text-muted)',
+            fontFamily: 'var(--heading-font)',
+            textAlign: 'center',
+            letterSpacing: '0.05em',
           }}>
             TOTAL
           </div>
+          <div style={{
+            fontSize: '13px',
+            fontWeight: 800,
+            color: 'var(--text-muted)',
+            fontFamily: 'var(--heading-font)',
+            textAlign: 'center',
+            letterSpacing: '0.05em',
+          }}>
+            WINS
+          </div>
         </div>
 
-        {/* Column Data Rows */}
+        {/* Column Data Rows (Unified grouped container matching reference image) */}
         <div style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '3px',
-          marginTop: '6px',
+          marginTop: '8px',
           flexGrow: 1,
           justifyContent: 'flex-start',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '8px',
+          background: 'rgba(0, 0, 0, 0.4)',
+          overflow: 'hidden',
         }}>
           {colRows.map((team: any, idx: number) => {
             const index = startIndexOffset + idx;
@@ -165,46 +151,34 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
                 key={team.id}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '60px minmax(180px, 1fr) 80px 80px 90px',
+                  gridTemplateColumns: '70px minmax(200px, 1fr) 90px 90px 90px 90px',
                   alignItems: 'center',
                   height: `${rowHeight}px`,
-                  backgroundColor: isAlternative ? 'var(--bg-row-alt)' : 'var(--bg-row)',
+                  backgroundColor: isAlternative ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.2)',
+                  borderBottom: idx < colRows.length - 1 ? '1px solid rgba(255, 255, 255, 0.08)' : 'none',
                   borderLeft: isTop3 ? '3.5px solid var(--accent)' : '3.5px solid transparent',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border)',
-                  borderTop: '1px solid var(--border)',
-                  borderBottom: '1px solid var(--border)',
-                  borderRight: '1px solid var(--border)',
                   boxSizing: 'border-box',
                 }}
               >
                 {/* Rank Badge */}
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: isTop3 ? '28px' : '24px',
-                    height: isTop3 ? '28px' : '24px',
-                    borderRadius: '50%',
-                    fontFamily: 'var(--heading-font)',
-                    fontWeight: 800,
-                    fontSize: `${rankFontSize}px`,
-                    color: isTop3 ? 'var(--accent)' : 'var(--text-muted)',
-                    border: isTop3 ? '1.5px solid var(--accent)' : '1px solid var(--rank-border)',
-                    backgroundColor: isTop3 ? 'var(--accent-muted)' : 'var(--rank-bg)',
-                    boxSizing: 'border-box',
-                  }}>
-                    {team.rank}
-                  </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontFamily: 'var(--heading-font)',
+                  fontWeight: 900,
+                  fontSize: `${rankFontSize}px`,
+                  color: isTop3 ? 'var(--accent)' : 'var(--text-muted)',
+                }}>
+                  #{team.rank}
                 </div>
 
                 {/* Team Name */}
                 <div style={{
-                  paddingLeft: '12px',
+                  paddingLeft: '20px',
                   fontSize: `${textFontSize}px`,
-                  fontWeight: 700,
-                  color: 'var(--text-heading)',
+                  fontWeight: 800,
+                  color: '#FFF',
                   textTransform: 'uppercase',
                   letterSpacing: '0.04em',
                   overflow: 'hidden',
@@ -217,11 +191,10 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
                 {/* Placement Points */}
                 <div style={{
                   fontSize: `${textFontSize}px`,
-                  fontWeight: 500,
-                  color: 'var(--text-primary)',
-                  textAlign: 'right',
+                  fontWeight: 700,
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  textAlign: 'center',
                   fontFamily: 'monospace',
-                  letterSpacing: '0.05em',
                 }}>
                   {team.placementPoints}
                 </div>
@@ -229,32 +202,34 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
                 {/* Kills */}
                 <div style={{
                   fontSize: `${textFontSize}px`,
-                  fontWeight: 500,
-                  color: 'var(--text-primary)',
-                  textAlign: 'right',
+                  fontWeight: 700,
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  textAlign: 'center',
                   fontFamily: 'monospace',
-                  letterSpacing: '0.05em',
                 }}>
                   {team.kills}
                 </div>
 
-                {/* Total Points (Score Box) */}
+                {/* Total Points */}
                 <div style={{
-                  fontSize: `${textFontSize + 1}px`,
-                  fontWeight: 800,
+                  fontSize: `${textFontSize + 2}px`,
+                  fontWeight: 900,
                   color: 'var(--accent)',
+                  textAlign: 'center',
                   fontFamily: 'monospace',
-                  letterSpacing: '0.05em',
-                  backgroundColor: 'rgba(0, 0, 0, 0.35)', // Darker score box
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  alignSelf: 'stretch',
-                  borderLeft: '1px solid var(--border)',
-                  boxSizing: 'border-box',
                 }}>
                   {team.totalPoints}
+                </div>
+
+                {/* Wins */}
+                <div style={{
+                  fontSize: `${textFontSize}px`,
+                  fontWeight: 700,
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                }}>
+                  {team.wins}
                 </div>
               </div>
             );
@@ -271,7 +246,7 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
       backgroundColor: 'var(--bg-primary)',
       backgroundImage: styleConfig.colorTheme === 'custom' && styleConfig.customBackgroundUrl && !canvaBgUrl
         ? `url(${styleConfig.customBackgroundUrl})`
-        : undefined,
+        : 'radial-gradient(circle at top, rgba(243, 196, 86, 0.08) 0%, rgba(15, 15, 17, 0) 70%), radial-gradient(circle at bottom, rgba(255, 255, 255, 0.02) 0%, rgba(15, 15, 17, 0) 50%)',
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       color: 'var(--text-primary)',
@@ -315,46 +290,39 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
       }}>
         <BrandingHeader styleConfig={styleConfig} />
 
-        {/* Title Block */}
+        {/* Title Block (Centered gold metallic style matching reference image) */}
         <div style={{
-          padding: '24px 72px 16px',
+          padding: '36px 48px 12px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '4px',
+          alignItems: 'center',
+          justifyContent: 'center',
           boxSizing: 'border-box',
           flexShrink: 0,
         }}>
           <h1 style={{
-            fontSize: '44px',
-            fontWeight: 800,
+            fontSize: '68px',
+            fontWeight: 900,
             margin: 0,
             textTransform: 'uppercase',
-            letterSpacing: '-0.025em',
-            color: 'var(--text-heading)',
+            letterSpacing: '0.08em',
             fontFamily: 'var(--heading-font)',
+            background: 'linear-gradient(to bottom, #FFEFA6 0%, #F5C647 45%, #B88514 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            textShadow: '0 0 30px rgba(245, 198, 71, 0.15)',
           }}>
-            {renderTitle(graphicTitle || 'OVERALL RANKINGS')}
+            {graphicTitle || 'OVERALL RANKINGS'}
           </h1>
-          {graphicSubtitle && (
-            <p style={{
-              fontSize: '14px',
-              fontWeight: 500,
-              color: 'var(--text-muted)',
-              margin: 0,
-              letterSpacing: '0.02em',
-            }}>
-              {graphicSubtitle}
-            </p>
-          )}
         </div>
 
         {/* Split Columns Grid */}
         <div style={{
           flexGrow: 1,
-          padding: '0 72px 64px',
+          padding: '16px 48px 80px',
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
-          gap: '54px',
+          gap: '40px',
           boxSizing: 'border-box',
           minHeight: 0,
           overflow: 'hidden',
@@ -384,6 +352,26 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
             {rightColumnRows.length > 0 && renderColumn(rightColumnRows, midpoint)}
           </div>
         </div>
+
+        {/* Bottom Banner (Centered text matching reference image approach) */}
+        {graphicSubtitle && (
+          <div style={{
+            position: 'absolute',
+            bottom: '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            fontSize: '14px',
+            fontWeight: 800,
+            letterSpacing: '0.15em',
+            color: 'rgba(255, 255, 255, 0.9)',
+            fontFamily: 'var(--heading-font)',
+            textTransform: 'uppercase',
+            textAlign: 'center',
+            zIndex: 10,
+          }}>
+            {graphicSubtitle}
+          </div>
+        )}
 
         <SourceLine styleConfig={styleConfig} />
         <StatsStamp show={showStatsStamp} />
