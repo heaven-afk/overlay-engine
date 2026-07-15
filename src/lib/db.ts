@@ -24,7 +24,8 @@ export type TemplateType =
   | 'head_to_head'     // Two teams/players side by side
   | 'team_profile'     // Single team full stat breakdown
   | 'player_profile'   // Single player stats
-  | 'custom_media';    // NEW: Media-based Custom Template
+  | 'custom_media'     // NEW: Media-based Custom Template
+  | 'overall_rankings_dual_column'; // NEW: Overall rankings in a dual column format
 
 export type ColorTheme = 'dark' | 'light' | 'custom';
 

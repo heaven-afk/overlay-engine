@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getTemplates, deleteTemplate, saveTemplate, OverlayTemplate } from '@/lib/db';
-import { Plus, Trash, Copy, Edit, Image as ImageIcon, Loader2, AlertTriangle, Layers, Award, User, Users, Video } from 'lucide-react';
+import { Plus, Trash, Copy, Edit, Image as ImageIcon, Loader2, AlertTriangle, Layers, Award, User, Users, Video, Columns } from 'lucide-react';
 
 export default function TemplateLibrary() {
   const router = useRouter();
@@ -74,6 +74,8 @@ export default function TemplateLibrary() {
     switch (type) {
       case 'top_standings':
         return <Award style={{ width: '20px', height: '20px', color: '#C9A84C' }} />;
+      case 'overall_rankings_dual_column':
+        return <Columns style={{ width: '20px', height: '20px', color: '#f59e0b' }} />;
       case 'head_to_head':
         return <Users style={{ width: '20px', height: '20px', color: '#a78bfa' }} />;
       case 'team_profile':
@@ -90,6 +92,7 @@ export default function TemplateLibrary() {
   const getTemplateTypeName = (type?: string) => {
     switch (type) {
       case 'top_standings': return 'Top Standings';
+      case 'overall_rankings_dual_column': return 'Overall Rankings (Dual Column)';
       case 'head_to_head': return 'Head to Head';
       case 'team_profile': return 'Team Profile';
       case 'player_profile': return 'Player Profile';

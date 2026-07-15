@@ -22,6 +22,7 @@ import { HeadToHead } from '@/components/templates/HeadToHead';
 import { TeamProfile } from '@/components/templates/TeamProfile';
 import { PlayerProfile } from '@/components/templates/PlayerProfile';
 import { CustomMedia } from '@/components/templates/CustomMedia';
+import { OverallRankingsDualColumn } from '@/components/templates/OverallRankingsDualColumn';
 
 // Columns definitions
 const ALL_COLUMNS = [
@@ -45,6 +46,18 @@ const ALL_COLUMNS = [
 const DEFAULT_COLUMNS = ['wins', 'matches', 'events', 'placePts', 'kills', 'totalPts', 'rating', 'ppm', 'kpm', 'killPct', 'avgPlace', 'top3Rate'];
 
 // ─── MOCK PREVIEW DATASETS ──────────────────────────────────────────────────
+const MOCK_OVERALL_RANKINGS = {
+  rows: Array.from({ length: 20 }, (_, i) => ({
+    rank: i + 1,
+    teamId: `team-${i}`,
+    teamName: i === 0 ? 'REMEDIUM INVICTUS' : i === 1 ? 'KYZON ESPORTS' : i === 2 ? 'HYPERION SQUAD' : `TEAM UNICORN ${i + 1}`,
+    logoUrl: '',
+    placementPoints: 120 - i * 5,
+    kills: 80 - i * 3,
+    totalPoints: 200 - i * 8,
+  }))
+};
+
 const MOCK_DAILY_STANDINGS = {
   results: Array.from({ length: 8 }, (_, i) => ({
     rank: i + 1,
@@ -410,6 +423,21 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           }
         }
 
+        else if (templateType === 'overall_rankings_dual_column') {
+          if (!selectedTournamentId) {
+            setPreviewData(MOCK_OVERALL_RANKINGS);
+            return;
+          }
+          const { results } = await getTopStandings(selectedTournamentId, styleConfig.topN || 20, 'team');
+          if (active) {
+            if (results && results.length > 0) {
+              setPreviewData({ rows: results });
+            } else {
+              setPreviewData(MOCK_OVERALL_RANKINGS);
+            }
+          }
+        }
+
         else if (templateType === 'daily_standings') {
           if (!selectedTournamentId) {
             setPreviewData(MOCK_DAILY_STANDINGS);
@@ -471,6 +499,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
         if (active) {
           // fallback to mock
           if (templateType === 'top_standings') setPreviewData(MOCK_STANDINGS);
+          else if (templateType === 'overall_rankings_dual_column') setPreviewData(MOCK_OVERALL_RANKINGS);
           else if (templateType === 'daily_standings') setPreviewData(MOCK_DAILY_STANDINGS);
           else if (templateType === 'head_to_head') setPreviewData(MOCK_H2H);
           else if (templateType === 'team_profile') setPreviewData(MOCK_TEAM_PROFILE);
@@ -813,6 +842,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
   const getTemplateComponent = () => {
     switch (templateType) {
       case 'top_standings': return TopStandings;
+      case 'overall_rankings_dual_column': return OverallRankingsDualColumn;
       case 'daily_standings': return DailyStandings;
       case 'head_to_head': return HeadToHead;
       case 'team_profile': return TeamProfile;
@@ -931,6 +961,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     onChange={(e) => setTemplateType(e.target.value as TemplateType)}
                   >
                     <option value="top_standings">Top Standings Table</option>
+                    <option value="overall_rankings_dual_column">Overall Rankings (Dual Column)</option>
                     <option value="daily_standings">Daily Standings Table</option>
                     <option value="head_to_head">Head to Head Comparison</option>
                     <option value="team_profile">Team Profile</option>
@@ -1437,6 +1468,26 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section 6c: Overall Rankings Dual Column Settings */}
+          {templateType === 'overall_rankings_dual_column' && (
+            <div>
+              <div className="sidebar-section-title">Overall Rankings Settings</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="property-field">
+                  <span className="property-label">Rows to display (Top N)</span>
+                  <input 
+                    type="number" 
+                    className="text-input" 
+                    min={1} 
+                    max={30}
+                    value={styleConfig.topN || 20} 
+                    onChange={(e) => updateStyleConfig({ topN: Math.max(1, Math.min(30, Number(e.target.value))) })} 
+                  />
                 </div>
               </div>
             </div>

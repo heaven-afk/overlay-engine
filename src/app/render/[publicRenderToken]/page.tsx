@@ -13,9 +13,11 @@ import { HeadToHead } from '@/components/templates/HeadToHead';
 import { TeamProfile } from '@/components/templates/TeamProfile';
 import { PlayerProfile } from '@/components/templates/PlayerProfile';
 import { CustomMedia } from '@/components/templates/CustomMedia';
+import { OverallRankingsDualColumn } from '@/components/templates/OverallRankingsDualColumn';
 
 const templateMap = {
   top_standings: TopStandings,
+  overall_rankings_dual_column: OverallRankingsDualColumn,
   daily_standings: DailyStandings,
   head_to_head: HeadToHead,
   team_profile: TeamProfile,
