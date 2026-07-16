@@ -408,7 +408,7 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
                         height: '8px',
                         borderRadius: '4px',
                         overflow: 'hidden',
-                        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.45)',
                       }}>
                         {/* Left bar (A) - fills right to left */}
                         <div style={{

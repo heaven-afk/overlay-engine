@@ -380,7 +380,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ data, styleConfig 
                 <div style={{
                   height: '8px',
                   borderRadius: '4px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                  backgroundColor: 'rgba(0, 0, 0, 0.35)',
                   border: '1px solid var(--border)',
                   overflow: 'hidden',
                 }}>

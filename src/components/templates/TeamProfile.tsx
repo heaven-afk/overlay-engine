@@ -377,7 +377,7 @@ export const TeamProfile: React.FC<TeamProfileProps> = ({ data, styleConfig }) =
                       flexGrow: 1,
                       height: '10px',
                       borderRadius: '5px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                      backgroundColor: 'rgba(0, 0, 0, 0.35)',
                       border: '1px solid var(--border)',
                       overflow: 'hidden',
                     }}>
@@ -473,7 +473,7 @@ export const TeamProfile: React.FC<TeamProfileProps> = ({ data, styleConfig }) =
 
                 return (
                   <div key={i} style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.25)',
                     borderRadius: '10px',
                     border: '1px solid var(--border)',
                     padding: '12px 14px',

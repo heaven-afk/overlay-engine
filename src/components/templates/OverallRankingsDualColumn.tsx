@@ -64,7 +64,7 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
           padding: '16px 0',
           borderTop: '1px solid rgba(255, 255, 255, 0.15)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
-          background: 'rgba(0, 0, 0, 0.45)',
+          background: 'rgba(0, 0, 0, 0.65)',
           boxSizing: 'border-box',
         }}>
           <div style={{
@@ -147,7 +147,7 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
                   gridTemplateColumns: '80px 1fr 100px 100px 100px 100px',
                   alignItems: 'stretch',
                   height: `${rowHeight}px`,
-                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                  backgroundColor: 'rgba(0, 0, 0, 0.78)',
                   border: '1px solid rgba(255, 255, 255, 0.15)',
                   borderRadius: '6px',
                   boxSizing: 'border-box',

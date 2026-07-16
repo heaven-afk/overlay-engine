@@ -53,6 +53,7 @@ export default function PublicRenderPage({ params }: PageProps) {
     document.body.classList.add('broadcast-render');
 
     let unsubscribeSlot = () => {};
+    let unsubscribeTemplate = () => {};
 
     async function initListener() {
       try {
@@ -63,20 +64,36 @@ export default function PublicRenderPage({ params }: PageProps) {
         }
         setSlot(s);
 
+        const startTemplateListener = (templateId: string) => {
+          unsubscribeTemplate();
+          unsubscribeTemplate = onSnapshot(
+            doc(db, 'overlayTemplates', templateId),
+            (snapshot) => {
+              if (snapshot.exists()) {
+                setTemplate({ id: snapshot.id, ...snapshot.data() } as OverlayTemplate);
+              } else {
+                setTemplate(null);
+              }
+            },
+            (err) => {
+              console.error('Error in template listener:', err);
+            }
+          );
+        };
+
         if (s.assignedTemplateId) {
-          const t = await getTemplate(s.assignedTemplateId);
-          setTemplate(t);
+          startTemplateListener(s.assignedTemplateId);
         }
 
-        unsubscribeSlot = onSnapshot(doc(db, 'overlaySlots', s.id!), async (snapshot) => {
+        unsubscribeSlot = onSnapshot(doc(db, 'overlaySlots', s.id!), (snapshot) => {
           if (snapshot.exists()) {
             const data = normalizeSlot(snapshot.id, snapshot.data());
             setSlot(data);
 
             if (data.assignedTemplateId) {
-              const t = await getTemplate(data.assignedTemplateId);
-              setTemplate(t);
+              startTemplateListener(data.assignedTemplateId);
             } else {
+              unsubscribeTemplate();
               setTemplate(null);
             }
           }
@@ -93,6 +110,7 @@ export default function PublicRenderPage({ params }: PageProps) {
     return () => {
       document.body.classList.remove('broadcast-render');
       unsubscribeSlot();
+      unsubscribeTemplate();
     };
   }, [publicRenderToken]);
 
@@ -114,6 +132,9 @@ export default function PublicRenderPage({ params }: PageProps) {
     );
   }
 
+  // Determine if the GFX should be visible based on whether data is pushed (or if it's static custom media)
+  const isVisible = template.templateType === 'custom_media' || !!slot.currentData;
+
   return (
     <div className="broadcast-stage-wrapper" style={{
       width: '100vw',
@@ -132,6 +153,8 @@ export default function PublicRenderPage({ params }: PageProps) {
           position: 'absolute',
           top: 0,
           left: 0,
+          opacity: isVisible ? 1 : 0,
+          transition: 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         <style dangerouslySetInnerHTML={{ __html: `${googleFontsLink(template.styleConfig)}\n${cssVarsForTheme(template.styleConfig)}` }} />

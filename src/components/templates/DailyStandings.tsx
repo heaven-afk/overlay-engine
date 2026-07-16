@@ -217,8 +217,8 @@ export const DailyStandings: React.FC<DailyStandingsProps> = ({ data, styleConfi
               const accentColor = 'var(--accent)';
               const dimBorder = 'rgba(255,255,255,0.12)';
               const rowBg = isTop3
-                ? 'linear-gradient(90deg, rgba(201,168,76,0.1) 0%, rgba(255,255,255,0.03) 100%)'
-                : 'rgba(255,255,255,0.03)';
+                ? 'linear-gradient(90deg, rgba(201,168,76,0.15) 0%, rgba(0, 0, 0, 0.65) 100%)'
+                : 'rgba(0, 0, 0, 0.55)';
 
               return (
                 <div
@@ -242,7 +242,7 @@ export const DailyStandings: React.FC<DailyStandingsProps> = ({ data, styleConfi
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: isTop3 ? 'rgba(201,168,76,0.18)' : 'rgba(255,255,255,0.04)',
+                    backgroundColor: isTop3 ? 'rgba(201,168,76,0.22)' : 'rgba(0, 0, 0, 0.65)',
                     borderRight: isTop3 ? `2px solid ${accentColor}` : `1px solid ${dimBorder}`,
                     flexShrink: 0,
                   }}>
@@ -288,7 +288,7 @@ export const DailyStandings: React.FC<DailyStandingsProps> = ({ data, styleConfi
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: isTop3 ? 'rgba(201,168,76,0.12)' : 'rgba(255,255,255,0.03)',
+                    backgroundColor: isTop3 ? 'rgba(201,168,76,0.18)' : 'rgba(0, 0, 0, 0.45)',
                     borderLeft: isTop3 ? `2px solid ${accentColor}` : `1px solid ${dimBorder}`,
                     flexShrink: 0,
                   }}>

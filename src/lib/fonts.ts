@@ -37,42 +37,42 @@ export function cssVarsForTheme(styleConfig: TemplateStyleConfig): string {
 
   const vars = isDark ? `
     --bg-primary: #0D0D12;
-    --bg-card: #13131A;
-    --bg-row-alt: #1A1A24;
-    --bg-row: #13131A;
+    --bg-card: #0A0A0F;
+    --bg-row-alt: #111116;
+    --bg-row: #0A0A0F;
     --border: rgba(255,255,255,0.07);
     --text-primary: #F1F5F9;
     --text-muted: #94A3B8;
     --text-heading: #FFFFFF;
     --accent: ${accent};
     --accent-muted: ${accentMuted};
-    --rank-bg: #1E1E2A;
+    --rank-bg: #12121B;
     --rank-border: rgba(255,255,255,0.12);
   ` : isCustom ? `
     --bg-primary: transparent;
-    --bg-card: rgba(13,13,18,0.72);
-    --bg-row-alt: rgba(26,26,36,0.75);
-    --bg-row: rgba(19,19,26,0.72);
+    --bg-card: rgba(8,8,12,0.88);
+    --bg-row-alt: rgba(14,14,20,0.88);
+    --bg-row: rgba(8,8,12,0.88);
     --border: rgba(255,255,255,0.10);
     --text-primary: #F1F5F9;
     --text-muted: #94A3B8;
     --text-heading: #FFFFFF;
     --accent: ${accent};
     --accent-muted: ${accentMuted};
-    --rank-bg: rgba(30,30,42,0.80);
+    --rank-bg: rgba(18,18,25,0.92);
     --rank-border: rgba(255,255,255,0.14);
   ` : `
     --bg-primary: #F8F9FA;
-    --bg-card: #FFFFFF;
-    --bg-row-alt: #F1F3F5;
-    --bg-row: #FFFFFF;
+    --bg-card: #F3F4F6;
+    --bg-row-alt: #E5E7EB;
+    --bg-row: #F3F4F6;
     --border: rgba(0,0,0,0.08);
     --text-primary: #1A1A2E;
     --text-muted: #6B7280;
     --text-heading: #0D0D12;
     --accent: ${accent};
     --accent-muted: ${accentMuted};
-    --rank-bg: #F1F3F5;
+    --rank-bg: #E5E7EB;
     --rank-border: rgba(0,0,0,0.1);
   `;
 
