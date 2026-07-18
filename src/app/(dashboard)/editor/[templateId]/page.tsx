@@ -23,6 +23,7 @@ import { TeamProfile } from '@/components/templates/TeamProfile';
 import { PlayerProfile } from '@/components/templates/PlayerProfile';
 import { CustomMedia } from '@/components/templates/CustomMedia';
 import { OverallRankingsDualColumn } from '@/components/templates/OverallRankingsDualColumn';
+import { Top5Overall } from '@/components/templates/Top5Overall';
 
 // Columns definitions
 const ALL_COLUMNS = [
@@ -438,6 +439,21 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           }
         }
 
+        else if (templateType === 'top_5_overall') {
+          if (!selectedTournamentId) {
+            setPreviewData(MOCK_OVERALL_RANKINGS);
+            return;
+          }
+          const { results } = await getTopStandings(selectedTournamentId, styleConfig.topN || 5, 'team');
+          if (active) {
+            if (results && results.length > 0) {
+              setPreviewData({ rows: results });
+            } else {
+              setPreviewData(MOCK_OVERALL_RANKINGS);
+            }
+          }
+        }
+
         else if (templateType === 'daily_standings') {
           if (!selectedTournamentId) {
             setPreviewData(MOCK_DAILY_STANDINGS);
@@ -500,6 +516,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           // fallback to mock
           if (templateType === 'top_standings') setPreviewData(MOCK_STANDINGS);
           else if (templateType === 'overall_rankings_dual_column') setPreviewData(MOCK_OVERALL_RANKINGS);
+          else if (templateType === 'top_5_overall') setPreviewData(MOCK_OVERALL_RANKINGS);
           else if (templateType === 'daily_standings') setPreviewData(MOCK_DAILY_STANDINGS);
           else if (templateType === 'head_to_head') setPreviewData(MOCK_H2H);
           else if (templateType === 'team_profile') setPreviewData(MOCK_TEAM_PROFILE);
@@ -843,6 +860,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
     switch (templateType) {
       case 'top_standings': return TopStandings;
       case 'overall_rankings_dual_column': return OverallRankingsDualColumn;
+      case 'top_5_overall': return Top5Overall;
       case 'daily_standings': return DailyStandings;
       case 'head_to_head': return HeadToHead;
       case 'team_profile': return TeamProfile;
@@ -962,6 +980,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                   >
                     <option value="top_standings">Top Standings Table</option>
                     <option value="overall_rankings_dual_column">Overall Rankings (Dual Column)</option>
+                    <option value="top_5_overall">Top 5 Overall Table</option>
                     <option value="daily_standings">Daily Standings Table</option>
                     <option value="head_to_head">Head to Head Comparison</option>
                     <option value="team_profile">Team Profile</option>
@@ -1542,6 +1561,40 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                   </div>
                 )}
 
+                <div className="property-field">
+                  <span className="property-label">Rows to display (Top N)</span>
+                  <input 
+                    type="number" 
+                    className="text-input" 
+                    min={1} 
+                    max={20}
+                    value={styleConfig.topN || 5} 
+                    onChange={(e) => updateStyleConfig({ topN: Math.max(1, Math.min(20, Number(e.target.value))) })} 
+                  />
+                </div>
+
+                <div className="property-field">
+                  <span className="property-label">Points Column</span>
+                  <select
+                    className="select-input"
+                    value={styleConfig.dailyPointsColumn || 'totalPts'}
+                    onChange={(e) => updateStyleConfig({ dailyPointsColumn: e.target.value as 'totalPts' | 'kills' | 'placementPts' })}
+                  >
+                    <option value="totalPts">Total Points</option>
+                    <option value="kills">Total Kills</option>
+                    <option value="placementPts">Placement Points</option>
+                  </select>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Choose what the right-hand column shows.</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section 6c: Top 5 Overall Settings */}
+          {templateType === 'top_5_overall' && (
+            <div>
+              <div className="sidebar-section-title">Top 5 Overall Settings</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div className="property-field">
                   <span className="property-label">Rows to display (Top N)</span>
                   <input 

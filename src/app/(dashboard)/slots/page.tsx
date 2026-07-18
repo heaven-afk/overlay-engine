@@ -496,7 +496,7 @@ export default function SlotsDashboard() {
     const isPushing = pushingId === slot.id;
     const dataShape = slot.dataShapeType || (slot.slotType === 'standings_table' || slot.slotType === 'single_team' ? 'top_standings' : slot.slotType === 'head_to_head' ? 'head_to_head' : 'player_profile');
 
-    if (dataShape === 'top_standings' || dataShape === 'overall_rankings_dual_column') {
+    if (dataShape === 'top_standings' || dataShape === 'overall_rankings_dual_column' || dataShape === 'top_5_overall') {
       const defaultN = dataShape === 'overall_rankings_dual_column' ? 20 : 5;
       const cfg = standingsConfig[slot.id!] ?? { n: defaultN, type: 'team', tournamentId: '' };
       const warning = partialWarning[slot.id!];
@@ -925,7 +925,7 @@ export default function SlotsDashboard() {
 
     const dataShape = slot.dataShapeType || (slot.slotType === 'standings_table' || slot.slotType === 'single_team' ? 'top_standings' : slot.slotType === 'head_to_head' ? 'head_to_head' : 'player_profile');
 
-    if (dataShape === 'top_standings' || dataShape === 'daily_standings' || dataShape === 'overall_rankings_dual_column') {
+    if (dataShape === 'top_standings' || dataShape === 'daily_standings' || dataShape === 'overall_rankings_dual_column' || dataShape === 'top_5_overall') {
       const teams = data.teams || data.results || data.rows || [];
       const players = data.players || [];
       
@@ -1255,6 +1255,7 @@ export default function SlotsDashboard() {
             >
               <option value="top_standings">Top Standings Table</option>
               <option value="overall_rankings_dual_column">Overall Rankings (Dual Column)</option>
+              <option value="top_5_overall">Top 5 Overall Table</option>
               <option value="daily_standings">Daily Standings Table</option>
               <option value="head_to_head">Head to Head</option>
               <option value="team_profile">Team Profile</option>
@@ -1342,6 +1343,7 @@ export default function SlotsDashboard() {
                       >
                         <option value="top_standings">Top Standings Table</option>
                         <option value="overall_rankings_dual_column">Overall Rankings (Dual Column)</option>
+                        <option value="top_5_overall">Top 5 Overall Table</option>
                         <option value="daily_standings">Daily Standings Table</option>
                         <option value="head_to_head">Head to Head Comparison</option>
                         <option value="team_profile">Team Profile</option>

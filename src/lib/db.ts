@@ -25,7 +25,8 @@ export type TemplateType =
   | 'team_profile'     // Single team full stat breakdown
   | 'player_profile'   // Single player stats
   | 'custom_media'     // NEW: Media-based Custom Template
-  | 'overall_rankings_dual_column'; // NEW: Overall rankings in a dual column format
+  | 'overall_rankings_dual_column' // NEW: Overall rankings in a dual column format
+  | 'top_5_overall';   // NEW: Top 5 overall standings formatted like daily standings
 
 export type ColorTheme = 'dark' | 'light' | 'custom';
 

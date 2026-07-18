@@ -14,10 +14,12 @@ import { TeamProfile } from '@/components/templates/TeamProfile';
 import { PlayerProfile } from '@/components/templates/PlayerProfile';
 import { CustomMedia } from '@/components/templates/CustomMedia';
 import { OverallRankingsDualColumn } from '@/components/templates/OverallRankingsDualColumn';
+import { Top5Overall } from '@/components/templates/Top5Overall';
 
 const templateMap = {
   top_standings: TopStandings,
   overall_rankings_dual_column: OverallRankingsDualColumn,
+  top_5_overall: Top5Overall,
   daily_standings: DailyStandings,
   head_to_head: HeadToHead,
   team_profile: TeamProfile,
