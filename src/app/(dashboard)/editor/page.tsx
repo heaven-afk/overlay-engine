@@ -175,18 +175,60 @@ export default function TemplateLibrary() {
                     gap: '12px',
                     height: '140px',
                     borderBottom: isCustomMedia ? '1px solid rgba(217, 70, 239, 0.15)' : undefined,
+                    position: 'relative',
+                    overflow: 'hidden',
                   }}
                 >
-                  {getTemplateTypeIcon(template.templateType)}
-                  <span style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    color: isCustomMedia ? '#d946ef' : isLegacy ? '#ef4444' : 'var(--text-muted)',
-                  }}>
-                    {getTemplateTypeName(template.templateType)}
-                  </span>
+                  {isCustomMedia && template.styleConfig?.customMediaUrl ? (
+                    <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}>
+                      {template.styleConfig.customMediaType === 'video' ? (
+                        <video
+                          src={template.styleConfig.customMediaUrl}
+                          muted
+                          loop
+                          autoPlay
+                          playsInline
+                          {...({ referrerPolicy: 'no-referrer' } as any)}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }}
+                        />
+                      ) : (
+                        <img
+                          src={template.styleConfig.customMediaUrl}
+                          alt={template.name}
+                          referrerPolicy="no-referrer"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }}
+                        />
+                      )}
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'linear-gradient(to top, rgba(10, 10, 15, 0.9) 0%, rgba(10, 10, 15, 0.2) 100%)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}>
+                        {getTemplateTypeIcon(template.templateType)}
+                        <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: '#d946ef', letterSpacing: '0.05em' }}>
+                          {getTemplateTypeName(template.templateType)}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {getTemplateTypeIcon(template.templateType)}
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        color: isCustomMedia ? '#d946ef' : isLegacy ? '#ef4444' : 'var(--text-muted)',
+                      }}>
+                        {getTemplateTypeName(template.templateType)}
+                      </span>
+                    </>
+                  )}
                 </div>
 
                 <div className="template-card-content">

@@ -68,7 +68,8 @@ export interface TemplateStyleConfig {
   
   // Custom Media template specific
   customMediaUrl?: string;            // URL or base64 of custom uploaded video/gif/image
-  customMediaType?: 'image' | 'video' | 'gif'; // type of custom media
+  customMediaType?: 'image' | 'video' | 'gif' | 'auto'; // type of custom media
+  customMediaFit?: 'cover' | 'contain' | 'fill'; // how to scale/fit the media in 1920x1080
 }
 
 export interface OverlayTemplate {

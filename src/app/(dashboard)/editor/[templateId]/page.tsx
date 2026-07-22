@@ -21,7 +21,7 @@ import { DailyStandings } from '@/components/templates/DailyStandings';
 import { HeadToHead } from '@/components/templates/HeadToHead';
 import { TeamProfile } from '@/components/templates/TeamProfile';
 import { PlayerProfile } from '@/components/templates/PlayerProfile';
-import { CustomMedia } from '@/components/templates/CustomMedia';
+import { CustomMedia, detectMediaType } from '@/components/templates/CustomMedia';
 import { OverallRankingsDualColumn } from '@/components/templates/OverallRankingsDualColumn';
 import { Top5Overall } from '@/components/templates/Top5Overall';
 
@@ -570,6 +570,13 @@ export default function TemplateBuilderPage({ params }: PageProps) {
     quality = 0.8
   ): Promise<string> => {
     return new Promise((resolve) => {
+      if (file.type === 'image/gif') {
+        const gifReader = new FileReader();
+        gifReader.onload = (e) => resolve(e.target?.result as string);
+        gifReader.onerror = () => resolve('');
+        gifReader.readAsDataURL(file);
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (e) => {
         const img = new Image();
@@ -1647,14 +1654,27 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                   {/* Thumbnail / Video preview */}
                   {styleConfig.customMediaUrl ? (
                     <div style={{ width: '100%', height: '140px', border: '1px solid var(--border)', borderRadius: '6px', overflow: 'hidden', position: 'relative', backgroundColor: '#000' }}>
-                      {styleConfig.customMediaType === 'video' ? (
-                        <video src={styleConfig.customMediaUrl} muted loop autoPlay style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      {detectMediaType(styleConfig.customMediaUrl, styleConfig.customMediaType) === 'video' ? (
+                        <video
+                          src={styleConfig.customMediaUrl}
+                          muted
+                          loop
+                          autoPlay
+                          playsInline
+                          {...({ referrerPolicy: 'no-referrer' } as any)}
+                          style={{ width: '100%', height: '100%', objectFit: styleConfig.customMediaFit === 'fill' ? 'fill' : styleConfig.customMediaFit === 'contain' ? 'contain' : 'cover' }}
+                        />
                       ) : (
-                        <img src={styleConfig.customMediaUrl} alt="custom media" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        <img
+                          src={styleConfig.customMediaUrl}
+                          alt="custom media preview"
+                          referrerPolicy="no-referrer"
+                          style={{ width: '100%', height: '100%', objectFit: styleConfig.customMediaFit === 'fill' ? 'fill' : styleConfig.customMediaFit === 'contain' ? 'contain' : 'cover' }}
+                        />
                       )}
                       
                       <button
-                        onClick={() => updateStyleConfig({ customMediaUrl: '', customMediaType: 'image' })}
+                        onClick={() => updateStyleConfig({ customMediaUrl: '', customMediaType: 'auto' })}
                         title="Remove Media"
                         style={{
                           position: 'absolute',
@@ -1731,11 +1751,40 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                       value={styleConfig.customMediaUrl || ''}
                       onChange={(e) => {
                         const url = e.target.value;
-                        const isVid = url.endsWith('.mp4') || url.endsWith('.webm') || url.includes('video');
-                        updateStyleConfig({ customMediaUrl: url, customMediaType: isVid ? 'video' : 'image' });
+                        const detected = detectMediaType(url, styleConfig.customMediaType);
+                        updateStyleConfig({ customMediaUrl: url, customMediaType: styleConfig.customMediaType || detected });
                       }}
                     />
                   </div>
+
+                  {/* Media Type Selector */}
+                  <div className="property-field" style={{ marginTop: '0.25rem' }}>
+                    <span className="property-label">Media Type</span>
+                    <select
+                      className="text-input"
+                      value={styleConfig.customMediaType || 'auto'}
+                      onChange={(e) => updateStyleConfig({ customMediaType: e.target.value as any })}
+                    >
+                      <option value="auto">Auto Detect</option>
+                      <option value="image">Image / GIF</option>
+                      <option value="video">Video (MP4 / WebM)</option>
+                    </select>
+                  </div>
+
+                  {/* Display Fit Selector */}
+                  <div className="property-field" style={{ marginTop: '0.25rem' }}>
+                    <span className="property-label">Display Fit</span>
+                    <select
+                      className="text-input"
+                      value={styleConfig.customMediaFit || 'cover'}
+                      onChange={(e) => updateStyleConfig({ customMediaFit: e.target.value as any })}
+                    >
+                      <option value="cover">Cover (Fill screen, crop overflow)</option>
+                      <option value="contain">Contain (Fit screen, keep aspect ratio)</option>
+                      <option value="fill">Stretch to Fill (1920x1080)</option>
+                    </select>
+                  </div>
+
                 </div>
               </div>
             </div>
