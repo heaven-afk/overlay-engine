@@ -841,9 +841,9 @@ export default function TemplateBuilderPage({ params }: PageProps) {
 
       await saveTemplate(payload, templateId);
       router.push('/editor');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Save failed:', err);
-      alert('Failed to save template configuration.');
+      alert(err?.message ? `Failed to save template: ${err.message}` : 'Failed to save template configuration.');
     } finally {
       setSaving(false);
     }
