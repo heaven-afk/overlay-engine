@@ -24,6 +24,7 @@ import { PlayerProfile } from '@/components/templates/PlayerProfile';
 import { CustomMedia, detectMediaType } from '@/components/templates/CustomMedia';
 import { OverallRankingsDualColumn } from '@/components/templates/OverallRankingsDualColumn';
 import { Top5Overall } from '@/components/templates/Top5Overall';
+import { HybridEraTop5 } from '@/components/templates/HybridEraTop5';
 
 // Columns definitions
 const ALL_COLUMNS = [
@@ -57,6 +58,16 @@ const MOCK_OVERALL_RANKINGS = {
     kills: 80 - i * 3,
     totalPoints: 200 - i * 8,
   }))
+};
+
+const MOCK_HYBRID_ERA_TOP5 = {
+  rows: [
+    { rank: 1, teamId: 'vortex', teamName: 'VORTEX ONE', logoUrl: '', totalPoints: 0, totalPts: 0, kills: 0, placementPts: 0 },
+    { rank: 2, teamId: 'paris', teamName: 'PARIS CHITAURI', logoUrl: '', totalPoints: 0, totalPts: 0, kills: 0, placementPts: 0 },
+    { rank: 3, teamId: 'kyzon', teamName: 'KYZON ESPORT', logoUrl: '', totalPoints: 0, totalPts: 0, kills: 0, placementPts: 0 },
+    { rank: 4, teamId: 'legionaries', teamName: 'LEGIONARIES', logoUrl: '', totalPoints: 0, totalPts: 0, kills: 0, placementPts: 0 },
+    { rank: 5, teamId: 'fearless', teamName: 'FEARLESS WARRIORS', logoUrl: '', totalPoints: 0, totalPts: 0, kills: 0, placementPts: 0 },
+  ]
 };
 
 const MOCK_DAILY_STANDINGS = {
@@ -439,17 +450,17 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           }
         }
 
-        else if (templateType === 'top_5_overall') {
+        else if (templateType === 'top_5_overall' || templateType === 'hybrid_era_top5') {
           if (!selectedTournamentId) {
-            setPreviewData(MOCK_OVERALL_RANKINGS);
+            setPreviewData(templateType === 'hybrid_era_top5' ? MOCK_HYBRID_ERA_TOP5 : MOCK_OVERALL_RANKINGS);
             return;
           }
-          const { results } = await getTopStandings(selectedTournamentId, styleConfig.topN || 5, 'team');
+          const { results } = await getTopStandings(selectedTournamentId, 5, 'team');
           if (active) {
             if (results && results.length > 0) {
               setPreviewData({ rows: results });
             } else {
-              setPreviewData(MOCK_OVERALL_RANKINGS);
+              setPreviewData(templateType === 'hybrid_era_top5' ? MOCK_HYBRID_ERA_TOP5 : MOCK_OVERALL_RANKINGS);
             }
           }
         }
@@ -517,6 +528,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           if (templateType === 'top_standings') setPreviewData(MOCK_STANDINGS);
           else if (templateType === 'overall_rankings_dual_column') setPreviewData(MOCK_OVERALL_RANKINGS);
           else if (templateType === 'top_5_overall') setPreviewData(MOCK_OVERALL_RANKINGS);
+          else if (templateType === 'hybrid_era_top5') setPreviewData(MOCK_HYBRID_ERA_TOP5);
           else if (templateType === 'daily_standings') setPreviewData(MOCK_DAILY_STANDINGS);
           else if (templateType === 'head_to_head') setPreviewData(MOCK_H2H);
           else if (templateType === 'team_profile') setPreviewData(MOCK_TEAM_PROFILE);
@@ -868,6 +880,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       case 'top_standings': return TopStandings;
       case 'overall_rankings_dual_column': return OverallRankingsDualColumn;
       case 'top_5_overall': return Top5Overall;
+      case 'hybrid_era_top5': return HybridEraTop5;
       case 'daily_standings': return DailyStandings;
       case 'head_to_head': return HeadToHead;
       case 'team_profile': return TeamProfile;
@@ -988,6 +1001,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     <option value="top_standings">Top Standings Table</option>
                     <option value="overall_rankings_dual_column">Overall Rankings (Dual Column)</option>
                     <option value="top_5_overall">Top 5 Overall Table</option>
+                    <option value="hybrid_era_top5">Hybrid Era Top 5 (RDM x FM)</option>
                     <option value="daily_standings">Daily Standings Table</option>
                     <option value="head_to_head">Head to Head Comparison</option>
                     <option value="team_profile">Team Profile</option>
@@ -1626,6 +1640,90 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     <option value="placementPts">Placement Points</option>
                   </select>
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Choose what the right-hand column shows.</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section 6d: Hybrid Era Top 5 Settings (Remedium Gaming x Fabrizio Mayowa) */}
+          {templateType === 'hybrid_era_top5' && (
+            <div>
+              <div className="sidebar-section-title" style={{ color: '#E6BE5A' }}>Hybrid Era Approach Settings</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="property-field">
+                  <span className="property-label">Select Event Approach</span>
+                  <div className="toggle-group">
+                    <button 
+                      className={`toggle-btn ${styleConfig.hybridEraMode !== 'collation' ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ 
+                        hybridEraMode: 'daily',
+                        graphicTitle: styleConfig.graphicTitle || 'TOP 5 TEAMS',
+                        hybridEraSubheader: 'AFTER GAME ONE'
+                      })}
+                    >
+                      Daily Results
+                    </button>
+                    <button 
+                      className={`toggle-btn ${styleConfig.hybridEraMode === 'collation' ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ 
+                        hybridEraMode: 'collation',
+                        graphicTitle: 'TOP 5 COLLATED',
+                        hybridEraSubheader: 'OVERALL COLLATION'
+                      })}
+                    >
+                      Collation
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    {styleConfig.hybridEraMode === 'collation'
+                      ? 'Approach 2: Collation mode for total accumulated tournament standings.'
+                      : 'Approach 1: Daily Results mode for match-by-match results.'}
+                  </span>
+                </div>
+
+                <div className="property-field">
+                  <span className="property-label">Subheader Badge Text</span>
+                  <input 
+                    type="text" 
+                    className="text-input" 
+                    value={styleConfig.hybridEraSubheader || (styleConfig.hybridEraMode === 'collation' ? 'OVERALL COLLATION' : 'AFTER GAME ONE')} 
+                    placeholder="e.g. AFTER GAME ONE"
+                    onChange={(e) => updateStyleConfig({ hybridEraSubheader: e.target.value })} 
+                  />
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }}>
+                    {['AFTER GAME ONE', 'AFTER GAME TWO', 'AFTER GAME THREE', 'DAY 1 RESULTS', 'OVERALL COLLATION'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => updateStyleConfig({ hybridEraSubheader: preset })}
+                        style={{
+                          fontSize: '10px',
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          border: '1px solid rgba(230, 190, 90, 0.4)',
+                          background: 'rgba(230, 190, 90, 0.1)',
+                          color: '#E6BE5A',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="property-field">
+                  <span className="property-label">Score Value Displayed</span>
+                  <select
+                    className="select-input"
+                    value={styleConfig.dailyPointsColumn || 'totalPts'}
+                    onChange={(e) => updateStyleConfig({ dailyPointsColumn: e.target.value as 'totalPts' | 'kills' | 'placementPts' })}
+                  >
+                    <option value="totalPts">Total Points</option>
+                    <option value="kills">Total Kills</option>
+                    <option value="placementPts">Placement Points</option>
+                  </select>
                 </div>
               </div>
             </div>

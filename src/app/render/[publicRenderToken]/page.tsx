@@ -15,11 +15,13 @@ import { PlayerProfile } from '@/components/templates/PlayerProfile';
 import { CustomMedia } from '@/components/templates/CustomMedia';
 import { OverallRankingsDualColumn } from '@/components/templates/OverallRankingsDualColumn';
 import { Top5Overall } from '@/components/templates/Top5Overall';
+import { HybridEraTop5 } from '@/components/templates/HybridEraTop5';
 
 const templateMap = {
   top_standings: TopStandings,
   overall_rankings_dual_column: OverallRankingsDualColumn,
   top_5_overall: Top5Overall,
+  hybrid_era_top5: HybridEraTop5,
   daily_standings: DailyStandings,
   head_to_head: HeadToHead,
   team_profile: TeamProfile,

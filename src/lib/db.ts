@@ -26,7 +26,8 @@ export type TemplateType =
   | 'player_profile'   // Single player stats
   | 'custom_media'     // NEW: Media-based Custom Template
   | 'overall_rankings_dual_column' // NEW: Overall rankings in a dual column format
-  | 'top_5_overall';   // NEW: Top 5 overall standings formatted like daily standings
+  | 'top_5_overall'    // NEW: Top 5 overall standings formatted like daily standings
+  | 'hybrid_era_top5'; // NEW: Hybrid Era Top 5 Graphic (Remedium Gaming x Fabrizio Mayowa)
 
 export type ColorTheme = 'dark' | 'light' | 'custom';
 
@@ -70,6 +71,10 @@ export interface TemplateStyleConfig {
   customMediaUrl?: string;            // URL or base64 of custom uploaded video/gif/image
   customMediaType?: 'image' | 'video' | 'gif' | 'auto'; // type of custom media
   customMediaFit?: 'cover' | 'contain' | 'fill'; // how to scale/fit the media in 1920x1080
+
+  // Hybrid Era template specific
+  hybridEraMode?: 'daily' | 'collation'; // 'daily' (e.g. AFTER GAME ONE) or 'collation' (e.g. OVERALL COLLATION)
+  hybridEraSubheader?: string;          // optional custom subheader badge text (e.g. "AFTER GAME ONE")
 }
 
 export interface OverlayTemplate {
