@@ -22,35 +22,35 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
   const teamA = data?.teamA || {};
   const teamB = data?.teamB || {};
 
-  // Extract raw values safely
+  // Extract raw values safely (checks both nested analytics sub-object AND flat root properties)
   const getVal = (team: any, key: string) => {
     if (!team) return 0;
     switch (key) {
       case 'totalPts':
         return Number(team.totalPts ?? team.totalPoints ?? team.scores?.totalPts ?? 0);
       case 'rating':
-        return Number(team.scores?.FINAL_RATING ?? 0);
+        return Number(team.scores?.FINAL_RATING ?? team.rating ?? team.analytics?.rating ?? 0);
       case 'ppm':
-        return Number(team.analytics?.PPM ?? 0);
+        return Number(team.analytics?.PPM ?? team.PPM ?? team.ppm ?? 0);
       case 'kpm':
-        return Number(team.analytics?.KPM ?? 0);
+        return Number(team.analytics?.KPM ?? team.KPM ?? team.kpm ?? 0);
       case 'killPct': {
-        const p = team.analytics?.killPct ?? 0;
+        const p = team.analytics?.killPct ?? team.killPct ?? 0;
         return p < 1 ? p * 100 : p;
       }
       case 'winRate': {
         const w = team.winRate ?? team.analytics?.winRate;
-        if (w !== undefined) return w < 1 ? w * 100 : w;
+        if (w !== undefined && w !== null) return w < 1 ? w * 100 : w;
         const matches = Number(team.matches ?? 0);
         const wins = Number(team.wins ?? 0);
         return matches > 0 ? (wins / matches) * 100 : 0;
       }
       case 'top5Rate': {
-        const t5 = team.analytics?.top5Rate ?? 0;
+        const t5 = team.analytics?.top5Rate ?? team.top5Rate ?? 0;
         return t5 < 1 ? t5 * 100 : t5;
       }
       case 'avgPlace':
-        return Number(team.analytics?.avgPlace ?? team.avgPlacement ?? 0);
+        return Number(team.analytics?.avgPlace ?? team.avgPlace ?? team.avgPlacement ?? 0);
       default:
         return 0;
     }
@@ -266,7 +266,7 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
                 WINNER
               </div>
             )}
-            <TeamLogoPlaceholder logoUrl={teamA.logoUrl} name={teamA.teamName} size={200} />
+            <TeamLogoPlaceholder logoUrl={teamA.logoUrl || teamA.avatarUrl || teamA.playerAvatarUrl} name={teamA.teamName || teamA.playerName || teamA.ign} size={200} />
             <h2 style={{
               fontSize: '28px',
               fontWeight: 800,
@@ -277,7 +277,7 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
               textAlign: 'center',
               fontFamily: 'var(--heading-font)',
             }}>
-              {teamA.teamName || 'TEAM A'}
+              {teamA.teamName || teamA.playerName || teamA.ign || 'TEAM A'}
             </h2>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
               {teamA.scores?.rankLabel && (
@@ -493,7 +493,7 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
                 WINNER
               </div>
             )}
-            <TeamLogoPlaceholder logoUrl={teamB.logoUrl} name={teamB.teamName} size={200} />
+            <TeamLogoPlaceholder logoUrl={teamB.logoUrl || teamB.avatarUrl || teamB.playerAvatarUrl} name={teamB.teamName || teamB.playerName || teamB.ign} size={200} />
             <h2 style={{
               fontSize: '28px',
               fontWeight: 800,
@@ -504,7 +504,7 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({ data, styleConfig }) => 
               textAlign: 'center',
               fontFamily: 'var(--heading-font)',
             }}>
-              {teamB.teamName || 'TEAM B'}
+              {teamB.teamName || teamB.playerName || teamB.ign || 'TEAM B'}
             </h2>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
               {teamB.scores?.rankLabel && (

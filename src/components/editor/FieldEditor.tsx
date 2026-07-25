@@ -400,35 +400,87 @@ function H2HFetchEditor({
   const [scopeTournamentId, setScopeTournamentId] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const [entities, setEntities] = useState<any[]>([]);
+  const [globalEntities, setGlobalEntities] = useState<any[]>([]);
+  const [tournamentParticipants, setTournamentParticipants] = useState<any[]>([]);
   const [pickerLoading, setPickerLoading] = useState(false);
 
   useEffect(() => {
-    setEntities([]);
+    setGlobalEntities([]);
+    setTournamentParticipants([]);
     setIdA('');
     setIdB('');
   }, [entityType]);
 
-  async function loadEntities() {
-    if (entities.length > 0) return;
-    try {
+  // Load global entities and tournament-scoped participants whenever scopeTournamentId changes
+  useEffect(() => {
+    let active = true;
+    async function loadData() {
       setPickerLoading(true);
-      const { results } = await getGlobalRankings(entityType, entityType === 'team' ? 50 : 100);
-      setEntities(results || []);
-    } catch {
-      // ignore
-    } finally {
-      setPickerLoading(false);
+      try {
+        const [globalRes, tourneyRes] = await Promise.all([
+          getGlobalRankings(entityType, entityType === 'team' ? 50 : 100).catch(() => ({ results: [] })),
+          scopeTournamentId
+            ? getTopStandings(scopeTournamentId, 50, entityType).catch(() => ({ results: [] }))
+            : Promise.resolve({ results: [] }),
+        ]);
+
+        if (!active) return;
+        setGlobalEntities(globalRes.results || []);
+        setTournamentParticipants(tourneyRes.results || []);
+      } catch (err) {
+        console.error('Error loading entity pickers:', err);
+      } finally {
+        if (active) setPickerLoading(false);
+      }
     }
-  }
+    loadData();
+    return () => { active = false; };
+  }, [entityType, scopeTournamentId]);
 
   async function handleFetch() {
     if (!idA || !idB) { alert('Please select both entities to compare.'); return; }
     try {
       setLoading(true);
       const data = await compareEntities(entityType, idA, idB, scopeTournamentId || undefined);
-      const entityA = data.teamA || data.playerA || {};
-      const entityB = data.teamB || data.playerB || {};
+
+      const rawA = data.teamA || data.playerA || {};
+      const rawB = data.teamB || data.playerB || {};
+
+      const nameA = rawA.teamName || rawA.playerName || rawA.ign || rawA.name || 'Entity A';
+      const nameB = rawB.teamName || rawB.playerName || rawB.ign || rawB.name || 'Entity B';
+
+      const entityA = {
+        ...rawA,
+        teamName: nameA,
+        playerName: nameA,
+        logoUrl: rawA.logoUrl || rawA.avatarUrl || rawA.playerAvatarUrl || '',
+        analytics: {
+          PPM: rawA.analytics?.PPM ?? rawA.PPM ?? 0,
+          KPM: rawA.analytics?.KPM ?? rawA.KPM ?? 0,
+          killPct: rawA.analytics?.killPct ?? rawA.killPct ?? 0,
+          winRate: rawA.analytics?.winRate ?? rawA.winRate ?? 0,
+          top5Rate: rawA.analytics?.top5Rate ?? rawA.top5Rate ?? 0,
+          avgPlace: rawA.analytics?.avgPlace ?? rawA.avgPlace ?? rawA.avgPlacement ?? 0,
+          ...rawA.analytics,
+        },
+      };
+
+      const entityB = {
+        ...rawB,
+        teamName: nameB,
+        playerName: nameB,
+        logoUrl: rawB.logoUrl || rawB.avatarUrl || rawB.playerAvatarUrl || '',
+        analytics: {
+          PPM: rawB.analytics?.PPM ?? rawB.PPM ?? 0,
+          KPM: rawB.analytics?.KPM ?? rawB.KPM ?? 0,
+          killPct: rawB.analytics?.killPct ?? rawB.killPct ?? 0,
+          winRate: rawB.analytics?.winRate ?? rawB.winRate ?? 0,
+          top5Rate: rawB.analytics?.top5Rate ?? rawB.top5Rate ?? 0,
+          avgPlace: rawB.analytics?.avgPlace ?? rawB.avgPlace ?? rawB.avgPlacement ?? 0,
+          ...rawB.analytics,
+        },
+      };
+
       onFetched({
         teamA: entityA,
         teamB: entityB,
@@ -436,7 +488,7 @@ function H2HFetchEditor({
         playerB: entityB,
         entityA,
         entityB,
-        scope: data.scope,
+        scope: data.scope || { type: scopeTournamentId ? 'tournament' : 'career' },
         currentData: data,
       });
     } catch (err: any) {
@@ -450,47 +502,85 @@ function H2HFetchEditor({
   const nameKey = entityType === 'team' ? 'teamName' : 'playerName';
   const idKey = entityType === 'team' ? 'teamId' : 'playerId';
 
+  const participantIds = new Set(
+    tournamentParticipants.map((p) => p[idKey] || p.id).filter(Boolean)
+  );
+
+  const otherEntities = globalEntities.filter(
+    (e) => !participantIds.has(e[idKey] || e.id)
+  );
+
   return (
     <div style={wrapperStyle}>
       <span className="slot-control-label" style={{ margin: 0, fontWeight: 700 }}>
         Fetch Head to Head Data (Workspace)
       </span>
 
-      <select className="select-input" style={selectStyle} value={entityType} onChange={(e) => setEntityType(e.target.value as any)}>
-        <option value="team">Teams</option>
-        <option value="player">Players</option>
-      </select>
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <select className="select-input" style={{ ...selectStyle, flex: 1 }} value={entityType} onChange={(e) => setEntityType(e.target.value as any)}>
+          <option value="team">Teams</option>
+          <option value="player">Players</option>
+        </select>
+
+        <select className="select-input" style={{ ...selectStyle, flex: 2 }} value={scopeTournamentId} onChange={(e) => setScopeTournamentId(e.target.value)}>
+          <option value="">Scope: Career-Wide</option>
+          {tournaments.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
+      </div>
 
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
         <select
           className="select-input"
           style={selectStyle}
           value={idA}
-          onFocus={loadEntities}
           onChange={(e) => setIdA(e.target.value)}
         >
-          <option value="">-- Entity A --</option>
-          {pickerLoading && <option disabled>Loading…</option>}
-          {entities.map((e: any) => <option key={e[idKey]} value={e[idKey]}>{e[nameKey]}</option>)}
+          <option value="">-- Choose Entity A --</option>
+          {pickerLoading && <option disabled>Loading entities…</option>}
+          {tournamentParticipants.length > 0 && (
+            <optgroup label="⚡ Tournament Participants (Active in Selected Event)">
+              {tournamentParticipants.map((e: any) => {
+                const id = e[idKey] || e.id;
+                const name = e[nameKey] || e.ign || e.name;
+                return <option key={id} value={id}>🟢 {name} (Played in Event)</option>;
+              })}
+            </optgroup>
+          )}
+          <optgroup label={tournamentParticipants.length > 0 ? "🌐 Other Registered Entities" : "Registered Entities"}>
+            {otherEntities.map((e: any) => {
+              const id = e[idKey] || e.id;
+              const name = e[nameKey] || e.ign || e.name;
+              return <option key={id} value={id}>{name}</option>;
+            })}
+          </optgroup>
         </select>
 
         <select
           className="select-input"
           style={selectStyle}
           value={idB}
-          onFocus={loadEntities}
           onChange={(e) => setIdB(e.target.value)}
         >
-          <option value="">-- Entity B --</option>
-          {pickerLoading && <option disabled>Loading…</option>}
-          {entities.map((e: any) => <option key={e[idKey]} value={e[idKey]}>{e[nameKey]}</option>)}
+          <option value="">-- Choose Entity B --</option>
+          {pickerLoading && <option disabled>Loading entities…</option>}
+          {tournamentParticipants.length > 0 && (
+            <optgroup label="⚡ Tournament Participants (Active in Selected Event)">
+              {tournamentParticipants.map((e: any) => {
+                const id = e[idKey] || e.id;
+                const name = e[nameKey] || e.ign || e.name;
+                return <option key={id} value={id}>🟢 {name} (Played in Event)</option>;
+              })}
+            </optgroup>
+          )}
+          <optgroup label={tournamentParticipants.length > 0 ? "🌐 Other Registered Entities" : "Registered Entities"}>
+            {otherEntities.map((e: any) => {
+              const id = e[idKey] || e.id;
+              const name = e[nameKey] || e.ign || e.name;
+              return <option key={id} value={id}>{name}</option>;
+            })}
+          </optgroup>
         </select>
       </div>
-
-      <select className="select-input" style={selectStyle} value={scopeTournamentId} onChange={(e) => setScopeTournamentId(e.target.value)}>
-        <option value="">Scope: Career-Wide</option>
-        {tournaments.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
-      </select>
 
       <button onClick={handleFetch} disabled={loading} className="btn btn-secondary btn-sm" style={fetchBtnStyle}>
         {loading ? <Loader2 className="animate-spin" style={iconStyle} /> : <RefreshCw style={iconStyle} />}
@@ -503,12 +593,16 @@ function H2HFetchEditor({
 // ─── Sub-editor: Team / Player Profile ────────────────────────────────────────
 function ProfileFetchEditor({
   type,
+  tournaments,
   onFetched,
 }: {
   type: 'team' | 'player';
+  tournaments: any[];
   onFetched: (fields: Record<string, any>) => void;
 }) {
-  const [entities, setEntities] = useState<any[]>([]);
+  const [selectedTournamentId, setSelectedTournamentId] = useState('');
+  const [globalEntities, setGlobalEntities] = useState<any[]>([]);
+  const [tournamentParticipants, setTournamentParticipants] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [pickerLoading, setPickerLoading] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -516,18 +610,30 @@ function ProfileFetchEditor({
   const nameKey = type === 'team' ? 'teamName' : 'playerName';
   const idKey = type === 'team' ? 'teamId' : 'playerId';
 
-  async function loadEntities() {
-    if (entities.length > 0) return;
-    try {
+  useEffect(() => {
+    let active = true;
+    async function loadData() {
       setPickerLoading(true);
-      const { results } = await getGlobalRankings(type, type === 'team' ? 50 : 100);
-      setEntities(results || []);
-    } catch {
-      // ignore
-    } finally {
-      setPickerLoading(false);
+      try {
+        const [globalRes, tourneyRes] = await Promise.all([
+          getGlobalRankings(type, type === 'team' ? 50 : 100).catch(() => ({ results: [] })),
+          selectedTournamentId
+            ? getTopStandings(selectedTournamentId, 50, type).catch(() => ({ results: [] }))
+            : Promise.resolve({ results: [] }),
+        ]);
+
+        if (!active) return;
+        setGlobalEntities(globalRes.results || []);
+        setTournamentParticipants(tourneyRes.results || []);
+      } catch (err) {
+        console.error('Error loading profile pickers:', err);
+      } finally {
+        if (active) setPickerLoading(false);
+      }
     }
-  }
+    loadData();
+    return () => { active = false; };
+  }, [type, selectedTournamentId]);
 
   async function handleFetch() {
     if (!selectedId) { alert(`Please select a ${type} first.`); return; }
@@ -548,22 +654,49 @@ function ProfileFetchEditor({
     }
   }
 
+  const participantIds = new Set(
+    tournamentParticipants.map((p) => p[idKey] || p.id).filter(Boolean)
+  );
+
+  const otherEntities = globalEntities.filter(
+    (e) => !participantIds.has(e[idKey] || e.id)
+  );
+
   return (
     <div style={wrapperStyle}>
       <span className="slot-control-label" style={{ margin: 0, fontWeight: 700 }}>
         Fetch {type === 'team' ? 'Team' : 'Player'} Profile (Workspace)
       </span>
 
+      <select className="select-input" style={selectStyle} value={selectedTournamentId} onChange={(e) => setSelectedTournamentId(e.target.value)}>
+        <option value="">Filter by Tournament (Optional)</option>
+        {tournaments.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+      </select>
+
       <select
         className="select-input"
         style={selectStyle}
         value={selectedId}
-        onFocus={loadEntities}
         onChange={(e) => setSelectedId(e.target.value)}
       >
         <option value="">-- Choose {type === 'team' ? 'Team' : 'Player'} --</option>
-        {pickerLoading && <option disabled>Loading…</option>}
-        {entities.map((e: any) => <option key={e[idKey]} value={e[idKey]}>{e[nameKey]}</option>)}
+        {pickerLoading && <option disabled>Loading entities…</option>}
+        {tournamentParticipants.length > 0 && (
+          <optgroup label="⚡ Tournament Participants (Active in Selected Event)">
+            {tournamentParticipants.map((e: any) => {
+              const id = e[idKey] || e.id;
+              const name = e[nameKey] || e.ign || e.name;
+              return <option key={id} value={id}>🟢 {name} (Played in Event)</option>;
+            })}
+          </optgroup>
+        )}
+        <optgroup label={tournamentParticipants.length > 0 ? "🌐 Other Registered Entities" : "Registered Entities"}>
+          {otherEntities.map((e: any) => {
+            const id = e[idKey] || e.id;
+            const name = e[nameKey] || e.ign || e.name;
+            return <option key={id} value={id}>{name}</option>;
+          })}
+        </optgroup>
       </select>
 
       <button onClick={handleFetch} disabled={loading} className="btn btn-secondary btn-sm" style={fetchBtnStyle}>
@@ -653,10 +786,10 @@ export function FieldEditor({ templateType, tournaments, onFetched }: FieldEdito
       return <H2HFetchEditor tournaments={tournaments} onFetched={onFetched} />;
 
     case 'team_profile':
-      return <ProfileFetchEditor type="team" onFetched={onFetched} />;
+      return <ProfileFetchEditor type="team" tournaments={tournaments} onFetched={onFetched} />;
 
     case 'player_profile':
-      return <ProfileFetchEditor type="player" onFetched={onFetched} />;
+      return <ProfileFetchEditor type="player" tournaments={tournaments} onFetched={onFetched} />;
 
     case 'custom_media':
       return <CustomMediaEditor />;
