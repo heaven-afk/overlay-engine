@@ -891,13 +891,26 @@ export async function getStudioPlaylistItems(
   }
 }
 
+export function sanitizeForFirestore(obj: any): any {
+  if (obj === undefined) return null;
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizeForFirestore);
+  const clean: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      clean[key] = sanitizeForFirestore(value);
+    }
+  }
+  return clean;
+}
+
 export async function saveStudioPlaylistItem(
   projectId: string,
   playlistId: string,
   item: Omit<StudioPlaylistItem, 'id'>,
   itemId?: string
 ): Promise<string> {
-  const data = { ...item, savedAt: Timestamp.now() };
+  const data = sanitizeForFirestore({ ...item, savedAt: Timestamp.now() });
   if (itemId) {
     await setDoc(
       doc(db, 'studioProjects', projectId, 'playlists', playlistId, 'items', itemId),
@@ -932,9 +945,10 @@ export async function pushStudioProjectToLive(
   fields: Record<string, any>,
   user: { uid: string; email: string }
 ): Promise<void> {
+  const cleanFields = sanitizeForFirestore(fields || {});
   const liveState: StudioLiveState = {
     templateId,
-    fields,
+    fields: cleanFields,
     pushedBy: user.email || user.uid,
     pushedAt: Timestamp.now(),
   };
@@ -947,7 +961,7 @@ export async function pushStudioProjectToLive(
     pushedAt: Timestamp.now(),
     pushedBy: user.uid,
     pushedByEmail: user.email,
-    snapshot: { templateId, fields },
+    snapshot: { templateId, fields: cleanFields },
   });
 }
 
@@ -956,9 +970,10 @@ export async function rollbackStudioProject(
   snapshot: { templateId: string | null; fields: Record<string, any> },
   user: { uid: string; email: string }
 ): Promise<void> {
+  const cleanFields = sanitizeForFirestore(snapshot.fields || {});
   const liveState: StudioLiveState = {
     templateId: snapshot.templateId,
-    fields: snapshot.fields,
+    fields: cleanFields,
     pushedBy: `Rollback by ${user.email || user.uid}`,
     pushedAt: Timestamp.now(),
   };
@@ -969,9 +984,10 @@ export async function rollbackStudioProject(
     pushedAt: Timestamp.now(),
     pushedBy: user.uid,
     pushedByEmail: user.email,
-    snapshot,
+    snapshot: { templateId: snapshot.templateId, fields: cleanFields },
   });
 }
+
 
 export async function getStudioProjectPushHistory(projectId: string): Promise<StudioPushHistoryEntry[]> {
   try {

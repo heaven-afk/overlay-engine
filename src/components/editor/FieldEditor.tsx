@@ -87,7 +87,7 @@ function StandingsFetchEditor({
           teams: results,
           players: results,
           [`${type}s`]: results,
-          groupId: activeGroupId,
+          groupId: activeGroupId || 'all',
         },
       };
 
@@ -272,7 +272,7 @@ function DailyFetchEditor({
           rows: results,
           teams: results,
           players: results,
-          groupId: activeGroupId,
+          groupId: activeGroupId || 'all',
         },
       };
 
