@@ -724,3 +724,257 @@ async function seedCustomMediaTemplates(countNeeded: number) {
   }
 }
 
+// ─── STUDIO ROOM TYPES ────────────────────────────────────────────────────────
+
+export interface StudioProject {
+  id?: string;
+  name: string;
+  ownerId: string;
+  teamId: string | null;
+  sourceLinkToken: string;
+  createdAt?: any;
+}
+
+export interface StudioPlaylist {
+  id?: string;
+  slotNumber: number; // 1–6
+  name: string;
+}
+
+export interface StudioPlaylistItem {
+  id?: string;
+  templateId: string;
+  fields: Record<string, any>;
+  order: number;
+  savedAt?: any;
+}
+
+export interface StudioLiveState {
+  templateId: string | null;
+  fields: Record<string, any>;
+  pushedBy: string;
+  pushedAt: any;
+}
+
+export interface StudioPushHistoryEntry {
+  id?: string;
+  pushedAt: any;
+  pushedBy: string;
+  pushedByEmail?: string;
+  snapshot: {
+    templateId: string | null;
+    fields: Record<string, any>;
+  };
+}
+
+// ─── STUDIO ROOM CRUD ─────────────────────────────────────────────────────────
+
+function generateStudioToken(): string {
+  return Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
+export async function createStudioProject(
+  name: string,
+  ownerId: string,
+  teamId: string | null = null
+): Promise<string> {
+  const token = generateStudioToken();
+
+  const ref = await addDoc(collection(db, 'studioProjects'), {
+    name,
+    ownerId,
+    teamId,
+    sourceLinkToken: token,
+    createdAt: Timestamp.now(),
+  });
+  const projectId = ref.id;
+
+  // Initialise 6 fixed playlist slots
+  const playlistNames = ['Playlist 1', 'Playlist 2', 'Playlist 3', 'Playlist 4', 'Playlist 5', 'Playlist 6'];
+  for (let i = 0; i < 6; i++) {
+    await addDoc(collection(db, 'studioProjects', projectId, 'playlists'), {
+      slotNumber: i + 1,
+      name: playlistNames[i],
+    });
+  }
+
+  // Initialise empty live state document
+  await setDoc(doc(db, 'studioProjects', projectId, 'live', 'current'), {
+    templateId: null,
+    fields: {},
+    pushedBy: '',
+    pushedAt: null,
+  });
+
+  return projectId;
+}
+
+export async function getStudioProjects(): Promise<StudioProject[]> {
+  try {
+    const snap = await getDocs(collection(db, 'studioProjects'));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as StudioProject));
+  } catch (err) {
+    console.error('Failed to getStudioProjects:', err);
+    return [];
+  }
+}
+
+export async function getStudioProject(projectId: string): Promise<StudioProject | null> {
+  try {
+    const d = await getDoc(doc(db, 'studioProjects', projectId));
+    return d.exists() ? ({ id: d.id, ...d.data() } as StudioProject) : null;
+  } catch (err) {
+    console.error(`Failed to getStudioProject ${projectId}:`, err);
+    return null;
+  }
+}
+
+export async function getStudioProjectByToken(token: string): Promise<StudioProject | null> {
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'studioProjects'), where('sourceLinkToken', '==', token))
+    );
+    if (snap.empty) return null;
+    const d = snap.docs[0];
+    return { id: d.id, ...d.data() } as StudioProject;
+  } catch (err) {
+    console.error(`Failed to getStudioProjectByToken ${token}:`, err);
+    return null;
+  }
+}
+
+export async function deleteStudioProject(projectId: string): Promise<void> {
+  await deleteDoc(doc(db, 'studioProjects', projectId));
+}
+
+export async function getStudioPlaylists(projectId: string): Promise<StudioPlaylist[]> {
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'studioProjects', projectId, 'playlists'), orderBy('slotNumber'))
+    );
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as StudioPlaylist));
+  } catch (err) {
+    console.error('Failed to getStudioPlaylists:', err);
+    return [];
+  }
+}
+
+export async function getStudioPlaylistItems(
+  projectId: string,
+  playlistId: string
+): Promise<StudioPlaylistItem[]> {
+  try {
+    const snap = await getDocs(
+      query(
+        collection(db, 'studioProjects', projectId, 'playlists', playlistId, 'items'),
+        orderBy('order')
+      )
+    );
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as StudioPlaylistItem));
+  } catch (err) {
+    console.error('Failed to getStudioPlaylistItems:', err);
+    return [];
+  }
+}
+
+export async function saveStudioPlaylistItem(
+  projectId: string,
+  playlistId: string,
+  item: Omit<StudioPlaylistItem, 'id'>,
+  itemId?: string
+): Promise<string> {
+  const data = { ...item, savedAt: Timestamp.now() };
+  if (itemId) {
+    await setDoc(
+      doc(db, 'studioProjects', projectId, 'playlists', playlistId, 'items', itemId),
+      data,
+      { merge: true }
+    );
+    return itemId;
+  } else {
+    const ref = await addDoc(
+      collection(db, 'studioProjects', projectId, 'playlists', playlistId, 'items'),
+      data
+    );
+    return ref.id;
+  }
+}
+
+export async function deleteStudioPlaylistItem(
+  projectId: string,
+  playlistId: string,
+  itemId: string
+): Promise<void> {
+  await deleteDoc(
+    doc(db, 'studioProjects', projectId, 'playlists', playlistId, 'items', itemId)
+  );
+}
+
+// ─── STUDIO ROOM PUSH / HISTORY ───────────────────────────────────────────────
+
+export async function pushStudioProjectToLive(
+  projectId: string,
+  templateId: string | null,
+  fields: Record<string, any>,
+  user: { uid: string; email: string }
+): Promise<void> {
+  const liveState: StudioLiveState = {
+    templateId,
+    fields,
+    pushedBy: user.email || user.uid,
+    pushedAt: Timestamp.now(),
+  };
+
+  // Write live state (onSnapshot in render page picks this up)
+  await setDoc(doc(db, 'studioProjects', projectId, 'live', 'current'), liveState);
+
+  // Append to push history
+  await addDoc(collection(db, 'studioProjects', projectId, 'pushHistory'), {
+    pushedAt: Timestamp.now(),
+    pushedBy: user.uid,
+    pushedByEmail: user.email,
+    snapshot: { templateId, fields },
+  });
+}
+
+export async function rollbackStudioProject(
+  projectId: string,
+  snapshot: { templateId: string | null; fields: Record<string, any> },
+  user: { uid: string; email: string }
+): Promise<void> {
+  const liveState: StudioLiveState = {
+    templateId: snapshot.templateId,
+    fields: snapshot.fields,
+    pushedBy: `Rollback by ${user.email || user.uid}`,
+    pushedAt: Timestamp.now(),
+  };
+
+  await setDoc(doc(db, 'studioProjects', projectId, 'live', 'current'), liveState);
+
+  await addDoc(collection(db, 'studioProjects', projectId, 'pushHistory'), {
+    pushedAt: Timestamp.now(),
+    pushedBy: user.uid,
+    pushedByEmail: user.email,
+    snapshot,
+  });
+}
+
+export async function getStudioProjectPushHistory(projectId: string): Promise<StudioPushHistoryEntry[]> {
+  try {
+    const snap = await getDocs(
+      query(
+        collection(db, 'studioProjects', projectId, 'pushHistory'),
+        orderBy('pushedAt', 'desc')
+      )
+    );
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as StudioPushHistoryEntry));
+  } catch (err) {
+    console.error('Failed to getStudioProjectPushHistory:', err);
+    return [];
+  }
+}
+
+/** Returns the Firestore DocumentReference for the live state — use with onSnapshot() */
+export function getStudioLiveDocRef(projectId: string) {
+  return doc(db, 'studioProjects', projectId, 'live', 'current');
+}

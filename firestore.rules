@@ -52,6 +52,31 @@ service cloud.firestore {
       allow write: if isSignedIn();
     }
 
+    // ─── Studio Room ───────────────────────────────────────────────────
+    // Isolated block — no cross-references to Heaven Stat Engine rules.
+    // Uses isSignedIn() consistent with the rest of the Overlay Engine
+    // collections (Firebase Auth account creation is manually controlled).
+    match /studioProjects/{projectId} {
+      allow read, write: if isSignedIn();
+
+      match /playlists/{playlistId} {
+        allow read, write: if isSignedIn();
+
+        match /items/{itemId} {
+          allow read, write: if isSignedIn();
+        }
+      }
+
+      match /live/{liveDoc} {
+        allow read: if true;   // public: OBS Browser Source reads without auth
+        allow write: if isSignedIn();
+      }
+
+      match /pushHistory/{historyId} {
+        allow read, write: if isSignedIn();
+      }
+    }
+
     // ─── Heaven Stat Engine data ───────────────────────────────────────
     // Public reads preserved (Overlay Engine public render page and OBS
     // need to read team names/logos/tournament data without logging in).
