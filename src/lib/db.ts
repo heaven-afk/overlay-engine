@@ -80,24 +80,88 @@ export interface TemplateStyleConfig {
   selectedMap?: string;                 // map selection e.g. 'Isolated', 'Blackout', 'Rebirth Island', 'none'
 }
 
-export interface OverlayTemplate {
+export interface SlotStateData {
+  templateId: string | null;
+  fields: Record<string, any>;
+  dataShapeType?: TemplateType;
+  lastEditedBy?: string;
+  lastEditedAt?: any;
+  pushedBy?: string;
+  pushedAt?: any;
+}
+
+export interface TeamMember {
+  userId: string;
+  email: string;
+  role: 'editor' | 'viewer';
+  joinedAt?: any;
+}
+
+export interface OverlayTeam {
   id?: string;
   name: string;
-  templateType: TemplateType;
-  styleConfig: TemplateStyleConfig;
+  ownerId: string;
+  members: TeamMember[];
   createdAt?: any;
   updatedAt?: any;
+}
+
+export interface OverlayInvite {
+  id?: string;
+  teamId: string;
+  teamName: string;
+  role: 'editor' | 'viewer';
+  token: string;
+  createdBy: string;
+  expiresAt: any;
+  status: 'active' | 'accepted' | 'expired';
+}
+
+export interface PushHistoryEntry {
+  id?: string;
+  pushedAt: any;
+  pushedBy: string;
+  pushedByEmail?: string;
+  snapshot: SlotStateData;
+}
+
+export interface ScheduledPushEntry {
+  id?: string;
+  scheduledAt: any;
+  snapshot: SlotStateData;
+  status: 'pending' | 'completed' | 'cancelled';
+  createdBy: string;
+  createdByEmail?: string;
+  createdAt: any;
+}
+
+export interface EditLogEntry {
+  id?: string;
+  timestamp: any;
+  userId: string;
+  userEmail: string;
+  fieldName: string;
+  action: string;
 }
 
 export interface OverlaySlot {
   id?: string;
   name: string;
-  dataShapeType: TemplateType;        // what KIND of data this slot currently holds
-  assignedTemplateId: string | null;  // which visual template renders it (independent of data shape)
-  currentData: any | null;
   publicRenderToken: string;
+  ownerType: 'individual' | 'team';
+  ownerId: string;
+  teamId?: string | null;
+  liveLock?: boolean;
+
+  workspace: SlotStateData;
+  published: SlotStateData;
+
+  // Legacy fallback fields for backward compatibility
+  dataShapeType?: TemplateType;
+  assignedTemplateId?: string | null;
+  currentData?: any | null;
   updatedAt?: any;
-  slotType?: any;                     // keeping for fallback/migration purposes
+  slotType?: any;
 }
 
 // ─── TOURNAMENTS & REGISTRY (READ-ONLY) ───────────────────────────────────────
@@ -200,7 +264,7 @@ export async function deleteTemplate(id: string): Promise<void> {
 // ─── SLOTS CRUD (overlaySlots) ───────────────────────────────────────────────
 
 export function normalizeSlot(id: string, data: any): OverlaySlot {
-  let dataShapeType = data.dataShapeType;
+  let dataShapeType: TemplateType = data.dataShapeType;
   if (!dataShapeType) {
     const st = data.slotType;
     if (st === 'standings_table' || st === 'single_team') {
@@ -213,13 +277,47 @@ export function normalizeSlot(id: string, data: any): OverlaySlot {
       dataShapeType = 'top_standings';
     }
   }
+
+  // Fallback state for legacy slots created before workspace/published split
+  const defaultState: SlotStateData = {
+    templateId: data.assignedTemplateId ?? null,
+    fields: { currentData: data.currentData ?? null },
+    dataShapeType: dataShapeType,
+    lastEditedBy: data.lastEditedBy || 'system',
+    lastEditedAt: data.updatedAt || null,
+  };
+
+  const workspace: SlotStateData = data.workspace ? {
+    templateId: data.workspace.templateId ?? data.assignedTemplateId ?? null,
+    fields: data.workspace.fields ?? { currentData: data.currentData ?? null },
+    dataShapeType: data.workspace.dataShapeType || dataShapeType,
+    lastEditedBy: data.workspace.lastEditedBy || 'system',
+    lastEditedAt: data.workspace.lastEditedAt || null,
+  } : defaultState;
+
+  const published: SlotStateData = data.published ? {
+    templateId: data.published.templateId ?? data.assignedTemplateId ?? null,
+    fields: data.published.fields ?? { currentData: data.currentData ?? null },
+    dataShapeType: data.published.dataShapeType || dataShapeType,
+    pushedBy: data.published.pushedBy || 'system',
+    pushedAt: data.published.pushedAt || null,
+  } : defaultState;
+
   return {
     id,
-    name: data.name,
-    dataShapeType,
-    assignedTemplateId: data.assignedTemplateId,
-    currentData: data.currentData,
-    publicRenderToken: data.publicRenderToken,
+    name: data.name || 'Untitled Slot',
+    publicRenderToken: data.publicRenderToken || '',
+    ownerType: data.ownerType || 'individual',
+    ownerId: data.ownerId || 'system_owner',
+    teamId: data.teamId || null,
+    liveLock: Boolean(data.liveLock),
+
+    workspace,
+    published,
+
+    dataShapeType: workspace.dataShapeType || published.dataShapeType || dataShapeType,
+    assignedTemplateId: published.templateId || workspace.templateId || null,
+    currentData: published.fields?.currentData ?? workspace.fields?.currentData ?? null,
     updatedAt: data.updatedAt,
     slotType: data.slotType || (dataShapeType === 'top_standings' ? 'standings_table' : dataShapeType === 'head_to_head' ? 'head_to_head' : 'player_card'),
   };
@@ -276,6 +374,240 @@ export async function saveSlot(slot: Omit<OverlaySlot, 'id'>, id?: string): Prom
 
 export async function deleteSlot(id: string): Promise<void> {
   await deleteDoc(doc(db, 'overlaySlots', id));
+}
+
+// ─── PUSH & HISTORY FUNCTIONS ────────────────────────────────────────────────
+
+export async function pushToLive(
+  slotId: string,
+  user: { uid: string; email: string }
+): Promise<void> {
+  const slot = await getSlot(slotId);
+  if (!slot) throw new Error('Slot not found');
+
+  const snapshot: SlotStateData = {
+    templateId: slot.workspace.templateId,
+    fields: slot.workspace.fields,
+    dataShapeType: slot.workspace.dataShapeType,
+    pushedBy: user.email || user.uid,
+    pushedAt: Timestamp.now(),
+  };
+
+  // 1. Update published state on slot doc
+  await updateDoc(doc(db, 'overlaySlots', slotId), {
+    published: snapshot,
+    updatedAt: Timestamp.now(),
+    // Keep legacy top-level currentData & assignedTemplateId in sync for backwards compat
+    assignedTemplateId: snapshot.templateId,
+    currentData: snapshot.fields?.currentData ?? snapshot.fields,
+  });
+
+  // 2. Append to pushHistory subcollection
+  await addDoc(collection(db, 'overlaySlots', slotId, 'pushHistory'), {
+    pushedAt: Timestamp.now(),
+    pushedBy: user.uid,
+    pushedByEmail: user.email,
+    snapshot,
+  });
+}
+
+export async function rollbackPush(
+  slotId: string,
+  snapshot: SlotStateData,
+  user: { uid: string; email: string }
+): Promise<void> {
+  const rollbackSnapshot: SlotStateData = {
+    ...snapshot,
+    pushedBy: `Rollback by ${user.email || user.uid}`,
+    pushedAt: Timestamp.now(),
+  };
+
+  await updateDoc(doc(db, 'overlaySlots', slotId), {
+    published: rollbackSnapshot,
+    updatedAt: Timestamp.now(),
+    assignedTemplateId: rollbackSnapshot.templateId,
+    currentData: rollbackSnapshot.fields?.currentData ?? rollbackSnapshot.fields,
+  });
+
+  await addDoc(collection(db, 'overlaySlots', slotId, 'pushHistory'), {
+    pushedAt: Timestamp.now(),
+    pushedBy: user.uid,
+    pushedByEmail: user.email,
+    snapshot: rollbackSnapshot,
+  });
+}
+
+export async function getPushHistory(slotId: string): Promise<PushHistoryEntry[]> {
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'overlaySlots', slotId, 'pushHistory'), orderBy('pushedAt', 'desc'))
+    );
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as PushHistoryEntry));
+  } catch (err) {
+    console.error(`Failed to getPushHistory for slot ${slotId}:`, err);
+    return [];
+  }
+}
+
+export async function schedulePush(
+  slotId: string,
+  scheduledAt: Date,
+  user: { uid: string; email: string }
+): Promise<string> {
+  const slot = await getSlot(slotId);
+  if (!slot) throw new Error('Slot not found');
+
+  const snapshot: SlotStateData = {
+    templateId: slot.workspace.templateId,
+    fields: slot.workspace.fields,
+    dataShapeType: slot.workspace.dataShapeType,
+  };
+
+  const ref = await addDoc(collection(db, 'overlaySlots', slotId, 'scheduledPushes'), {
+    scheduledAt: Timestamp.fromDate(scheduledAt),
+    snapshot,
+    status: 'pending',
+    createdBy: user.uid,
+    createdByEmail: user.email,
+    createdAt: Timestamp.now(),
+  });
+  return ref.id;
+}
+
+export async function cancelScheduledPush(slotId: string, pushId: string): Promise<void> {
+  await updateDoc(doc(db, 'overlaySlots', slotId, 'scheduledPushes', pushId), {
+    status: 'cancelled',
+  });
+}
+
+export async function getScheduledPushes(slotId: string): Promise<ScheduledPushEntry[]> {
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'overlaySlots', slotId, 'scheduledPushes'), where('status', '==', 'pending'))
+    );
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as ScheduledPushEntry));
+  } catch (err) {
+    console.error(`Failed to getScheduledPushes for slot ${slotId}:`, err);
+    return [];
+  }
+}
+
+export async function logWorkspaceEdit(
+  slotId: string,
+  user: { uid: string; email: string },
+  fieldName: string,
+  action = 'updated'
+): Promise<void> {
+  try {
+    await addDoc(collection(db, 'overlaySlots', slotId, 'editLog'), {
+      timestamp: Timestamp.now(),
+      userId: user.uid,
+      userEmail: user.email,
+      fieldName,
+      action,
+    });
+  } catch (err) {
+    console.error('Failed to log workspace edit:', err);
+  }
+}
+
+// ─── TEAM & INVITES CRUD (overlayTeams, overlayInvites) ─────────────────────
+
+export async function createTeam(name: string, owner: { uid: string; email: string }): Promise<string> {
+  const ref = await addDoc(collection(db, 'overlayTeams'), {
+    name,
+    ownerId: owner.uid,
+    members: [{ userId: owner.uid, email: owner.email, role: 'editor', joinedAt: Timestamp.now() }],
+    createdAt: Timestamp.now(),
+  });
+  return ref.id;
+}
+
+export async function getTeam(teamId: string): Promise<OverlayTeam | null> {
+  try {
+    const d = await getDoc(doc(db, 'overlayTeams', teamId));
+    return d.exists() ? ({ id: d.id, ...d.data() } as OverlayTeam) : null;
+  } catch (err) {
+    console.error(`Failed to getTeam ${teamId}:`, err);
+    return null;
+  }
+}
+
+export async function getUserTeams(userId: string): Promise<OverlayTeam[]> {
+  try {
+    const snap = await getDocs(collection(db, 'overlayTeams'));
+    const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as OverlayTeam));
+    return list.filter((t) => t.ownerId === userId || t.members.some((m) => m.userId === userId));
+  } catch (err) {
+    console.error(`Failed to getUserTeams for ${userId}:`, err);
+    return [];
+  }
+}
+
+export async function createInviteLink(
+  teamId: string,
+  teamName: string,
+  role: 'editor' | 'viewer',
+  user: { uid: string; email: string }
+): Promise<string> {
+  const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+  const expiresAt = Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)); // 7 days
+
+  await addDoc(collection(db, 'overlayInvites'), {
+    teamId,
+    teamName,
+    role,
+    token,
+    createdBy: user.email || user.uid,
+    expiresAt,
+    status: 'active',
+  });
+
+  return token;
+}
+
+export async function getInviteByToken(token: string): Promise<OverlayInvite | null> {
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'overlayInvites'), where('token', '==', token), where('status', '==', 'active'))
+    );
+    if (snap.empty) return null;
+    const d = snap.docs[0];
+    return { id: d.id, ...d.data() } as OverlayInvite;
+  } catch (err) {
+    console.error(`Failed to getInviteByToken ${token}:`, err);
+    return null;
+  }
+}
+
+export async function acceptInviteToken(
+  token: string,
+  user: { uid: string; email: string }
+): Promise<{ teamId: string }> {
+  const invite = await getInviteByToken(token);
+  if (!invite) throw new Error('Invalid or expired invite token');
+
+  const team = await getTeam(invite.teamId);
+  if (!team) throw new Error('Team not found');
+
+  // Check if already a member
+  if (!team.members.some((m) => m.userId === user.uid)) {
+    const updatedMembers = [
+      ...team.members,
+      { userId: user.uid, email: user.email, role: invite.role, joinedAt: Timestamp.now() },
+    ];
+    await updateDoc(doc(db, 'overlayTeams', invite.teamId), {
+      members: updatedMembers,
+      updatedAt: Timestamp.now(),
+    });
+  }
+
+  // Mark invite as accepted
+  if (invite.id) {
+    await updateDoc(doc(db, 'overlayInvites', invite.id), { status: 'accepted' });
+  }
+
+  return { teamId: invite.teamId };
 }
 
 // ─── MOCK TEMPLATES SEEDING ──────────────────────────────────────────────────

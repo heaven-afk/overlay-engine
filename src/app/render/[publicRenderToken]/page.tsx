@@ -85,8 +85,10 @@ export default function PublicRenderPage({ params }: PageProps) {
           );
         };
 
-        if (s.assignedTemplateId) {
-          startTemplateListener(s.assignedTemplateId);
+        // Source link listens EXCLUSIVELY to published template & fields
+        const publishedTemplateId = s.published?.templateId || s.assignedTemplateId;
+        if (publishedTemplateId) {
+          startTemplateListener(publishedTemplateId);
         }
 
         unsubscribeSlot = onSnapshot(doc(db, 'overlaySlots', s.id!), (snapshot) => {
@@ -94,8 +96,9 @@ export default function PublicRenderPage({ params }: PageProps) {
             const data = normalizeSlot(snapshot.id, snapshot.data());
             setSlot(data);
 
-            if (data.assignedTemplateId) {
-              startTemplateListener(data.assignedTemplateId);
+            const activeTemplateId = data.published?.templateId || data.assignedTemplateId;
+            if (activeTemplateId) {
+              startTemplateListener(activeTemplateId);
             } else {
               unsubscribeTemplate();
               setTemplate(null);
@@ -136,8 +139,9 @@ export default function PublicRenderPage({ params }: PageProps) {
     );
   }
 
-  // Determine if the GFX should be visible based on whether data is pushed (or if it's static custom media)
-  const isVisible = template.templateType === 'custom_media' || !!slot.currentData;
+  // Published fields data
+  const publishedFields = slot.published?.fields?.currentData || slot.published?.fields || slot.currentData || {};
+  const isVisible = template.templateType === 'custom_media' || (publishedFields && Object.keys(publishedFields).length > 0);
 
   return (
     <div className="broadcast-stage-wrapper" style={{
@@ -163,7 +167,7 @@ export default function PublicRenderPage({ params }: PageProps) {
       >
         <style dangerouslySetInnerHTML={{ __html: `${googleFontsLink(template.styleConfig)}\n${cssVarsForTheme(template.styleConfig)}` }} />
         <TemplateComponent
-          data={slot.currentData || {}}
+          data={publishedFields}
           styleConfig={template.styleConfig}
         />
       </div>

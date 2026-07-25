@@ -25,6 +25,26 @@ service cloud.firestore {
     match /overlaySlots/{slotId} {
       allow read: if true;
       allow write: if isSignedIn();
+
+      match /pushHistory/{historyId} {
+        allow read, write: if isSignedIn();
+      }
+      match /scheduledPushes/{pushId} {
+        allow read, write: if isSignedIn();
+      }
+      match /editLog/{logId} {
+        allow read, write: if isSignedIn();
+      }
+    }
+
+    match /overlayTeams/{teamId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /overlayInvites/{inviteId} {
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     match /overlayDataFieldCatalog/{catalogId} {
