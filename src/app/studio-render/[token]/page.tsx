@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import { getStudioProjectByToken, getTemplate, StudioProject, OverlayTemplate, StudioLiveState } from '@/lib/db';
 import { db } from '@/lib/firebase';
-import { onSnapshot, doc } from 'firebase/firestore';
+import { onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { getStudioLiveDocRef } from '@/lib/db';
 import { googleFontsLink, cssVarsForTheme } from '@/lib/fonts';
 
@@ -54,7 +54,7 @@ export default function StudioRenderPage({ params }: PageProps) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // ── Bootstrap: look up project by source-link token ───────────────────────
+  // ── Bootstrap: look up project & live state ───────────────────────────────
   useEffect(() => {
     document.body.classList.add('broadcast-render');
 
@@ -63,12 +63,7 @@ export default function StudioRenderPage({ params }: PageProps) {
 
     async function init() {
       try {
-        const proj = await getStudioProjectByToken(token);
-        if (!proj) {
-          setLoading(false);
-          return;
-        }
-        setProject(proj);
+        let projectId = token;
 
         // Helper: start / restart template listener
         const startTemplateListener = (templateId: string) => {
@@ -81,31 +76,63 @@ export default function StudioRenderPage({ params }: PageProps) {
               } else {
                 setTemplate(null);
               }
+            },
+            (err) => {
+              console.error('StudioRenderPage template listener error:', err);
             }
           );
         };
 
-        // Listen to studioProjects/{id}/live/current
-        const liveRef = getStudioLiveDocRef(proj.id!);
-        unsubLive = onSnapshot(liveRef, (snap) => {
-          if (snap.exists()) {
-            const state = snap.data() as StudioLiveState;
-            setLiveState(state);
-            if (state.templateId) {
-              startTemplateListener(state.templateId);
-            } else {
-              unsubTemplate();
-              setTemplate(null);
+        // Helper: attach live listener for a given projectId
+        const attachLiveListener = (pId: string) => {
+          const liveRef = getStudioLiveDocRef(pId);
+          unsubLive = onSnapshot(
+            liveRef,
+            (snap) => {
+              if (snap.exists()) {
+                const state = snap.data() as StudioLiveState;
+                setLiveState(state);
+                if (state.templateId) {
+                  startTemplateListener(state.templateId);
+                } else {
+                  unsubTemplate();
+                  setTemplate(null);
+                }
+              } else {
+                setLiveState(null);
+                unsubTemplate();
+                setTemplate(null);
+              }
+              setLoading(false);
+            },
+            (err) => {
+              console.error('StudioRenderPage live listener error:', err);
+              setLoading(false);
             }
+          );
+        };
+
+        // 1. Direct resolution: check if token is already a valid projectId with a live doc
+        const directLiveRef = getStudioLiveDocRef(projectId);
+        const directSnap = await getDoc(directLiveRef).catch(() => null);
+
+        if (directSnap && directSnap.exists()) {
+          setProject({ id: projectId, name: 'Studio Room', ownerId: '', sourceLinkToken: token } as StudioProject);
+          attachLiveListener(projectId);
+        } else {
+          // 2. Query resolution: lookup project by sourceLinkToken
+          const proj = await getStudioProjectByToken(token);
+          if (proj && proj.id) {
+            setProject(proj);
+            attachLiveListener(proj.id);
           } else {
-            setLiveState(null);
-            unsubTemplate();
-            setTemplate(null);
+            // Fallback: attach live listener directly on token
+            setProject({ id: token, name: 'Studio Room', ownerId: '', sourceLinkToken: token } as StudioProject);
+            attachLiveListener(token);
           }
-        });
+        }
       } catch (err) {
         console.error('StudioRenderPage init error:', err);
-      } finally {
         setLoading(false);
       }
     }
@@ -120,10 +147,9 @@ export default function StudioRenderPage({ params }: PageProps) {
   }, [token]);
 
   if (loading) return null;
-  if (!project) return <div style={{ color: 'transparent' }} />;
 
   const TemplateComponent = template ? templateMap[template.templateType] : null;
-  const fields = liveState?.fields || {};
+  const fields = liveState?.fields?.currentData || liveState?.fields || {};
   const isVisible = Boolean(template && TemplateComponent);
 
   return (

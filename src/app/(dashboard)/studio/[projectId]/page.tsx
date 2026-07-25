@@ -510,7 +510,7 @@ export default function StudioWorkspace({ params }: PageProps) {
 
   function handleCopyOBS() {
     if (!project) return;
-    navigator.clipboard.writeText(`${origin}/studio-render/${project.sourceLinkToken}`);
+    navigator.clipboard.writeText(`${origin}/studio-render/${project.id}`);
     setCopiedOBS(true);
     setTimeout(() => setCopiedOBS(false), 2000);
   }
@@ -996,7 +996,7 @@ export default function StudioWorkspace({ params }: PageProps) {
                 wordBreak: 'break-all',
                 lineHeight: 1.5,
               }}>
-                {origin}/studio-render/{project.sourceLinkToken}
+                {origin}/studio-render/{project.id}
               </div>
               <button
                 onClick={handleCopyOBS}

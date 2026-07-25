@@ -83,7 +83,7 @@ export default function StudioRoomIndex() {
   }
 
   function handleCopyOBS(project: StudioProject) {
-    const url = `${origin}/studio-render/${project.sourceLinkToken}`;
+    const url = `${origin}/studio-render/${project.id}`;
     navigator.clipboard.writeText(url);
     setCopiedId(project.id!);
     setTimeout(() => setCopiedId(null), 2000);
@@ -211,7 +211,7 @@ export default function StudioRoomIndex() {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.25rem' }}>
           {myProjects.map((project) => {
-            const obsUrl = `${origin}/studio-render/${project.sourceLinkToken}`;
+            const obsUrl = `${origin}/studio-render/${project.id}`;
             const isTeam = !!project.teamId;
             const isCopied = copiedId === project.id;
 
