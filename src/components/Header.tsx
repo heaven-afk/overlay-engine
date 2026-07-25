@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Layers, Palette, LogOut } from 'lucide-react';
+import { Layers, Palette, LogOut, Users } from 'lucide-react';
 
 export default function Header() {
   const pathname = usePathname();
@@ -34,6 +34,13 @@ export default function Header() {
         >
           <Layers style={{ width: '16px', height: '16px', display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }} />
           Live Slots
+        </Link>
+        <Link 
+          href="/teams" 
+          className={`nav-link ${isActive('/teams') ? 'active' : ''}`}
+        >
+          <Users style={{ width: '16px', height: '16px', display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }} />
+          Teams & Invites
         </Link>
       </nav>
       

@@ -609,6 +609,18 @@ export async function getInviteByToken(token: string): Promise<OverlayInvite | n
   }
 }
 
+export async function getTeamInvites(teamId: string): Promise<OverlayInvite[]> {
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'overlayInvites'), where('teamId', '==', teamId), where('status', '==', 'active'))
+    );
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as OverlayInvite));
+  } catch (err) {
+    console.error(`Failed to getTeamInvites ${teamId}:`, err);
+    return [];
+  }
+}
+
 export async function acceptInviteToken(
   token: string,
   user: { uid: string; email: string }
