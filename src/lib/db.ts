@@ -72,10 +72,11 @@ export interface TemplateStyleConfig {
   customMediaType?: 'image' | 'video' | 'gif' | 'auto' | 'canva'; // type of custom media
   customMediaFit?: 'cover' | 'contain' | 'fill'; // how to scale/fit the media in 1920x1080
 
-  // Hybrid Era template specific
+  // Hybrid Era & Group Stage template specific
   hybridEraMode?: 'daily' | 'collation'; // 'daily' (e.g. AFTER GAME ONE) or 'collation' (e.g. OVERALL COLLATION)
   hybridEraSubheader?: string;          // optional custom subheader badge text (e.g. "AFTER GAME ONE")
   hybridTopRightLogoUrl?: string;       // optional uploaded logo/brand image for top-right corner (replaces text badge)
+  selectedGroup?: string;               // group stage filter e.g. 'Qualifiers', 'Finals', 'all'
 }
 
 export interface OverlayTemplate {

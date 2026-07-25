@@ -35,13 +35,16 @@ async function callStatsApi(path: string, params: Record<string, string>) {
 export async function getTopStandings(
   tournamentId: string,
   n: number,
-  type: 'team' | 'player' = 'team'
+  type: 'team' | 'player' = 'team',
+  groupId?: string
 ): Promise<{ results: any[] }> {
-  return callStatsApi('/api/overlay/standings/top', {
+  const params: Record<string, string> = {
     tournamentId,
     n: String(n),
     type,
-  });
+  };
+  if (groupId && groupId !== 'all') params.groupId = groupId;
+  return callStatsApi('/api/overlay/standings/top', params);
 }
 
 /**
@@ -86,7 +89,7 @@ export async function compareEntities(
 export async function getDailyStandings(
   tournamentId: string,
   day: number,
-  options: { lobby?: number; n?: number } = {}
+  options: { lobby?: number; n?: number; groupId?: string } = {}
 ) {
   const params: Record<string, string> = {
     tournamentId,
@@ -94,5 +97,6 @@ export async function getDailyStandings(
     n: String(options.n ?? 5),
   };
   if (options.lobby !== undefined) params.lobby = String(options.lobby);
+  if (options.groupId && options.groupId !== 'all') params.groupId = options.groupId;
   return callStatsApi('/api/overlay/standings/daily', params);
 }

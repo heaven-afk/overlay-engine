@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -241,6 +241,33 @@ export default function TemplateBuilderPage({ params }: PageProps) {
   const [uploadingHybridLogo, setUploadingHybridLogo] = useState(false);
   const [uploadHybridLogoProgress, setUploadHybridLogoProgress] = useState<number>(0);
 
+  // Responsive preview box scaling
+  const previewPanelRef = useRef<HTMLDivElement>(null);
+  const [previewScale, setPreviewScale] = useState<number>(0.45);
+
+  useEffect(() => {
+    const el = previewPanelRef.current;
+    if (!el) return;
+
+    const updateScale = () => {
+      const availW = Math.max(300, el.clientWidth - 40);
+      const availH = Math.max(200, el.clientHeight - 100);
+      const scaleX = availW / 1920;
+      const scaleY = availH / 1080;
+      const fitScale = Math.min(scaleX, scaleY);
+      setPreviewScale(Math.max(0.2, Math.min(0.65, fitScale)));
+    };
+
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(el);
+    window.addEventListener('resize', updateScale);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateScale);
+    };
+  }, []);
+
   // Template base configurations
   const [templateId, setTemplateId] = useState<string>('');
   const [name, setName] = useState('Untitled Template');
@@ -427,7 +454,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             setPreviewData(MOCK_STANDINGS);
             return;
           }
-          const { results } = await getTopStandings(selectedTournamentId, styleConfig.topN || 10, 'team');
+          const { results } = await getTopStandings(selectedTournamentId, styleConfig.topN || 10, 'team', styleConfig.selectedGroup);
           if (active) {
             if (results && results.length > 0) {
               setPreviewData({ teams: results });
@@ -442,7 +469,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             setPreviewData(MOCK_OVERALL_RANKINGS);
             return;
           }
-          const { results } = await getTopStandings(selectedTournamentId, styleConfig.topN || 20, 'team');
+          const { results } = await getTopStandings(selectedTournamentId, styleConfig.topN || 20, 'team', styleConfig.selectedGroup);
           if (active) {
             if (results && results.length > 0) {
               setPreviewData({ rows: results });
@@ -457,7 +484,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             setPreviewData(templateType === 'hybrid_era_top5' ? MOCK_HYBRID_ERA_TOP5 : MOCK_OVERALL_RANKINGS);
             return;
           }
-          const { results } = await getTopStandings(selectedTournamentId, 5, 'team');
+          const { results } = await getTopStandings(selectedTournamentId, 5, 'team', styleConfig.selectedGroup);
           if (active) {
             if (results && results.length > 0) {
               setPreviewData({ rows: results });
@@ -477,7 +504,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             ? styleConfig.dailyStandingsLobby
             : undefined;
           const n = styleConfig.topN || 5;
-          const data = await getDailyStandings(selectedTournamentId, day, { lobby, n });
+          const data = await getDailyStandings(selectedTournamentId, day, { lobby, n, groupId: styleConfig.selectedGroup });
           if (active) {
             if (data.results && data.results.length > 0) {
               setPreviewData(data);
@@ -1740,6 +1767,19 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                 </div>
 
                 <div className="property-field">
+                  <span className="property-label">Group Stage Filter</span>
+                  <select
+                    className="select-input"
+                    value={styleConfig.selectedGroup || 'all'}
+                    onChange={(e) => updateStyleConfig({ selectedGroup: e.target.value })}
+                  >
+                    <option value="all">All Groups (Combined)</option>
+                    <option value="Qualifiers">Qualifiers</option>
+                    <option value="Finals">Finals</option>
+                  </select>
+                </div>
+
+                <div className="property-field">
                   <span className="property-label">Score Value Displayed</span>
                   <select
                     className="select-input"
@@ -2037,25 +2077,32 @@ export default function TemplateBuilderPage({ params }: PageProps) {
         </div>
 
         {/* Right Side: Preview Panel */}
-        <div style={{
-          backgroundColor: '#121218',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'auto',
-          padding: '2.5rem 2rem',
-          boxSizing: 'border-box',
-        }}>
+        <div 
+          ref={previewPanelRef}
+          style={{
+            flex: 1,
+            backgroundColor: '#121218',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            padding: '1.5rem 1rem',
+            boxSizing: 'border-box',
+            width: '100%',
+            height: '100%',
+          }}
+        >
           
           {/* Preview Source Selector Toolbar (Static header above the canvas) */}
           <div style={{
-            width: '960px',
+            maxWidth: '100%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '12px',
-            marginBottom: '1.5rem',
+            marginBottom: '1rem',
+            flexShrink: 0,
           }}>
             {templateType === 'custom_media' ? (
               <div style={{
@@ -2073,7 +2120,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
               </div>
             ) : (
               <>
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                   
                   {/* Tournament Selector */}
                   <div className="editor-preview-selector">
@@ -2088,6 +2135,21 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                       ))}
                     </select>
                   </div>
+
+                  {/* Group Stage Selector in Toolbar */}
+                  {(templateType === 'hybrid_era_top5' || templateType === 'top_standings' || templateType === 'daily_standings' || templateType === 'overall_rankings_dual_column' || templateType === 'top_5_overall') && (
+                    <div className="editor-preview-selector">
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Group:</span>
+                      <select
+                        value={styleConfig.selectedGroup || 'all'}
+                        onChange={(e) => updateStyleConfig({ selectedGroup: e.target.value })}
+                      >
+                        <option value="all">All Groups</option>
+                        <option value="Qualifiers">Qualifiers</option>
+                        <option value="Finals">Finals</option>
+                      </select>
+                    </div>
+                  )}
 
                   {/* Head-to-Head Source Pickers */}
                   {templateType === 'head_to_head' && (
@@ -2170,22 +2232,24 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             )}
           </div>
 
-          {/* 1920x1080 graphic scaled down to 50% */}
+          {/* 1920x1080 graphic scaled dynamically to fit 100% of container */}
           <div style={{
-            width: '960px',
-            height: '540px',
+            width: `${Math.round(1920 * previewScale)}px`,
+            height: `${Math.round(1080 * previewScale)}px`,
             position: 'relative',
             border: '2px dashed rgba(255, 255, 255, 0.15)',
             boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7)',
             backgroundColor: '#000',
             overflow: 'hidden',
+            borderRadius: '8px',
+            flexShrink: 0,
           }}>
             <div 
               id="broadcast-graphic-preview"
               style={{
                 width: '1920px',
                 height: '1080px',
-                transform: 'scale(0.5)',
+                transform: `scale(${previewScale})`,
                 transformOrigin: 'top left',
                 position: 'absolute',
                 top: 0,
@@ -2197,8 +2261,8 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             </div>
           </div>
 
-          <div style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            Live preview scaled to 50%. Exported image or OBS renders at full 1920x1080.
+          <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)', flexShrink: 0 }}>
+            Live preview fitted automatically ({Math.round(previewScale * 100)}%). Exported image or OBS renders at full 1920x1080.
           </div>
 
         </div>

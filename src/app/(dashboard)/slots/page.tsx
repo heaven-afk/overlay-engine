@@ -26,6 +26,7 @@ interface DailyStandingsConfig {
   mode: 'full_day' | 'single_lobby';
   lobby: number | '';
   n: number;
+  groupId?: string;
 }
 
 interface TeamProfileConfig {
@@ -36,6 +37,7 @@ interface StandingsConfig {
   n: number;
   type: 'team' | 'player';
   tournamentId: string;
+  groupId?: string;
 }
 
 interface H2HConfig {
@@ -229,7 +231,7 @@ export default function SlotsDashboard() {
       setPushingId(slot.id!);
       setPartialWarning((prev) => ({ ...prev, [slot.id!]: '' }));
 
-      const { results } = await getTopStandings(tournamentId, n, type);
+      const { results } = await getTopStandings(tournamentId, n, type, cfg?.groupId);
 
       if (!results || results.length === 0) {
         setPartialWarning((prev) => ({
@@ -288,7 +290,7 @@ export default function SlotsDashboard() {
 
     try {
       setPushingId(slot.id!);
-      const data = await getDailyStandings(tournamentId, day, { lobby, n });
+      const data = await getDailyStandings(tournamentId, day, { lobby, n, groupId: cfg?.groupId });
 
       const updatedSlot: Omit<OverlaySlot, 'id'> = {
         name: slot.name,
@@ -515,18 +517,31 @@ export default function SlotsDashboard() {
             Push Live Tournament Data
           </span>
 
-          {/* Tournament picker */}
-          <select
-            className="select-input"
-            style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
-            value={cfg.tournamentId}
-            onChange={(e) => updateStandingsConfig(slot.id!, { tournamentId: e.target.value })}
-          >
-            <option value="">-- Choose Tournament --</option>
-            {tournaments.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </select>
+          {/* Tournament & Group pickers */}
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <select
+              className="select-input"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px', flex: 2 }}
+              value={cfg.tournamentId}
+              onChange={(e) => updateStandingsConfig(slot.id!, { tournamentId: e.target.value })}
+            >
+              <option value="">-- Choose Tournament --</option>
+              {tournaments.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+
+            <select
+              className="select-input"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px', flex: 1 }}
+              value={cfg.groupId || 'all'}
+              onChange={(e) => updateStandingsConfig(slot.id!, { groupId: e.target.value })}
+            >
+              <option value="all">All Groups</option>
+              <option value="Qualifiers">Qualifiers</option>
+              <option value="Finals">Finals</option>
+            </select>
+          </div>
 
           {/* N + type controls */}
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -601,17 +616,30 @@ export default function SlotsDashboard() {
             Push Daily Standings Data
           </span>
 
-          <select
-            className="select-input"
-            style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
-            value={cfg.tournamentId}
-            onChange={(e) => updateDailyConfig(slot.id!, { tournamentId: e.target.value })}
-          >
-            <option value="">-- Choose Tournament --</option>
-            {tournaments.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </select>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <select
+              className="select-input"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px', flex: 2 }}
+              value={cfg.tournamentId}
+              onChange={(e) => updateDailyConfig(slot.id!, { tournamentId: e.target.value })}
+            >
+              <option value="">-- Choose Tournament --</option>
+              {tournaments.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+
+            <select
+              className="select-input"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px', flex: 1 }}
+              value={cfg.groupId || 'all'}
+              onChange={(e) => updateDailyConfig(slot.id!, { groupId: e.target.value })}
+            >
+              <option value="all">All Groups</option>
+              <option value="Qualifiers">Qualifiers</option>
+              <option value="Finals">Finals</option>
+            </select>
+          </div>
 
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Day</span>

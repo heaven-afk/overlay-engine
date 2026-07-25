@@ -182,6 +182,7 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
     brandingLogoUrl,
     tournamentLogos,
     hybridTopRightLogoUrl,
+    selectedGroup,
   } = styleConfig;
 
   // Retrieve raw teams data and strictly slice to top 5 ONLY
@@ -208,10 +209,11 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
       : null;
 
   // Resolve Subheader (Right side tag)
+  const groupPrefix = selectedGroup && selectedGroup !== 'all' ? `${selectedGroup.toUpperCase()} — ` : '';
   const resolvedSubheader =
     hybridEraSubheader ||
     graphicSubtitle ||
-    (hybridEraMode === 'collation' ? 'OVERALL COLLATION' : 'AFTER GAME ONE');
+    `${groupPrefix}${hybridEraMode === 'collation' ? 'OVERALL COLLATION' : 'AFTER GAME ONE'}`;
 
   // Resolve Title (Centered main header)
   const resolvedTitle =
@@ -227,6 +229,9 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
     }
     return team.totalPoints ?? team.totalPts ?? team.scores?.totalPts ?? 0;
   };
+
+  const hasBrandingLogo = Boolean(brandingLogoUrl);
+  const hasTourneyLogo = Boolean(tournamentLogos && tournamentLogos[0]?.logoUrl);
 
   return (
     <div
@@ -322,37 +327,35 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
             width: '100%',
           }}
         >
-          {/* Top Left: RDM x FM Branding */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {brandingLogoUrl ? (
+          {/* Top Left: Custom Branding & Tournament Logos (cleanly rendered if present) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minHeight: '48px' }}>
+            {hasBrandingLogo && (
               <img
                 src={brandingLogoUrl}
                 alt="Branding"
                 style={{ height: '48px', objectFit: 'contain' }}
               />
-            ) : (
-              <RemediumLogoBadge />
             )}
 
-            <span
-              style={{
-                fontSize: '18px',
-                fontWeight: 700,
-                color: 'rgba(255,255,255,0.7)',
-                fontFamily: 'sans-serif',
-              }}
-            >
-              ✕
-            </span>
+            {hasBrandingLogo && hasTourneyLogo && (
+              <span
+                style={{
+                  fontSize: '18px',
+                  fontWeight: 700,
+                  color: 'rgba(255,255,255,0.7)',
+                  fontFamily: 'sans-serif',
+                }}
+              >
+                ✕
+              </span>
+            )}
 
-            {tournamentLogos && tournamentLogos[0]?.logoUrl ? (
+            {hasTourneyLogo && (
               <img
                 src={tournamentLogos[0].logoUrl}
                 alt="Tournament"
                 style={{ height: '48px', objectFit: 'contain' }}
               />
-            ) : (
-              <FMLogoBadge />
             )}
           </div>
 
