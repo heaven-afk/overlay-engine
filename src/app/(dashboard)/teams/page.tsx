@@ -257,7 +257,7 @@ export default function TeamsDashboard() {
                       {team.members?.length || 1} Member{team.members?.length === 1 ? '' : 's'} • {isOwner ? 'Owner' : 'Member'}
                     </div>
                   </div>
-                  {isOwner && <Shield style={{ width: '14px', height: '14px', color: '#d946ef' }} title="Team Owner" />}
+                  {isOwner && <span title="Team Owner"><Shield style={{ width: '14px', height: '14px', color: '#d946ef' }} /></span>}
                 </button>
               );
             })}
