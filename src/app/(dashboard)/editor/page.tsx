@@ -296,26 +296,20 @@ export default function TemplateLibrary() {
                         <Copy style={{ width: '14px', height: '14px' }} />
                       </button>
                     )}
-                    
-                    {isCustomMedia ? (
-                      <button
-                        disabled={true}
-                        className="btn btn-secondary btn-sm"
-                        style={{ opacity: 0.35, cursor: 'not-allowed' }}
-                        title="Custom Media templates cannot be deleted"
-                      >
+
+                    <button
+                      disabled={actionLoading !== null}
+                      onClick={() => handleDelete(template.id!)}
+                      className="btn btn-secondary btn-sm"
+                      title="Delete Template"
+                      style={{ color: '#ef4444' }}
+                    >
+                      {actionLoading === template.id ? (
+                        <Loader2 className="animate-spin" style={{ width: '14px', height: '14px' }} />
+                      ) : (
                         <Trash style={{ width: '14px', height: '14px' }} />
-                      </button>
-                    ) : (
-                      <button
-                        disabled={actionLoading !== null}
-                        onClick={() => handleDelete(template.id!)}
-                        className="btn btn-danger btn-sm"
-                        title="Delete Template"
-                      >
-                        <Trash style={{ width: '14px', height: '14px' }} />
-                      </button>
-                    )}
+                      )}
+                    </button>
                   </div>
                 </div>
               </div>
