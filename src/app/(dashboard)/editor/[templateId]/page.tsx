@@ -707,15 +707,22 @@ export default function TemplateBuilderPage({ params }: PageProps) {
         onProgress(100);
         setTimeout(() => onDone(url), 400);
       } catch (err) {
-        console.warn('Firebase Storage upload failed, falling back to local Firestore Base64:', err);
-        onProgress(80);
+        console.warn('Firebase Storage upload failed, falling back to local Media Data URI:', err);
+        onProgress(85);
         if (file.type.startsWith('video/')) {
-          // Videos are too large to store as Base64 in Firestore (1MB limit).
-          // We cannot silently fail — alert the user.
-          onError(new Error(
-            'Video upload requires Firebase Storage to be enabled. ' +
-            'Please check your Firebase project configuration, or use a direct video URL instead.'
-          ));
+          // Read video directly as Data URI so Firebase Storage is not required
+          const dataUrlReader = new FileReader();
+          dataUrlReader.onload = () => {
+            onProgress(100);
+            const dataUrl = dataUrlReader.result as string;
+            if (dataUrl) {
+              setTimeout(() => onDone(dataUrl), 400);
+            } else {
+              onError(new Error('Failed to read video file as Data URI fallback'));
+            }
+          };
+          dataUrlReader.onerror = () => onError(new Error('Failed to read video file'));
+          dataUrlReader.readAsDataURL(file);
         } else {
           // Fall back to browser-side compression & base64 encoding for images
           const base64Url = await compressAndGetBase64(file, fallbackOpts.maxW, fallbackOpts.maxH, fallbackOpts.quality || 0.92);

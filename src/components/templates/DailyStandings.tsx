@@ -1,6 +1,6 @@
 import React from 'react';
 import { TemplateStyleConfig } from '@/lib/db';
-import { BrandingHeader, StatsStamp, SourceLine, getCanvaEmbedUrl } from './SharedElements';
+import { BrandingHeader, StatsStamp, SourceLine, cleanEntityName, getCanvaEmbedUrl } from './SharedElements';
 
 interface DailyStandingsProps {
   data: any;
@@ -278,7 +278,7 @@ export const DailyStandings: React.FC<DailyStandingsProps> = ({ data, styleConfi
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                     }}>
-                      {team.teamName || team.clanName || `Team ${rank}`}
+                      {cleanEntityName(team.teamName || team.clanName || `Team ${rank}`)}
                     </span>
                   </div>
 

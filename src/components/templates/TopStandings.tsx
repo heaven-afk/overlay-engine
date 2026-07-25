@@ -1,6 +1,6 @@
 import React from 'react';
 import { OverlayTemplate, TemplateStyleConfig } from '@/lib/db';
-import { BrandingHeader, StatsStamp, SourceLine, RankBadge, TeamLogoPlaceholder, getCanvaEmbedUrl } from './SharedElements';
+import { BrandingHeader, StatsStamp, SourceLine, RankBadge, TeamLogoPlaceholder, cleanEntityName, getCanvaEmbedUrl } from './SharedElements';
 
 interface TopStandingsProps {
   data: any;
@@ -344,7 +344,7 @@ export const TopStandings: React.FC<TopStandingsProps> = ({ data, styleConfig })
                         textTransform: 'uppercase',
                         letterSpacing: '0.05em',
                       }}>
-                        {team.teamName}
+                        {cleanEntityName(team.teamName)}
                       </span>
                     </div>
 

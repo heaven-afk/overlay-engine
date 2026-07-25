@@ -1,6 +1,6 @@
 import React from 'react';
 import { TemplateStyleConfig } from '@/lib/db';
-import { BrandingHeader, StatsStamp, SourceLine, getCanvaEmbedUrl } from './SharedElements';
+import { BrandingHeader, StatsStamp, SourceLine, cleanEntityName, getCanvaEmbedUrl } from './SharedElements';
 
 interface OverallRankingsDualColumnProps {
   data: any;
@@ -180,7 +180,7 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
                 }}>
-                  {team.teamName}
+                  {cleanEntityName(team.teamName)}
                 </div>
 
                 {/* Placement Points */}

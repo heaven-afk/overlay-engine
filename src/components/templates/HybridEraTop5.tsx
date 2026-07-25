@@ -1,6 +1,6 @@
 import React from 'react';
 import { TemplateStyleConfig } from '@/lib/db';
-import { getCanvaEmbedUrl } from './SharedElements';
+import { getCanvaEmbedUrl, cleanEntityName } from './SharedElements';
 
 interface HybridEraTop5Props {
   data: any;
@@ -425,7 +425,8 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
           }}
         >
           {displayTeams.map((team: any, index: number) => {
-            const teamName = team.teamName || team.clanName || `TEAM ${index + 1}`;
+            const rawName = team.teamName || team.clanName || `TEAM ${index + 1}`;
+            const teamName = cleanEntityName(rawName);
             const score = getScoreValue(team);
 
             return (

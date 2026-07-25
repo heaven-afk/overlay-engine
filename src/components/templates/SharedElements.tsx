@@ -5,6 +5,11 @@ interface SharedProps {
   styleConfig: TemplateStyleConfig;
 }
 
+export function cleanEntityName(name?: string | null): string {
+  if (!name) return '';
+  return name.replace(/^\d+[\.\s\-]+\s*/, '').trim();
+}
+
 export function getCanvaEmbedUrl(url: string): string | null {
   if (!url) return null;
   // Regex to match canva.com/design/xxx/yyy/view or canva.com/design/xxx/view

@@ -1,6 +1,6 @@
 import React from 'react';
 import { TemplateStyleConfig } from '@/lib/db';
-import { BrandingHeader, StatsStamp, SourceLine, getCanvaEmbedUrl } from './SharedElements';
+import { BrandingHeader, StatsStamp, SourceLine, cleanEntityName, getCanvaEmbedUrl } from './SharedElements';
 
 interface Top5OverallProps {
   data: any;
@@ -281,7 +281,7 @@ export const Top5Overall: React.FC<Top5OverallProps> = ({ data, styleConfig }) =
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                     }}>
-                      {team.teamName || team.clanName || `Team ${rank}`}
+                      {cleanEntityName(team.teamName || team.clanName || `Team ${rank}`)}
                     </span>
                   </div>
 
