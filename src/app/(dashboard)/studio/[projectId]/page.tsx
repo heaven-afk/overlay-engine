@@ -10,7 +10,7 @@ import {
   saveStudioPlaylistItem, deleteStudioPlaylistItem,
   pushStudioProjectToLive, rollbackStudioProject,
   getStudioProjectPushHistory, getStudioLiveDocRef,
-  getTemplates, getTournaments,
+  getTemplates, getTournaments, updateStudioPlaylistName,
   StudioProject, StudioPlaylist, StudioPlaylistItem,
   StudioLiveState, StudioPushHistoryEntry, OverlayTemplate,
 } from '@/lib/db';
@@ -32,7 +32,7 @@ import {
   ArrowLeft, Clapperboard, Send, Save, History, Copy,
   Check, Loader2, Plus, Trash, RotateCcw, Radio, Eye,
   MonitorPlay, Users as UsersIcon, ChevronDown, ChevronUp,
-  ListMusic, X,
+  ListMusic, X, Pencil,
 } from 'lucide-react';
 
 // ─── Template component map ───────────────────────────────────────────────────
@@ -257,6 +257,36 @@ export default function StudioWorkspace({ params }: PageProps) {
   const [copiedOBS, setCopiedOBS] = useState(false);
   const [origin, setOrigin] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Playlist renaming state
+  const [editingPlaylistId, setEditingPlaylistId] = useState<string | null>(null);
+  const [editingPlaylistName, setEditingPlaylistName] = useState('');
+  const [renaming, setRenaming] = useState(false);
+
+  function handleStartRename(pl: StudioPlaylist, e: React.MouseEvent) {
+    e.stopPropagation();
+    setEditingPlaylistId(pl.id!);
+    setEditingPlaylistName(pl.name);
+  }
+
+  async function handleSaveRename(playlistId: string) {
+    if (!editingPlaylistName.trim()) {
+      setEditingPlaylistId(null);
+      return;
+    }
+    try {
+      setRenaming(true);
+      await updateStudioPlaylistName(projectId, playlistId, editingPlaylistName.trim());
+      setPlaylists((prev) =>
+        prev.map((p) => (p.id === playlistId ? { ...p, name: editingPlaylistName.trim() } : p))
+      );
+    } catch (err: any) {
+      alert(`Rename failed: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setRenaming(false);
+      setEditingPlaylistId(null);
+    }
+  }
 
   // History modal
   const [showHistory, setShowHistory] = useState(false);
@@ -625,9 +655,75 @@ export default function StudioWorkspace({ params }: PageProps) {
               </div>
               {playlists.map((pl) => {
                 const isActive = pl.id === activePlaylistId;
+                const isEditing = pl.id === editingPlaylistId;
                 const items = playlistItems[pl.id!] || [];
+
+                if (isEditing) {
+                  return (
+                    <div
+                      key={pl.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '4px 6px',
+                        background: 'rgba(139,92,246,0.15)',
+                        border: '1px solid rgba(139,92,246,0.4)',
+                        borderRadius: '7px',
+                      }}
+                    >
+                      <input
+                        type="text"
+                        value={editingPlaylistName}
+                        onChange={(e) => setEditingPlaylistName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveRename(pl.id!);
+                          if (e.key === 'Escape') setEditingPlaylistId(null);
+                        }}
+                        autoFocus
+                        className="text-input"
+                        style={{
+                          fontSize: '0.8rem',
+                          padding: '3px 6px',
+                          height: '26px',
+                          flex: 1,
+                        }}
+                      />
+                      <button
+                        onClick={() => handleSaveRename(pl.id!)}
+                        disabled={renaming}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '2px',
+                          color: '#4ade80',
+                          display: 'flex',
+                        }}
+                        title="Save Name"
+                      >
+                        <Check style={{ width: '13px', height: '13px' }} />
+                      </button>
+                      <button
+                        onClick={() => setEditingPlaylistId(null)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '2px',
+                          color: 'var(--text-muted)',
+                          display: 'flex',
+                        }}
+                        title="Cancel"
+                      >
+                        <X style={{ width: '13px', height: '13px' }} />
+                      </button>
+                    </div>
+                  );
+                }
+
                 return (
-                  <button
+                  <div
                     key={pl.id}
                     onClick={() => setActivePlaylistId(pl.id!)}
                     style={{
@@ -643,21 +739,40 @@ export default function StudioWorkspace({ params }: PageProps) {
                       transition: 'all 0.15s ease',
                       color: isActive ? '#a78bfa' : 'var(--text-muted)',
                     }}
-                    onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.03)'; }}
-                    onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                    onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)'; }}
+                    onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
                   >
-                    <span style={{ fontSize: '0.82rem', fontWeight: isActive ? 700 : 500 }}>{pl.name}</span>
-                    <span style={{
-                      fontSize: '0.65rem',
-                      background: isActive ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.06)',
-                      padding: '1px 6px',
-                      borderRadius: '10px',
-                      color: isActive ? '#a78bfa' : 'var(--text-muted)',
-                      fontWeight: 700,
-                    }}>{items.length}</span>
-                  </button>
+                    <span style={{ fontSize: '0.82rem', fontWeight: isActive ? 700 : 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, marginRight: '6px' }}>
+                      {pl.name}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+                      <button
+                        onClick={(e) => handleStartRename(pl, e)}
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          padding: '2px', color: 'rgba(255,255,255,0.3)',
+                          borderRadius: '4px', display: 'inline-flex',
+                          transition: 'color 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#a78bfa')}
+                        onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.3)')}
+                        title="Rename playlist"
+                      >
+                        <Pencil style={{ width: '11px', height: '11px' }} />
+                      </button>
+                      <span style={{
+                        fontSize: '0.65rem',
+                        background: isActive ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.06)',
+                        padding: '1px 6px',
+                        borderRadius: '10px',
+                        color: isActive ? '#a78bfa' : 'var(--text-muted)',
+                        fontWeight: 700,
+                      }}>{items.length}</span>
+                    </div>
+                  </div>
                 );
               })}
+
             </div>
 
             {/* Playlist items */}

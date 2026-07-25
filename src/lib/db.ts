@@ -873,6 +873,17 @@ export async function getStudioPlaylists(projectId: string): Promise<StudioPlayl
   }
 }
 
+export async function updateStudioPlaylistName(
+  projectId: string,
+  playlistId: string,
+  name: string
+): Promise<void> {
+  if (!name.trim()) return;
+  await updateDoc(doc(db, 'studioProjects', projectId, 'playlists', playlistId), {
+    name: name.trim(),
+  });
+}
+
 export async function getStudioPlaylistItems(
   projectId: string,
   playlistId: string
