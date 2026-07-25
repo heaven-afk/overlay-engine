@@ -77,6 +77,7 @@ export interface TemplateStyleConfig {
   hybridEraSubheader?: string;          // optional custom subheader badge text (e.g. "AFTER GAME ONE")
   hybridTopRightLogoUrl?: string;       // optional uploaded logo/brand image for top-right corner (replaces text badge)
   selectedGroup?: string;               // group stage filter e.g. 'Qualifiers', 'Finals', 'all'
+  selectedMap?: string;                 // map selection e.g. 'Isolated', 'Blackout', 'Rebirth Island', 'none'
 }
 
 export interface OverlayTemplate {

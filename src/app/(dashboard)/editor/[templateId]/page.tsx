@@ -1780,6 +1780,20 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                 </div>
 
                 <div className="property-field">
+                  <span className="property-label">Map Badge</span>
+                  <select
+                    className="select-input"
+                    value={styleConfig.selectedMap || 'none'}
+                    onChange={(e) => updateStyleConfig({ selectedMap: e.target.value })}
+                  >
+                    <option value="none">None / Default</option>
+                    <option value="Isolated">Isolated</option>
+                    <option value="Blackout">Blackout</option>
+                    <option value="Rebirth Island">Rebirth Island</option>
+                  </select>
+                </div>
+
+                <div className="property-field">
                   <span className="property-label">Score Value Displayed</span>
                   <select
                     className="select-input"
@@ -2138,17 +2152,32 @@ export default function TemplateBuilderPage({ params }: PageProps) {
 
                   {/* Group Stage Selector in Toolbar */}
                   {(templateType === 'hybrid_era_top5' || templateType === 'top_standings' || templateType === 'daily_standings' || templateType === 'overall_rankings_dual_column' || templateType === 'top_5_overall') && (
-                    <div className="editor-preview-selector">
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Group:</span>
-                      <select
-                        value={styleConfig.selectedGroup || 'all'}
-                        onChange={(e) => updateStyleConfig({ selectedGroup: e.target.value })}
-                      >
-                        <option value="all">All Groups</option>
-                        <option value="Qualifiers">Qualifiers</option>
-                        <option value="Finals">Finals</option>
-                      </select>
-                    </div>
+                    <>
+                      <div className="editor-preview-selector">
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Group:</span>
+                        <select
+                          value={styleConfig.selectedGroup || 'all'}
+                          onChange={(e) => updateStyleConfig({ selectedGroup: e.target.value })}
+                        >
+                          <option value="all">All Groups</option>
+                          <option value="Qualifiers">Qualifiers</option>
+                          <option value="Finals">Finals</option>
+                        </select>
+                      </div>
+
+                      <div className="editor-preview-selector">
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Map:</span>
+                        <select
+                          value={styleConfig.selectedMap || 'none'}
+                          onChange={(e) => updateStyleConfig({ selectedMap: e.target.value })}
+                        >
+                          <option value="none">None</option>
+                          <option value="Isolated">Isolated</option>
+                          <option value="Blackout">Blackout</option>
+                          <option value="Rebirth Island">Rebirth Island</option>
+                        </select>
+                      </div>
+                    </>
                   )}
 
                   {/* Head-to-Head Source Pickers */}

@@ -183,6 +183,7 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
     tournamentLogos,
     hybridTopRightLogoUrl,
     selectedGroup,
+    selectedMap,
   } = styleConfig;
 
   // Retrieve raw teams data and strictly slice to top 5 ONLY
@@ -210,10 +211,11 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
 
   // Resolve Subheader (Right side tag)
   const groupPrefix = selectedGroup && selectedGroup !== 'all' ? `${selectedGroup.toUpperCase()} — ` : '';
+  const mapSuffix = selectedMap && selectedMap !== 'none' ? ` (${selectedMap.toUpperCase()})` : '';
   const resolvedSubheader =
     hybridEraSubheader ||
     graphicSubtitle ||
-    `${groupPrefix}${hybridEraMode === 'collation' ? 'OVERALL COLLATION' : 'AFTER GAME ONE'}`;
+    `${groupPrefix}${hybridEraMode === 'collation' ? 'OVERALL COLLATION' : 'AFTER GAME ONE'}${mapSuffix}`;
 
   // Resolve Title (Centered main header)
   const resolvedTitle =
