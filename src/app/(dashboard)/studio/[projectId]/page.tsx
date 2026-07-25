@@ -16,6 +16,7 @@ import {
 } from '@/lib/db';
 import { trackPresence, subscribeToSlotPresence, PresenceUser } from '@/lib/presence';
 import { FieldEditor } from '@/components/editor/FieldEditor';
+import { googleFontsLink, cssVarsForTheme } from '@/lib/fonts';
 
 // Template components
 import { TopStandings } from '@/components/templates/TopStandings';
@@ -137,6 +138,13 @@ function InlineRender({
             top: 0,
             left: 0,
           }}>
+            {template && (
+              <style
+                dangerouslySetInnerHTML={{
+                  __html: `${googleFontsLink(template.styleConfig)}\n${cssVarsForTheme(template.styleConfig)}`,
+                }}
+              />
+            )}
             {Component && <Component data={fields} styleConfig={template!.styleConfig} />}
           </div>
         )}

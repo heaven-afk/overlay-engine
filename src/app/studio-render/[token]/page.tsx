@@ -124,11 +124,7 @@ export default function StudioRenderPage({ params }: PageProps) {
 
   const TemplateComponent = template ? templateMap[template.templateType] : null;
   const fields = liveState?.fields || {};
-  const isVisible = Boolean(
-    template &&
-    TemplateComponent &&
-    (template.templateType === 'custom_media' || Object.keys(fields).length > 0)
-  );
+  const isVisible = Boolean(template && TemplateComponent);
 
   return (
     <div
