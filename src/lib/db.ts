@@ -80,6 +80,15 @@ export interface TemplateStyleConfig {
   selectedMap?: string;                 // map selection e.g. 'Isolated', 'Blackout', 'Rebirth Island', 'none'
 }
 
+export interface OverlayTemplate {
+  id?: string;
+  name: string;
+  templateType: TemplateType;
+  styleConfig: TemplateStyleConfig;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
 export interface SlotStateData {
   templateId: string | null;
   fields: Record<string, any>;
