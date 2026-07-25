@@ -10,7 +10,7 @@ import {
   saveStudioPlaylistItem, deleteStudioPlaylistItem,
   pushStudioProjectToLive, rollbackStudioProject,
   getStudioProjectPushHistory, getStudioLiveDocRef,
-  getTemplates,
+  getTemplates, getTournaments,
   StudioProject, StudioPlaylist, StudioPlaylistItem,
   StudioLiveState, StudioPushHistoryEntry, OverlayTemplate,
 } from '@/lib/db';
@@ -243,6 +243,7 @@ export default function StudioWorkspace({ params }: PageProps) {
   const [templates, setTemplates] = useState<OverlayTemplate[]>([]);
   const [liveState, setLiveState] = useState<StudioLiveState | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tournaments, setTournaments] = useState<any[]>([]);
 
   // UI state
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null);
@@ -303,12 +304,14 @@ export default function StudioWorkspace({ params }: PageProps) {
     async function init() {
       try {
         setLoading(true);
-        const [proj, pls, tmplts] = await Promise.all([
+        const [proj, pls, tmplts, tournamentsList] = await Promise.all([
           getStudioProject(projectId),
           getStudioPlaylists(projectId),
           getTemplates(),
+          getTournaments(),
         ]);
         if (!proj) return;
+        setTournaments(tournamentsList);
         setProject(proj);
         setTemplates(tmplts);
 
@@ -729,11 +732,11 @@ export default function StudioWorkspace({ params }: PageProps) {
                 borderRadius: '10px',
                 padding: '1rem',
               }}>
-                <div style={{ ...panelHeader, marginBottom: '10px' }}>Field Data</div>
+                <div style={{ ...panelHeader, marginBottom: '10px' }}>Fetch Data</div>
                 <FieldEditor
                   templateType={previewTemplate.templateType}
-                  fields={previewFields}
-                  onChange={setPreviewFields}
+                  tournaments={tournaments}
+                  onFetched={(fields) => setPreviewFields(fields)}
                 />
               </div>
             )}
