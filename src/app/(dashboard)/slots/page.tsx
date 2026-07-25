@@ -17,11 +17,11 @@ import {
   getDailyStandings,
 } from '@/lib/statsApi';
 import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { trackPresence, subscribeToSlotPresence, PresenceUser } from '@/lib/presence';
 import {
   Layers, Plus, Link as LinkIcon, Check, Copy,
-  Trash, Send, Loader2, Users, User, RefreshCw,
+  Trash, Send, Loader2, Users, User as UserIcon, RefreshCw,
   Clock, History, Lock, Unlock, Eye, ShieldAlert,
   ChevronRight, Calendar, AlertTriangle, ArrowRight, UserPlus
 } from 'lucide-react';
@@ -59,7 +59,7 @@ interface PlayerCardConfig {
 }
 
 export default function SlotsDashboard() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [slots, setSlots] = useState<OverlaySlot[]>([]);
   const [templates, setTemplates] = useState<OverlayTemplate[]>([]);
   const [tournaments, setTournaments] = useState<any[]>([]);
