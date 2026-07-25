@@ -21,7 +21,7 @@ import { DailyStandings } from '@/components/templates/DailyStandings';
 import { HeadToHead } from '@/components/templates/HeadToHead';
 import { TeamProfile } from '@/components/templates/TeamProfile';
 import { PlayerProfile } from '@/components/templates/PlayerProfile';
-import { CustomMedia, detectMediaType } from '@/components/templates/CustomMedia';
+import { CustomMedia, detectMediaType, getCanvaEmbedUrl, isCanvaUrl } from '@/components/templates/CustomMedia';
 import { OverallRankingsDualColumn } from '@/components/templates/OverallRankingsDualColumn';
 import { Top5Overall } from '@/components/templates/Top5Overall';
 import { HybridEraTop5 } from '@/components/templates/HybridEraTop5';
@@ -562,7 +562,9 @@ export default function TemplateBuilderPage({ params }: PageProps) {
         if (res.ok) {
           const data = await res.json();
           if (data.resolvedUrl) {
-            updateFn(data.resolvedUrl);
+            // Convert resolved canva.com design URL to embed format
+            const embedUrl = getCanvaEmbedUrl(data.resolvedUrl) ?? data.resolvedUrl;
+            updateFn(embedUrl);
           }
         }
       } catch (err) {
@@ -570,6 +572,10 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       } finally {
         setResolvingUrls(prev => ({ ...prev, [fieldKey]: false }));
       }
+    } else if (isCanvaUrl(url)) {
+      // Full canva.com/design/ URL — convert directly to embed format
+      const embedUrl = getCanvaEmbedUrl(url) ?? url;
+      updateFn(embedUrl);
     } else {
       updateFn(url);
     }
@@ -1871,7 +1877,15 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                   {/* Thumbnail / Video preview */}
                   {styleConfig.customMediaUrl ? (
                     <div style={{ width: '100%', height: '140px', border: '1px solid var(--border)', borderRadius: '6px', overflow: 'hidden', position: 'relative', backgroundColor: '#000' }}>
-                      {detectMediaType(styleConfig.customMediaUrl, styleConfig.customMediaType) === 'video' ? (
+                      {detectMediaType(styleConfig.customMediaUrl, styleConfig.customMediaType) === 'canva' ? (
+                        <iframe
+                          src={styleConfig.customMediaUrl}
+                          title="Canva Design Preview"
+                          allow="fullscreen"
+                          allowFullScreen
+                          style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+                        />
+                      ) : detectMediaType(styleConfig.customMediaUrl, styleConfig.customMediaType) === 'video' ? (
                         <video
                           src={styleConfig.customMediaUrl}
                           muted
@@ -1964,14 +1978,27 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     <input
                       type="text"
                       className="text-input"
-                      placeholder="https://..."
+                      placeholder="https://... (Canva links supported)"
                       value={styleConfig.customMediaUrl || ''}
                       onChange={(e) => {
                         const url = e.target.value;
-                        const detected = detectMediaType(url, styleConfig.customMediaType);
-                        updateStyleConfig({ customMediaUrl: url, customMediaType: styleConfig.customMediaType || detected });
+                        // Store raw URL immediately so the input feels responsive
+                        updateStyleConfig({ customMediaUrl: url });
+                      }}
+                      onBlur={(e) => {
+                        const url = e.target.value.trim();
+                        if (!url) return;
+                        resolveShortCanvaUrl('customMedia', url, (resolved) => {
+                          const detected = detectMediaType(resolved, styleConfig.customMediaType);
+                          updateStyleConfig({ customMediaUrl: resolved, customMediaType: detected });
+                        });
                       }}
                     />
+                    {resolvingUrls['customMedia'] && (
+                      <span style={{ fontSize: '0.7rem', color: '#d946ef', marginTop: '4px', display: 'block' }}>
+                        Resolving Canva link...
+                      </span>
+                    )}
                   </div>
 
                   {/* Media Type Selector */}

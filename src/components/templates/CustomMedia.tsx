@@ -6,11 +6,46 @@ interface CustomMediaProps {
   styleConfig: TemplateStyleConfig;
 }
 
-export function detectMediaType(url: string, explicitType?: string): 'video' | 'image' {
+/** Returns the Canva embed URL if the given URL is a Canva design page, otherwise null. */
+export function getCanvaEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    // Matches canva.com/design/<id>/... or canva.com/design/<id>
+    if (parsed.hostname.endsWith('canva.com') && parsed.pathname.includes('/design/')) {
+      // Strip to base design path, add ?embed
+      const designMatch = parsed.pathname.match(/^(\/design\/[^/]+)/);
+      if (designMatch) {
+        return `https://www.canva.com${designMatch[1]}/view?embed`;
+      }
+    }
+  } catch {
+    // not a valid URL
+  }
+  return null;
+}
+
+/** Returns true if the URL is any sort of Canva URL (short link or full design) */
+export function isCanvaUrl(url: string): boolean {
+  if (!url) return false;
+  return (
+    url.includes('canva.link') ||
+    url.includes('canva.me') ||
+    url.includes('canv.a') ||
+    url.includes('canva.com/design/')
+  );
+}
+
+export function detectMediaType(url: string, explicitType?: string): 'video' | 'image' | 'canva' {
   if (explicitType === 'video') return 'video';
   if (explicitType === 'image' || explicitType === 'gif') return 'image';
+  if (explicitType === 'canva') return 'canva';
 
   if (!url) return 'image';
+
+  // Canva URLs — always render as iframe
+  if (isCanvaUrl(url)) return 'canva';
+
   if (url.startsWith('data:video/')) return 'video';
   if (url.startsWith('data:image/')) return 'image';
 
@@ -101,6 +136,34 @@ export const CustomMedia: React.FC<CustomMediaProps> = ({ styleConfig }) => {
   // Only apply crossOrigin for remote HTTP(S) URLs — data URIs don't need it and it can break them
   const isRemoteUrl = customMediaUrl.startsWith('http://') || customMediaUrl.startsWith('https://');
 
+  // ── Canva iframe embed ───────────────────────────────────────────────────────
+  if (mediaType === 'canva') {
+    const embedUrl = getCanvaEmbedUrl(customMediaUrl) ?? customMediaUrl;
+    return (
+      <div style={{
+        width: '1920px',
+        height: '1080px',
+        backgroundColor: 'transparent',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <iframe
+          key={embedUrl}
+          src={embedUrl}
+          title="Canva Design"
+          allow="fullscreen"
+          allowFullScreen
+          style={{
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            display: 'block',
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div style={{
       width: '1920px',
@@ -153,4 +216,3 @@ export const CustomMedia: React.FC<CustomMediaProps> = ({ styleConfig }) => {
     </div>
   );
 };
-
