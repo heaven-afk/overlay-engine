@@ -34,9 +34,11 @@ export function detectMediaType(url: string, explicitType?: string): 'video' | '
 export const CustomMedia: React.FC<CustomMediaProps> = ({ styleConfig }) => {
   const { customMediaUrl, customMediaType, customMediaFit = 'cover' } = styleConfig;
   const [hasError, setHasError] = useState(false);
+  const [errorDetail, setErrorDetail] = useState('');
 
   useEffect(() => {
     setHasError(false);
+    setErrorDetail('');
   }, [customMediaUrl]);
 
   if (!customMediaUrl) {
@@ -84,8 +86,11 @@ export const CustomMedia: React.FC<CustomMediaProps> = ({ styleConfig }) => {
         <h2 style={{ fontSize: '32px', fontWeight: 800, margin: '0 0 12px 0', textTransform: 'uppercase' }}>
           Unable to Load Media
         </h2>
-        <p style={{ fontSize: '18px', color: 'rgba(255, 255, 255, 0.6)', maxWidth: '900px', margin: 0, overflowWrap: 'anywhere' }}>
-          The media URL could not be loaded ({customMediaUrl.slice(0, 100)}{customMediaUrl.length > 100 ? '...' : ''}). Please verify the link or upload a new file.
+        <p style={{ fontSize: '18px', color: 'rgba(255, 255, 255, 0.6)', maxWidth: '900px', margin: '0 0 10px 0', overflowWrap: 'anywhere' }}>
+          {errorDetail || `The media could not be loaded (${customMediaUrl.slice(0, 100)}${customMediaUrl.length > 100 ? '...' : ''}). Please verify the link or upload a new file.`}
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.3)', margin: 0 }}>
+          Tip: For videos, ensure Firebase Storage is enabled and the file was uploaded via the editor.
         </p>
       </div>
     );
@@ -93,6 +98,8 @@ export const CustomMedia: React.FC<CustomMediaProps> = ({ styleConfig }) => {
 
   const mediaType = detectMediaType(customMediaUrl, customMediaType);
   const objectFitStyle = customMediaFit === 'fill' ? 'fill' : customMediaFit === 'contain' ? 'contain' : 'cover';
+  // Only apply crossOrigin for remote HTTP(S) URLs — data URIs don't need it and it can break them
+  const isRemoteUrl = customMediaUrl.startsWith('http://') || customMediaUrl.startsWith('https://');
 
   return (
     <div style={{
@@ -104,13 +111,19 @@ export const CustomMedia: React.FC<CustomMediaProps> = ({ styleConfig }) => {
     }}>
       {mediaType === 'video' ? (
         <video
+          key={customMediaUrl}
           src={customMediaUrl}
           autoPlay
           loop
           muted
           playsInline
-          {...({ referrerPolicy: 'no-referrer' } as any)}
-          onError={() => setHasError(true)}
+          preload="auto"
+          {...(isRemoteUrl ? { crossOrigin: 'anonymous' as const, referrerPolicy: 'no-referrer' as const } : {})}
+          onError={(e) => {
+            const target = e.target as HTMLVideoElement;
+            setErrorDetail(target.error?.message || 'Video failed to load.');
+            setHasError(true);
+          }}
           style={{
             width: '100%',
             height: '100%',
@@ -120,10 +133,15 @@ export const CustomMedia: React.FC<CustomMediaProps> = ({ styleConfig }) => {
         />
       ) : (
         <img
+          key={customMediaUrl}
           src={customMediaUrl}
           alt="Custom Broadcast Media"
-          referrerPolicy="no-referrer"
-          onError={() => setHasError(true)}
+          {...(isRemoteUrl ? { referrerPolicy: 'no-referrer' as const, crossOrigin: 'anonymous' as const } : {})}
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            setErrorDetail(`Image failed to load: ${target.src?.slice(0, 60) || ''}...`);
+            setHasError(true);
+          }}
           style={{
             width: '100%',
             height: '100%',
@@ -135,3 +153,4 @@ export const CustomMedia: React.FC<CustomMediaProps> = ({ styleConfig }) => {
     </div>
   );
 };
+

@@ -238,6 +238,8 @@ export default function TemplateBuilderPage({ params }: PageProps) {
   const [uploadBgProgress, setUploadBgProgress] = useState<number>(0);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [uploadMediaProgress, setUploadMediaProgress] = useState<number>(0);
+  const [uploadingHybridLogo, setUploadingHybridLogo] = useState(false);
+  const [uploadHybridLogoProgress, setUploadHybridLogoProgress] = useState<number>(0);
 
   // Template base configurations
   const [templateId, setTemplateId] = useState<string>('');
@@ -660,11 +662,11 @@ export default function TemplateBuilderPage({ params }: PageProps) {
         const imageRef = ref(storage, storagePath);
         const buffer = reader.result as ArrayBuffer;
         
-        // Try uploading to Firebase Storage with a 2.5 second timeout
-        // (to prevent Firebase SDK from retrying indefinitely when Storage is not configured/enabled)
+        // Try uploading to Firebase Storage with a 15 second timeout
+        // (large videos/images need more time; 2.5s was too aggressive)
         const uploadPromise = uploadBytes(imageRef, buffer, { contentType: file.type });
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Firebase Storage upload timed out')), 2500)
+          setTimeout(() => reject(new Error('Firebase Storage upload timed out')), 15000)
         );
         
         const snapshot = await Promise.race([uploadPromise, timeoutPromise]);
@@ -675,16 +677,15 @@ export default function TemplateBuilderPage({ params }: PageProps) {
         console.warn('Firebase Storage upload failed, falling back to local Firestore Base64:', err);
         onProgress(80);
         if (file.type.startsWith('video/')) {
-          const r = new FileReader();
-          r.onload = () => {
-            onProgress(100);
-            onDone(r.result as string);
-          };
-          r.onerror = () => onError(new Error('Failed to read video file as base64'));
-          r.readAsDataURL(file);
+          // Videos are too large to store as Base64 in Firestore (1MB limit).
+          // We cannot silently fail — alert the user.
+          onError(new Error(
+            'Video upload requires Firebase Storage to be enabled. ' +
+            'Please check your Firebase project configuration, or use a direct video URL instead.'
+          ));
         } else {
-          // Fall back to browser-side compression & base64 encoding
-          const base64Url = await compressAndGetBase64(file, fallbackOpts.maxW, fallbackOpts.maxH, fallbackOpts.quality || 0.8);
+          // Fall back to browser-side compression & base64 encoding for images
+          const base64Url = await compressAndGetBase64(file, fallbackOpts.maxW, fallbackOpts.maxH, fallbackOpts.quality || 0.92);
           onProgress(100);
           if (base64Url) {
             setTimeout(() => onDone(base64Url), 400);
@@ -761,11 +762,30 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       },
       (err) => {
         console.error('Media upload failed:', err);
-        alert('Upload failed.');
+        alert(`Upload failed: ${err?.message || 'Unknown error'}`);
         setUploadingMedia(false);
         setUploadMediaProgress(0);
       },
-      { maxW: 1920, maxH: 1080, quality: 0.85 }
+      { maxW: 1920, maxH: 1080, quality: 0.92 }
+    );
+  };
+
+  // Upload hybrid era top-right logo image
+  const handleUploadHybridLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    setUploadingHybridLogo(true);
+    setUploadHybridLogoProgress(0);
+
+    uploadFileWithProgress(
+      file,
+      `templates/hybrid_logo/${templateId || 'new'}_topright.${file.name.split('.').pop()}`,
+      (pct) => setUploadHybridLogoProgress(pct),
+      (url) => { updateStyleConfig({ hybridTopRightLogoUrl: url }); setUploadingHybridLogo(false); setUploadHybridLogoProgress(0); },
+      (err) => { console.error('Hybrid logo upload failed:', err); alert(`Upload failed: ${err?.message || 'Unknown error'}`); setUploadingHybridLogo(false); setUploadHybridLogoProgress(0); },
+      { maxW: 800, maxH: 400, quality: 0.92 }
     );
   };
 
@@ -1724,6 +1744,105 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     <option value="kills">Total Kills</option>
                     <option value="placementPts">Placement Points</option>
                   </select>
+                </div>
+
+                {/* Top-Right Logo Upload for Hybrid Template */}
+                <div className="property-field" style={{ marginTop: '0.5rem' }}>
+                  <span className="property-label" style={{ color: '#E6BE5A' }}>Top-Right Corner Logo / Brand Image</span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '6px', display: 'block' }}>
+                    Upload a logo or brand image to replace the subheader text badge in the top-right corner.
+                  </span>
+
+                  {/* Preview */}
+                  {styleConfig.hybridTopRightLogoUrl && (
+                    <div style={{ position: 'relative', display: 'inline-block', marginBottom: '0.5rem' }}>
+                      <img
+                        src={styleConfig.hybridTopRightLogoUrl}
+                        alt="Top-right logo preview"
+                        style={{
+                          maxHeight: '64px',
+                          maxWidth: '180px',
+                          objectFit: 'contain',
+                          borderRadius: '6px',
+                          border: '1px solid rgba(230,190,90,0.4)',
+                          backgroundColor: 'rgba(255,255,255,0.04)',
+                          display: 'block',
+                        }}
+                      />
+                      <button
+                        onClick={() => updateStyleConfig({ hybridTopRightLogoUrl: '' })}
+                        title="Remove top-right logo"
+                        style={{
+                          position: 'absolute',
+                          top: '-6px',
+                          right: '-6px',
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '50%',
+                          backgroundColor: '#333',
+                          border: '1px solid var(--border)',
+                          color: '#ccc',
+                          fontSize: '11px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          lineHeight: 1,
+                        }}
+                      >×</button>
+                    </div>
+                  )}
+
+                  {/* Upload button */}
+                  <label
+                    className="btn btn-secondary btn-sm"
+                    style={{
+                      margin: '0 0 0.5rem',
+                      justifyContent: 'center',
+                      opacity: uploadingHybridLogo ? 0.7 : 1,
+                      borderColor: 'rgba(230,190,90,0.4)',
+                      color: '#E6BE5A',
+                    }}
+                  >
+                    {uploadingHybridLogo ? (
+                      <Loader2 className="animate-spin" style={{ width: '14px', height: '14px' }} />
+                    ) : (
+                      <Upload style={{ width: '14px', height: '14px' }} />
+                    )}
+                    {uploadingHybridLogo ? `Uploading ${uploadHybridLogoProgress}%...` : 'Upload Top-Right Logo'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={handleUploadHybridLogo}
+                      disabled={uploadingHybridLogo}
+                    />
+                  </label>
+
+                  {/* Progress bar */}
+                  {uploadingHybridLogo && (
+                    <div style={{ position: 'relative', height: '3px', borderRadius: '2px', backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginBottom: '0.5rem' }}>
+                      <div style={{
+                        position: 'absolute',
+                        left: 0, top: 0, height: '100%',
+                        width: `${uploadHybridLogoProgress}%`,
+                        backgroundColor: '#E6BE5A',
+                        borderRadius: '2px',
+                        transition: 'width 0.25s ease',
+                        boxShadow: '0 0 6px rgba(230,190,90,0.6)',
+                      }} />
+                    </div>
+                  )}
+
+                  {/* Or paste URL */}
+                  <span className="property-label" style={{ marginBottom: '4px', fontSize: '0.7rem' }}>Or Paste URL</span>
+                  <input
+                    type="text"
+                    className="text-input"
+                    placeholder="https://..."
+                    value={styleConfig.hybridTopRightLogoUrl || ''}
+                    onChange={(e) => updateStyleConfig({ hybridTopRightLogoUrl: e.target.value })}
+                  />
                 </div>
               </div>
             </div>

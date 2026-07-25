@@ -75,6 +75,7 @@ export interface TemplateStyleConfig {
   // Hybrid Era template specific
   hybridEraMode?: 'daily' | 'collation'; // 'daily' (e.g. AFTER GAME ONE) or 'collation' (e.g. OVERALL COLLATION)
   hybridEraSubheader?: string;          // optional custom subheader badge text (e.g. "AFTER GAME ONE")
+  hybridTopRightLogoUrl?: string;       // optional uploaded logo/brand image for top-right corner (replaces text badge)
 }
 
 export interface OverlayTemplate {

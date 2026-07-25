@@ -181,6 +181,7 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
     dailyPointsColumn = 'totalPts',
     brandingLogoUrl,
     tournamentLogos,
+    hybridTopRightLogoUrl,
   } = styleConfig;
 
   // Retrieve raw teams data and strictly slice to top 5 ONLY
@@ -355,21 +356,36 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
             )}
           </div>
 
-          {/* Top Right: Status / Subheader Tag */}
-          <div>
-            <span
-              style={{
-                fontSize: '26px',
-                fontWeight: 800,
-                color: '#E6BE5A',
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                fontFamily: '"Orbitron", "Rajdhani", sans-serif',
-                textShadow: '0 0 12px rgba(230,190,90,0.3)',
-              }}
-            >
-              {resolvedSubheader}
-            </span>
+          {/* Top Right: Logo image (if uploaded) or text subheader badge fallback */}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            {hybridTopRightLogoUrl ? (
+              <img
+                src={hybridTopRightLogoUrl}
+                alt="Top-right brand logo"
+                referrerPolicy="no-referrer"
+                style={{
+                  maxHeight: '80px',
+                  maxWidth: '240px',
+                  objectFit: 'contain',
+                  display: 'block',
+                  filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.7))',
+                }}
+              />
+            ) : (
+              <span
+                style={{
+                  fontSize: '26px',
+                  fontWeight: 800,
+                  color: '#E6BE5A',
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  fontFamily: '"Orbitron", "Rajdhani", sans-serif',
+                  textShadow: '0 0 12px rgba(230,190,90,0.3)',
+                }}
+              >
+                {resolvedSubheader}
+              </span>
+            )}
           </div>
         </div>
 
