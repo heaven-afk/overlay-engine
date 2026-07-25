@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
         });
 
         // 2. Add to push history
-        await addDoc(doc(collection(slotRef, 'pushHistory')), {
+        await addDoc(collection(slotRef, 'pushHistory'), {
           pushedAt: now,
           pushedBy: data.createdBy || 'cron',
           pushedByEmail: data.createdByEmail || 'scheduled-cron',
