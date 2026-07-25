@@ -435,9 +435,23 @@ export default function SlotsDashboard() {
         return;
       }
 
-      const payload: Record<string, any> = { [`${type}s`]: results, currentData: { [`${type}s`]: results } };
+      const payload: Record<string, any> = {
+        results,
+        rows: results,
+        teams: results,
+        players: results,
+        [`${type}s`]: results,
+        currentData: {
+          results,
+          rows: results,
+          teams: results,
+          players: results,
+          [`${type}s`]: results,
+        },
+      };
       results.forEach((entity: any, i: number) => {
         payload[`${type}${i + 1}`] = entity;
+        payload[`row${i + 1}`] = entity;
       });
       if (results[0]) payload[type] = results[0];
 
@@ -466,7 +480,16 @@ export default function SlotsDashboard() {
     try {
       setPushingId(slot.id!);
       const data = await getDailyStandings(tournamentId, day, { lobby, n, groupId: cfg?.groupId });
-      await updateSlotWorkspaceFields(slot, { currentData: data });
+      const results = data?.results || (Array.isArray(data) ? data : []);
+      const payload: Record<string, any> = {
+        ...data,
+        results,
+        rows: results,
+        teams: results,
+        players: results,
+        currentData: data,
+      };
+      await updateSlotWorkspaceFields(slot, payload);
     } catch (err) {
       console.error('Error fetching daily standings:', err);
       alert('Failed to load daily standings.');

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { RefreshCw, Loader2 } from 'lucide-react';
-import type { TemplateType } from '@/lib/db';
+import { TemplateType, getTournamentGroups } from '@/lib/db';
 import {
   getTopStandings,
   getDailyStandings,
@@ -14,7 +14,7 @@ import {
 interface FieldEditorProps {
   /** The template type of the currently selected template */
   templateType: TemplateType | undefined;
-  /** Tournaments list — pass in from workspace (already loaded there) */
+  /** Tournaments list — pass in from workspace */
   tournaments: any[];
   /** Called after a successful fetch with the new fields payload */
   onFetched: (fields: Record<string, any>) => void;
@@ -33,32 +33,77 @@ function StandingsFetchEditor({
   onFetched: (fields: Record<string, any>) => void;
 }) {
   const [tournamentId, setTournamentId] = useState('');
-  const [groupId, setGroupId] = useState('all');
+  const [availableGroups, setAvailableGroups] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedGroup, setSelectedGroup] = useState('all');
+  const [customGroupId, setCustomGroupId] = useState('');
   const [type, setType] = useState<'team' | 'player'>('team');
   const [n, setN] = useState(defaultN);
   const [loading, setLoading] = useState(false);
   const [warning, setWarning] = useState('');
 
+  // Fetch groups dynamically whenever tournament changes
+  useEffect(() => {
+    if (!tournamentId) {
+      setAvailableGroups([]);
+      return;
+    }
+    getTournamentGroups(tournamentId)
+      .then((groups) => setAvailableGroups(groups))
+      .catch(() => setAvailableGroups([]));
+  }, [tournamentId]);
+
   async function handleFetch() {
-    if (!tournamentId) { alert('Please select a tournament first.'); return; }
+    if (!tournamentId) {
+      alert('Please select a tournament first.');
+      return;
+    }
+
+    const activeGroupId = selectedGroup === 'custom'
+      ? customGroupId.trim()
+      : (selectedGroup === 'all' ? undefined : selectedGroup);
+
     try {
       setLoading(true);
       setWarning('');
-      const { results } = await getTopStandings(tournamentId, n, type, groupId === 'all' ? undefined : groupId);
+
+      const { results } = await getTopStandings(tournamentId, n, type, activeGroupId);
+
       if (!results || results.length === 0) {
-        setWarning(`No ${type} data available for this tournament yet.`);
+        setWarning(`No ${type} data available for tournament${activeGroupId ? ` in group "${activeGroupId}"` : ''}.`);
         return;
       }
+
+      // Build unified data payload satisfying ALL template component expectations
       const payload: Record<string, any> = {
+        results,
+        rows: results,
+        teams: results,
+        players: results,
         [`${type}s`]: results,
-        currentData: { [`${type}s`]: results },
+        selectedGroup: activeGroupId || 'all',
+        currentData: {
+          results,
+          rows: results,
+          teams: results,
+          players: results,
+          [`${type}s`]: results,
+          groupId: activeGroupId,
+        },
       };
-      results.forEach((entity: any, i: number) => { payload[`${type}${i + 1}`] = entity; });
-      if (results[0]) payload[type] = results[0];
+
+      // Individual item aliases (e.g., team1, team2 / player1, player2)
+      results.forEach((entity: any, i: number) => {
+        payload[`${type}${i + 1}`] = entity;
+        payload[`row${i + 1}`] = entity;
+      });
+      if (results[0]) {
+        payload[type] = results[0];
+      }
+
       onFetched(payload);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Standings fetch error:', err);
-      alert('Failed to load statistics from Heaven Stat Engine.');
+      alert(`Failed to load statistics: ${err?.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -86,12 +131,22 @@ function StandingsFetchEditor({
         <select
           className="select-input"
           style={{ ...selectStyle, flex: 1 }}
-          value={groupId}
-          onChange={(e) => setGroupId(e.target.value)}
+          value={selectedGroup}
+          onChange={(e) => setSelectedGroup(e.target.value)}
         >
           <option value="all">All Groups</option>
-          <option value="Qualifiers">Qualifiers</option>
-          <option value="Finals">Finals</option>
+          {availableGroups.map((g) => (
+            <option key={g.id} value={g.id}>{g.name} ({g.id})</option>
+          ))}
+          <optgroup label="Presets">
+            <option value="Qualifiers">Qualifiers</option>
+            <option value="Finals">Finals</option>
+            <option value="Group A">Group A</option>
+            <option value="Group B">Group B</option>
+            <option value="Group C">Group C</option>
+            <option value="Group D">Group D</option>
+          </optgroup>
+          <option value="custom">✏ Custom Group ID…</option>
         </select>
 
         <select
@@ -105,12 +160,26 @@ function StandingsFetchEditor({
         </select>
       </div>
 
+      {selectedGroup === 'custom' && (
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <label style={labelStyle}>Group ID / Name:</label>
+          <input
+            type="text"
+            className="text-input"
+            style={{ flex: 1, padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+            placeholder="e.g. Group A, Qualifiers-1, etc."
+            value={customGroupId}
+            onChange={(e) => setCustomGroupId(e.target.value)}
+          />
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
         <label style={labelStyle}>Top N</label>
         <input
           type="number"
           min={1}
-          max={20}
+          max={50}
           className="text-input"
           style={{ width: '64px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
           value={n}
@@ -141,27 +210,76 @@ function DailyFetchEditor({
   onFetched: (fields: Record<string, any>) => void;
 }) {
   const [tournamentId, setTournamentId] = useState('');
-  const [groupId, setGroupId] = useState('all');
+  const [availableGroups, setAvailableGroups] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedGroup, setSelectedGroup] = useState('all');
+  const [customGroupId, setCustomGroupId] = useState('');
   const [day, setDay] = useState(1);
   const [mode, setMode] = useState<'full_day' | 'single_lobby'>('full_day');
   const [lobby, setLobby] = useState<number | ''>('');
   const [n, setN] = useState(5);
   const [loading, setLoading] = useState(false);
+  const [warning, setWarning] = useState('');
+
+  // Fetch groups dynamically whenever tournament changes
+  useEffect(() => {
+    if (!tournamentId) {
+      setAvailableGroups([]);
+      return;
+    }
+    getTournamentGroups(tournamentId)
+      .then((groups) => setAvailableGroups(groups))
+      .catch(() => setAvailableGroups([]));
+  }, [tournamentId]);
 
   async function handleFetch() {
-    if (!tournamentId) { alert('Please select a tournament first.'); return; }
+    if (!tournamentId) {
+      alert('Please select a tournament first.');
+      return;
+    }
+
+    const activeGroupId = selectedGroup === 'custom'
+      ? customGroupId.trim()
+      : (selectedGroup === 'all' ? undefined : selectedGroup);
+
     try {
       setLoading(true);
+      setWarning('');
+
       const lobbyNum = mode === 'single_lobby' && lobby !== '' ? Number(lobby) : undefined;
       const data = await getDailyStandings(tournamentId, day, {
         lobby: lobbyNum,
         n,
-        groupId: groupId === 'all' ? undefined : groupId,
+        groupId: activeGroupId,
       });
-      onFetched({ currentData: data });
-    } catch (err) {
+
+      const results = data?.results || (Array.isArray(data) ? data : []);
+
+      if (!results || results.length === 0) {
+        setWarning(`No daily standings available for Day ${day}${activeGroupId ? ` in group "${activeGroupId}"` : ''}.`);
+      }
+
+      // Payload contains root-level fields AND currentData object for total component compatibility
+      const payload: Record<string, any> = {
+        ...data,
+        results,
+        rows: results,
+        teams: results,
+        players: results,
+        selectedGroup: activeGroupId || 'all',
+        currentData: {
+          ...data,
+          results,
+          rows: results,
+          teams: results,
+          players: results,
+          groupId: activeGroupId,
+        },
+      };
+
+      onFetched(payload);
+    } catch (err: any) {
       console.error('Daily standings fetch error:', err);
-      alert('Failed to load daily standings from Heaven Stat Engine.');
+      alert(`Failed to load daily standings: ${err?.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -174,16 +292,53 @@ function DailyFetchEditor({
       </span>
 
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-        <select className="select-input" style={selectStyle} value={tournamentId} onChange={(e) => setTournamentId(e.target.value)}>
+        <select
+          className="select-input"
+          style={selectStyle}
+          value={tournamentId}
+          onChange={(e) => setTournamentId(e.target.value)}
+        >
           <option value="">-- Choose Tournament --</option>
-          {tournaments.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          {tournaments.map((t: any) => (
+            <option key={t.id} value={t.id}>{t.name}</option>
+          ))}
         </select>
-        <select className="select-input" style={{ ...selectStyle, flex: 1 }} value={groupId} onChange={(e) => setGroupId(e.target.value)}>
+
+        <select
+          className="select-input"
+          style={{ ...selectStyle, flex: 1 }}
+          value={selectedGroup}
+          onChange={(e) => setSelectedGroup(e.target.value)}
+        >
           <option value="all">All Groups</option>
-          <option value="Qualifiers">Qualifiers</option>
-          <option value="Finals">Finals</option>
+          {availableGroups.map((g) => (
+            <option key={g.id} value={g.id}>{g.name} ({g.id})</option>
+          ))}
+          <optgroup label="Presets">
+            <option value="Qualifiers">Qualifiers</option>
+            <option value="Finals">Finals</option>
+            <option value="Group A">Group A</option>
+            <option value="Group B">Group B</option>
+            <option value="Group C">Group C</option>
+            <option value="Group D">Group D</option>
+          </optgroup>
+          <option value="custom">✏ Custom Group ID…</option>
         </select>
       </div>
+
+      {selectedGroup === 'custom' && (
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <label style={labelStyle}>Group ID / Name:</label>
+          <input
+            type="text"
+            className="text-input"
+            style={{ flex: 1, padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+            placeholder="e.g. Group A, Qualifiers-1, etc."
+            value={customGroupId}
+            onChange={(e) => setCustomGroupId(e.target.value)}
+          />
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -214,7 +369,7 @@ function DailyFetchEditor({
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <label style={labelStyle}>Top N</label>
           <input
-            type="number" min={1} max={20} className="text-input"
+            type="number" min={1} max={50} className="text-input"
             style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
             value={n} onChange={(e) => setN(Number(e.target.value))}
           />
@@ -225,6 +380,8 @@ function DailyFetchEditor({
         {loading ? <Loader2 className="animate-spin" style={iconStyle} /> : <RefreshCw style={iconStyle} />}
         Update Draft Data
       </button>
+
+      {warning && <p style={{ fontSize: '0.75rem', color: '#fbbf24', margin: 0 }}>⚠ {warning}</p>}
     </div>
   );
 }
@@ -243,7 +400,6 @@ function H2HFetchEditor({
   const [scopeTournamentId, setScopeTournamentId] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Global entity lists for the pickers
   const [entities, setEntities] = useState<any[]>([]);
   const [pickerLoading, setPickerLoading] = useState(false);
 
@@ -271,12 +427,21 @@ function H2HFetchEditor({
     try {
       setLoading(true);
       const data = await compareEntities(entityType, idA, idB, scopeTournamentId || undefined);
-      const entityA = data.teamA || data.playerA;
-      const entityB = data.teamB || data.playerB;
-      onFetched({ entityA, entityB, scope: data.scope, currentData: data });
-    } catch (err) {
+      const entityA = data.teamA || data.playerA || {};
+      const entityB = data.teamB || data.playerB || {};
+      onFetched({
+        teamA: entityA,
+        teamB: entityB,
+        playerA: entityA,
+        playerB: entityB,
+        entityA,
+        entityB,
+        scope: data.scope,
+        currentData: data,
+      });
+    } catch (err: any) {
       console.error('H2H fetch error:', err);
-      alert('Failed to load Head to Head data from Heaven Stat Engine.');
+      alert(`Failed to load Head to Head data: ${err?.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -369,10 +534,15 @@ function ProfileFetchEditor({
     try {
       setLoading(true);
       const data = await getProfile(type, selectedId);
-      onFetched({ [type]: { ...data.profile, ...data.careerStats }, currentData: data });
-    } catch (err) {
+      const merged = { ...data.profile, ...data.careerStats };
+      onFetched({
+        [type]: merged,
+        profile: merged,
+        currentData: data,
+      });
+    } catch (err: any) {
       console.error('Profile fetch error:', err);
-      alert(`Failed to load ${type} profile from Heaven Stat Engine.`);
+      alert(`Failed to load ${type} profile: ${err?.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }

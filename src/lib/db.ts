@@ -201,6 +201,20 @@ export async function getTournament(id: string) {
   }
 }
 
+export async function getTournamentGroups(tournamentId: string): Promise<Array<{ id: string; name: string }>> {
+  if (!tournamentId) return [];
+  try {
+    const snap = await getDocs(collection(db, 'tournaments', tournamentId, 'groups'));
+    return snap.docs.map((d) => {
+      const data = d.data();
+      return { id: d.id, name: data.groupName || data.name || d.id };
+    });
+  } catch (err) {
+    console.error(`Failed to get groups for tournament ${tournamentId}:`, err);
+    return [];
+  }
+}
+
 export async function getTeams() {
   try {
     const snap = await getDocs(collection(db, 'teams'));
