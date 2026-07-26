@@ -707,6 +707,165 @@ function ProfileFetchEditor({
   );
 }
 
+// ─── Sub-editor: Hybrid Era Top 5 (Daily + Collation) ────────────────────────
+function HybridEraFetchEditor({
+  tournaments,
+  onFetched,
+}: {
+  tournaments: any[];
+  onFetched: (fields: Record<string, any>) => void;
+}) {
+  const [mode, setMode] = useState<'daily' | 'collation'>('daily');
+  const [tournamentId, setTournamentId] = useState('');
+  const [availableGroups, setAvailableGroups] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedGroup, setSelectedGroup] = useState('all');
+  const [day, setDay] = useState(1);
+  const [lobby, setLobby] = useState<number | ''>('' );
+  const [lobbyMode, setLobbyMode] = useState<'full_day' | 'single_lobby'>('full_day');
+  const [n, setN] = useState(5);
+  const [loading, setLoading] = useState(false);
+  const [warning, setWarning] = useState('');
+
+  useEffect(() => {
+    if (!tournamentId) { setAvailableGroups([]); return; }
+    getTournamentGroups(tournamentId)
+      .then((groups) => setAvailableGroups(groups))
+      .catch(() => setAvailableGroups([]));
+  }, [tournamentId]);
+
+  async function handleFetch() {
+    if (!tournamentId) { alert('Please select a tournament first.'); return; }
+    const activeGroupId = selectedGroup === 'all' ? undefined : selectedGroup;
+    try {
+      setLoading(true);
+      setWarning('');
+
+      if (mode === 'daily') {
+        const lobbyNum = lobbyMode === 'single_lobby' && lobby !== '' ? Number(lobby) : undefined;
+        const data = await getDailyStandings(tournamentId, day, { lobby: lobbyNum, n, groupId: activeGroupId });
+        const results = data?.results || (Array.isArray(data) ? data : []);
+        if (!results || results.length === 0) {
+          setWarning(`No daily standings available for Day ${day}.`);
+        }
+        const payload: Record<string, any> = {
+          ...data, results, rows: results, teams: results, players: results,
+          selectedGroup: activeGroupId || 'all',
+          currentData: { ...data, results, rows: results, teams: results, players: results, groupId: activeGroupId || 'all' },
+        };
+        results.forEach((entity: any, i: number) => { payload[`team${i + 1}`] = entity; payload[`row${i + 1}`] = entity; });
+        if (results[0]) payload['team'] = results[0];
+        onFetched(payload);
+      } else {
+        const { results } = await getTopStandings(tournamentId, n, 'team', activeGroupId);
+        if (!results || results.length === 0) {
+          setWarning('No standings data available.');
+          return;
+        }
+        const payload: Record<string, any> = {
+          results, rows: results, teams: results, players: results,
+          selectedGroup: activeGroupId || 'all',
+          currentData: { results, rows: results, teams: results, players: results, groupId: activeGroupId || 'all' },
+        };
+        results.forEach((entity: any, i: number) => { payload[`team${i + 1}`] = entity; payload[`row${i + 1}`] = entity; });
+        if (results[0]) payload['team'] = results[0];
+        onFetched(payload);
+      }
+    } catch (err: any) {
+      console.error('Hybrid Era fetch error:', err);
+      alert(`Failed to load data: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={wrapperStyle}>
+      <span className="slot-control-label" style={{ margin: 0, fontWeight: 700 }}>
+        Fetch Hybrid Era Top 5 Data (Workspace)
+      </span>
+
+      {/* Mode toggle */}
+      <div style={{ display: 'flex', gap: '6px' }}>
+        <button
+          type="button"
+          onClick={() => setMode('daily')}
+          className={`toggle-btn${mode === 'daily' ? ' active' : ''}`}
+          style={{ fontSize: '0.75rem', padding: '3px 12px', height: '28px' }}
+        >
+          Daily Results
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode('collation')}
+          className={`toggle-btn${mode === 'collation' ? ' active' : ''}`}
+          style={{ fontSize: '0.75rem', padding: '3px 12px', height: '28px' }}
+        >
+          Collation
+        </button>
+      </div>
+
+      {/* Tournament + Group */}
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <select className="select-input" style={selectStyle} value={tournamentId} onChange={(e) => setTournamentId(e.target.value)}>
+          <option value="">-- Choose Tournament --</option>
+          {tournaments.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
+        <select className="select-input" style={{ ...selectStyle, flex: 1 }} value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)}>
+          <option value="all">All Groups</option>
+          {availableGroups.map((g) => <option key={g.id} value={g.id}>{g.name} ({g.id})</option>)}
+          <optgroup label="Presets">
+            <option value="Qualifiers">Qualifiers</option>
+            <option value="Finals">Finals</option>
+          </optgroup>
+        </select>
+      </div>
+
+      {/* Day controls — only shown in Daily mode */}
+      {mode === 'daily' && (
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <label style={labelStyle}>Day</label>
+            <input
+              type="number" min={1} className="text-input"
+              style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+              value={day} onChange={(e) => setDay(Math.max(1, Number(e.target.value)))}
+            />
+          </div>
+          <select className="select-input" style={{ ...selectStyle, flex: 1 }} value={lobbyMode} onChange={(e) => setLobbyMode(e.target.value as any)}>
+            <option value="full_day">Full Day</option>
+            <option value="single_lobby">Single Lobby</option>
+          </select>
+          {lobbyMode === 'single_lobby' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label style={labelStyle}>Lobby</label>
+              <input
+                type="number" min={1} className="text-input"
+                style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+                value={lobby} onChange={(e) => setLobby(e.target.value === '' ? '' : Number(e.target.value))}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <label style={labelStyle}>Top N</label>
+        <input
+          type="number" min={1} max={50} className="text-input"
+          style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+          value={n} onChange={(e) => setN(Number(e.target.value))}
+        />
+        <button onClick={handleFetch} disabled={loading} className="btn btn-secondary btn-sm" style={fetchBtnStyle}>
+          {loading ? <Loader2 className="animate-spin" style={iconStyle} /> : <RefreshCw style={iconStyle} />}
+          Update Draft Data
+        </button>
+      </div>
+
+      {warning && <p style={{ fontSize: '0.75rem', color: '#fbbf24', margin: 0 }}>⚠ {warning}</p>}
+    </div>
+  );
+}
+
 // ─── Custom Media notice ───────────────────────────────────────────────────────
 function CustomMediaEditor() {
   return (
@@ -777,7 +936,7 @@ export function FieldEditor({ templateType, tournaments, onFetched }: FieldEdito
       return <StandingsFetchEditor label="Fetch Top 5 Overall Data" tournaments={tournaments} defaultN={5} onFetched={onFetched} />;
 
     case 'hybrid_era_top5':
-      return <StandingsFetchEditor label="Fetch Hybrid Era Top 5 Data" tournaments={tournaments} defaultN={5} onFetched={onFetched} />;
+      return <HybridEraFetchEditor tournaments={tournaments} onFetched={onFetched} />;
 
     case 'daily_standings':
       return <DailyFetchEditor tournaments={tournaments} onFetched={onFetched} />;

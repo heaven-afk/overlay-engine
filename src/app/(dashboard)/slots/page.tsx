@@ -118,7 +118,7 @@ export default function SlotsDashboard() {
     const unsub = onAuthStateChanged(auth, (u) => {
       setCurrentUser(u);
       if (u) {
-        getUserTeams(u.uid).then(setUserTeams).catch(() => {});
+        getUserTeams(u.uid).then(setUserTeams).catch(() => { });
       }
     });
     loadData();
@@ -700,7 +700,7 @@ export default function SlotsDashboard() {
 
   return (
     <div style={{ padding: '2rem 3rem', maxWidth: '1600px', margin: '0 auto' }}>
-      
+
       {/* ── Header Toolbar ── */}
       <div style={{
         display: 'flex',
