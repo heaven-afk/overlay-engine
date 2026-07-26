@@ -627,6 +627,50 @@ export default function SlotsDashboard() {
             </select>
           </div>
 
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>Day</label>
+              <input
+                type="number" min={1} className="text-input"
+                style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+                value={cfg.day}
+                onChange={(e) => setDailyConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, day: Math.max(1, Number(e.target.value)) } }))}
+              />
+            </div>
+
+            <select
+              className="select-input"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px', flex: 1 }}
+              value={cfg.mode}
+              onChange={(e) => setDailyConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, mode: e.target.value as 'full_day' | 'single_lobby' } }))}
+            >
+              <option value="full_day">Full Day</option>
+              <option value="single_lobby">Single Lobby</option>
+            </select>
+
+            {cfg.mode === 'single_lobby' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>Lobby</label>
+                <input
+                  type="number" min={1} className="text-input"
+                  style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+                  value={cfg.lobby}
+                  onChange={(e) => setDailyConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, lobby: e.target.value === '' ? '' : Number(e.target.value) } }))}
+                />
+              </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>Top N</label>
+              <input
+                type="number" min={1} max={50} className="text-input"
+                style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+                value={cfg.n}
+                onChange={(e) => setDailyConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, n: Math.max(1, Number(e.target.value)) } }))}
+              />
+            </div>
+          </div>
+
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <button
               onClick={() => fetchDailyStandingsData(slot)}
