@@ -78,6 +78,8 @@ export default function TemplateLibrary() {
         return <Columns style={{ width: '20px', height: '20px', color: '#f59e0b' }} />;
       case 'top_5_overall':
         return <Trophy style={{ width: '20px', height: '20px', color: '#fbbf24' }} />;
+      case 'top5_graphic':
+        return <Trophy style={{ width: '20px', height: '20px', color: '#C9A84C' }} />;
       case 'hybrid_era_top5':
         return <Trophy style={{ width: '20px', height: '20px', color: '#E6BE5A' }} />;
       case 'daily_standings':
@@ -100,6 +102,7 @@ export default function TemplateLibrary() {
       case 'top_standings': return 'Top Standings';
       case 'overall_rankings_dual_column': return 'Overall Rankings (Dual Column)';
       case 'top_5_overall': return 'Top 5 Overall Table';
+      case 'top5_graphic': return 'Top 5 Graphic (Global)';
       case 'hybrid_era_top5': return 'Hybrid Era Top 5 (RDM x FM)';
       case 'daily_standings': return 'Daily Standings Table';
       case 'head_to_head': return 'Head to Head';

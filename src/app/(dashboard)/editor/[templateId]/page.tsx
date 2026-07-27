@@ -25,6 +25,7 @@ import { CustomMedia, detectMediaType, getCanvaEmbedUrl, isCanvaUrl } from '@/co
 import { OverallRankingsDualColumn } from '@/components/templates/OverallRankingsDualColumn';
 import { Top5Overall } from '@/components/templates/Top5Overall';
 import { HybridEraTop5 } from '@/components/templates/HybridEraTop5';
+import { Top5Graphic } from '@/components/templates/Top5Graphic';
 
 // Columns definitions
 const ALL_COLUMNS = [
@@ -479,9 +480,9 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           }
         }
 
-        else if (templateType === 'top_5_overall' || templateType === 'hybrid_era_top5') {
+        else if (templateType === 'top_5_overall' || templateType === 'hybrid_era_top5' || templateType === 'top5_graphic') {
           if (!selectedTournamentId) {
-            setPreviewData(templateType === 'hybrid_era_top5' ? MOCK_HYBRID_ERA_TOP5 : MOCK_OVERALL_RANKINGS);
+            setPreviewData(templateType === 'top_5_overall' ? MOCK_OVERALL_RANKINGS : MOCK_HYBRID_ERA_TOP5);
             return;
           }
           const { results } = await getTopStandings(selectedTournamentId, 5, 'team', styleConfig.selectedGroup);
@@ -489,7 +490,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             if (results && results.length > 0) {
               setPreviewData({ rows: results });
             } else {
-              setPreviewData(templateType === 'hybrid_era_top5' ? MOCK_HYBRID_ERA_TOP5 : MOCK_OVERALL_RANKINGS);
+              setPreviewData(templateType === 'top_5_overall' ? MOCK_OVERALL_RANKINGS : MOCK_HYBRID_ERA_TOP5);
             }
           }
         }
@@ -558,6 +559,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           else if (templateType === 'overall_rankings_dual_column') setPreviewData(MOCK_OVERALL_RANKINGS);
           else if (templateType === 'top_5_overall') setPreviewData(MOCK_OVERALL_RANKINGS);
           else if (templateType === 'hybrid_era_top5') setPreviewData(MOCK_HYBRID_ERA_TOP5);
+          else if (templateType === 'top5_graphic') setPreviewData(MOCK_HYBRID_ERA_TOP5);
           else if (templateType === 'daily_standings') setPreviewData(MOCK_DAILY_STANDINGS);
           else if (templateType === 'head_to_head') setPreviewData(MOCK_H2H);
           else if (templateType === 'team_profile') setPreviewData(MOCK_TEAM_PROFILE);
@@ -941,6 +943,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       case 'overall_rankings_dual_column': return OverallRankingsDualColumn;
       case 'top_5_overall': return Top5Overall;
       case 'hybrid_era_top5': return HybridEraTop5;
+      case 'top5_graphic': return Top5Graphic;
       case 'daily_standings': return DailyStandings;
       case 'head_to_head': return HeadToHead;
       case 'team_profile': return TeamProfile;
@@ -1061,6 +1064,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     <option value="top_standings">Top Standings Table</option>
                     <option value="overall_rankings_dual_column">Overall Rankings (Dual Column)</option>
                     <option value="top_5_overall">Top 5 Overall Table</option>
+                    <option value="top5_graphic">Top 5 Graphic (Global)</option>
                     <option value="hybrid_era_top5">Hybrid Era Top 5 (RDM x FM)</option>
                     <option value="daily_standings">Daily Standings Table</option>
                     <option value="head_to_head">Head to Head Comparison</option>
@@ -1916,6 +1920,191 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           )}
 
           </div>
+
+          {/* Section 6e: Top 5 Graphic (Global) Settings */}
+          {templateType === 'top5_graphic' && (
+            <div>
+              <div className="sidebar-section-title" style={{ color: 'var(--accent)' }}>Top 5 Graphic Settings</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+                <div className="property-field">
+                  <span className="property-label">Mode</span>
+                  <div className="toggle-group">
+                    <button
+                      className={`toggle-btn ${styleConfig.hybridEraMode !== 'collation' ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({
+                        hybridEraMode: 'daily',
+                        graphicTitle: styleConfig.graphicTitle || 'TOP 5 TEAMS',
+                        hybridEraSubheader: 'AFTER GAME ONE'
+                      })}
+                    >
+                      Daily Results
+                    </button>
+                    <button
+                      className={`toggle-btn ${styleConfig.hybridEraMode === 'collation' ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({
+                        hybridEraMode: 'collation',
+                        graphicTitle: 'TOP 5 COLLATED',
+                        hybridEraSubheader: 'OVERALL COLLATION'
+                      })}
+                    >
+                      Collation
+                    </button>
+                  </div>
+                </div>
+
+                <div className="property-field">
+                  <span className="property-label">Subheader Badge Text</span>
+                  <input
+                    type="text"
+                    className="text-input"
+                    value={styleConfig.hybridEraSubheader || (styleConfig.hybridEraMode === 'collation' ? 'OVERALL COLLATION' : 'AFTER GAME ONE')}
+                    placeholder="e.g. AFTER GAME ONE"
+                    onChange={(e) => updateStyleConfig({ hybridEraSubheader: e.target.value })}
+                  />
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }}>
+                    {['AFTER GAME ONE', 'AFTER GAME TWO', 'AFTER GAME THREE', 'DAY 1 RESULTS', 'OVERALL COLLATION'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => updateStyleConfig({ hybridEraSubheader: preset })}
+                        style={{
+                          fontSize: '10px',
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          border: '1px solid rgba(201, 168, 76, 0.4)',
+                          background: 'rgba(201, 168, 76, 0.1)',
+                          color: styleConfig.accentColor || '#C9A84C',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="property-field">
+                  <span className="property-label">Group Stage Filter</span>
+                  <select
+                    className="select-input"
+                    value={styleConfig.selectedGroup || 'all'}
+                    onChange={(e) => updateStyleConfig({ selectedGroup: e.target.value })}
+                  >
+                    <option value="all">All Groups (Combined)</option>
+                    <option value="Qualifiers">Qualifiers</option>
+                    <option value="Finals">Finals</option>
+                  </select>
+                </div>
+
+                <div className="property-field">
+                  <span className="property-label">Map Badge</span>
+                  <select
+                    className="select-input"
+                    value={styleConfig.selectedMap || 'none'}
+                    onChange={(e) => updateStyleConfig({ selectedMap: e.target.value })}
+                  >
+                    <option value="none">None / Default</option>
+                    <option value="Isolated">Isolated</option>
+                    <option value="Blackout">Blackout</option>
+                    <option value="Rebirth Island">Rebirth Island</option>
+                  </select>
+                </div>
+
+                <div className="property-field">
+                  <span className="property-label">Score Value Displayed</span>
+                  <select
+                    className="select-input"
+                    value={styleConfig.dailyPointsColumn || 'totalPts'}
+                    onChange={(e) => updateStyleConfig({ dailyPointsColumn: e.target.value as 'totalPts' | 'kills' | 'placementPts' })}
+                  >
+                    <option value="totalPts">Total Points</option>
+                    <option value="kills">Total Kills</option>
+                    <option value="placementPts">Placement Points</option>
+                  </select>
+                </div>
+
+                {/* Top-Right Corner Logo */}
+                <div className="property-field" style={{ marginTop: '0.5rem' }}>
+                  <span className="property-label">Top-Right Corner Logo</span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '6px', display: 'block' }}>
+                    Upload a logo or brand image to replace the subheader text badge in the top-right corner.
+                  </span>
+
+                  {styleConfig.hybridTopRightLogoUrl && (
+                    <div style={{ position: 'relative', display: 'inline-block', marginBottom: '0.5rem' }}>
+                      <img
+                        src={styleConfig.hybridTopRightLogoUrl}
+                        alt="Top-right logo"
+                        style={{
+                          maxHeight: '64px',
+                          maxWidth: '180px',
+                          objectFit: 'contain',
+                          borderRadius: '6px',
+                          border: '1px solid var(--border)',
+                          backgroundColor: 'rgba(255,255,255,0.04)',
+                          display: 'block',
+                        }}
+                      />
+                      <button
+                        onClick={() => updateStyleConfig({ hybridTopRightLogoUrl: '' })}
+                        title="Remove logo"
+                        style={{
+                          position: 'absolute', top: '-6px', right: '-6px',
+                          width: '18px', height: '18px', borderRadius: '50%',
+                          backgroundColor: '#333', border: '1px solid var(--border)',
+                          color: '#ccc', fontSize: '11px', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center',
+                          cursor: 'pointer', lineHeight: 1,
+                        }}
+                      >×</button>
+                    </div>
+                  )}
+
+                  <label
+                    className="btn btn-secondary btn-sm"
+                    style={{ margin: '0 0 0.5rem', justifyContent: 'center', opacity: uploadingHybridLogo ? 0.7 : 1 }}
+                  >
+                    {uploadingHybridLogo ? (
+                      <Loader2 className="animate-spin" style={{ width: '14px', height: '14px' }} />
+                    ) : (
+                      <Upload style={{ width: '14px', height: '14px' }} />
+                    )}
+                    {uploadingHybridLogo ? `Uploading ${uploadHybridLogoProgress}%...` : 'Upload Logo'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={handleUploadHybridLogo}
+                      disabled={uploadingHybridLogo}
+                    />
+                  </label>
+
+                  {uploadingHybridLogo && (
+                    <div style={{ position: 'relative', height: '3px', borderRadius: '2px', backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginBottom: '0.5rem' }}>
+                      <div style={{
+                        position: 'absolute', left: 0, top: 0, height: '100%',
+                        width: `${uploadHybridLogoProgress}%`,
+                        backgroundColor: 'var(--accent)',
+                        borderRadius: '2px', transition: 'width 0.25s ease',
+                        boxShadow: '0 0 6px var(--accent)',
+                      }} />
+                    </div>
+                  )}
+
+                  <span className="property-label" style={{ marginBottom: '4px', fontSize: '0.7rem' }}>Or Paste URL</span>
+                  <input
+                    type="text"
+                    className="text-input"
+                    placeholder="https://..."
+                    value={styleConfig.hybridTopRightLogoUrl || ''}
+                    onChange={(e) => updateStyleConfig({ hybridTopRightLogoUrl: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Section 7: Custom Media Configurator */}
           {templateType === 'custom_media' && (

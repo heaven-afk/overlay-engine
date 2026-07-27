@@ -27,7 +27,8 @@ export type TemplateType =
   | 'custom_media'     // NEW: Media-based Custom Template
   | 'overall_rankings_dual_column' // NEW: Overall rankings in a dual column format
   | 'top_5_overall'    // NEW: Top 5 overall standings formatted like daily standings
-  | 'hybrid_era_top5'; // NEW: Hybrid Era Top 5 Graphic (Remedium Gaming x Fabrizio Mayowa)
+  | 'hybrid_era_top5'  // NEW: Hybrid Era Top 5 Graphic (Remedium Gaming x Fabrizio Mayowa)
+  | 'top5_graphic';    // NEW: Top 5 Graphic — same layout, fully themeable (global use)
 
 export type ColorTheme = 'dark' | 'light' | 'custom';
 
