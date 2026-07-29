@@ -7,8 +7,25 @@ interface HybridEraTop5Props {
   styleConfig: TemplateStyleConfig;
 }
 
+// ── Utility: hex → rgba ────────────────────────────────────────────────────────
+function hexToRgba(hex: string, alpha: number): string {
+  if (!hex) return `rgba(236, 72, 153, ${alpha})`;
+  const clean = hex.replace('#', '');
+  let r = 236, g = 72, b = 153;
+  if (clean.length === 3) {
+    r = parseInt(clean[0] + clean[0], 16);
+    g = parseInt(clean[1] + clean[1], 16);
+    b = parseInt(clean[2] + clean[2], 16);
+  } else if (clean.length === 6) {
+    r = parseInt(clean.substring(0, 2), 16);
+    g = parseInt(clean.substring(2, 4), 16);
+    b = parseInt(clean.substring(4, 6), 16);
+  }
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 // Inline Team Logo component — renders image if valid HTTP URL, otherwise initials badge
-function TeamLogo({ logoUrl, name, size }: { logoUrl?: string | null; name?: string; size: number }) {
+function TeamLogo({ logoUrl, name, size, accent }: { logoUrl?: string | null; name?: string; size: number; accent: string }) {
   const isHttp = logoUrl && (logoUrl.startsWith('http://') || logoUrl.startsWith('https://'));
   const initials = (name || '??').substring(0, 2).toUpperCase();
 
@@ -37,14 +54,14 @@ function TeamLogo({ logoUrl, name, size }: { logoUrl?: string | null; name?: str
         width: `${size}px`,
         height: `${size}px`,
         borderRadius: '8px',
-        backgroundColor: 'rgba(230, 190, 90, 0.12)',
-        border: '1px solid rgba(230, 190, 90, 0.4)',
+        backgroundColor: hexToRgba(accent, 0.12),
+        border: `1px solid ${hexToRgba(accent, 0.4)}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         fontWeight: 900,
         fontSize: `${Math.round(size * 0.38)}px`,
-        color: '#E6BE5A',
+        color: accent,
         fontFamily: '"Orbitron", "Rajdhani", sans-serif',
         flexShrink: 0,
         letterSpacing: '0.02em',
@@ -56,7 +73,11 @@ function TeamLogo({ logoUrl, name, size }: { logoUrl?: string | null; name?: str
 }
 
 // Sparkle/Lens Flare SVG component for card top-right accent
-function SparkleFlare() {
+function SparkleFlare({ accent }: { accent: string }) {
+  const r = parseInt(accent.replace('#', '').substring(0, 2), 16) || 236;
+  const g = parseInt(accent.replace('#', '').substring(2, 4), 16) || 72;
+  const b = parseInt(accent.replace('#', '').substring(4, 6), 16) || 153;
+
   return (
     <svg
       width="28"
@@ -69,19 +90,19 @@ function SparkleFlare() {
         top: '-10px',
         right: '18px',
         zIndex: 5,
-        filter: 'drop-shadow(0 0 6px #E6BE5A)',
+        filter: `drop-shadow(0 0 6px ${accent})`,
         pointerEvents: 'none',
       }}
     >
       <path
         d="M12 0L14.2 9.8L24 12L14.2 14.2L12 24L9.8 14.2L0 12L9.8 9.8L12 0Z"
-        fill="url(#sparkleGrad)"
+        fill={`url(#sparkleGrad-${r}${g}${b})`}
       />
       <defs>
-        <radialGradient id="sparkleGrad" cx="50%" cy="50%" r="50%">
+        <radialGradient id={`sparkleGrad-${r}${g}${b}`} cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#FFFFFF" />
-          <stop offset="40%" stopColor="#FFF2B2" />
-          <stop offset="100%" stopColor="#E6BE5A" />
+          <stop offset="40%" stopColor={accent} stopOpacity={0.8} />
+          <stop offset="100%" stopColor={accent} />
         </radialGradient>
       </defs>
     </svg>
@@ -238,16 +259,39 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
   const hasBrandingLogo = Boolean(brandingLogoUrl);
   const hasTourneyLogo = Boolean(tournamentLogos && tournamentLogos[0]?.logoUrl);
 
+  // Resolved accent — fallback old gold (#C9A84C or #E6BE5A) to premium neon pink/magenta (#EC4899)
+  const accentColor = styleConfig?.accentColor;
+  const defaultAccent = '#EC4899';
+  const accent = (!accentColor || accentColor === '#C9A84C' || accentColor === '#E6BE5A') ? defaultAccent : accentColor;
+  const isLight = styleConfig?.colorTheme === 'light';
+  const isCustom = styleConfig?.colorTheme === 'custom';
+
+  // Background styles — Premium Obsidian Black
+  let bgColor = isLight ? '#F5F7FA' : '#040406';
+  let bgImage: string | undefined;
+
+  if (isCustom && styleConfig?.customBackgroundUrl && !canvaBgUrl) {
+    bgImage = `url(${styleConfig.customBackgroundUrl})`;
+  } else if (!isLight) {
+    bgImage = 'radial-gradient(ellipse at 50% 35%, #12141C 0%, #08090E 60%, #020204 100%)';
+  } else {
+    bgImage = 'radial-gradient(circle at 50% 20%, #F8FAFC 0%, #E2E8F0 55%, #CBD5E1 100%)';
+  }
+
+  // Card background gradient — Premium Black carbon glass
+  const cardBg = isLight
+    ? 'linear-gradient(90deg, rgba(240,243,248,0.98) 0%, rgba(248,250,252,0.98) 50%, rgba(235,240,245,0.98) 100%)'
+    : 'linear-gradient(90deg, rgba(12,14,19,0.96) 0%, rgba(20,24,33,0.96) 35%, rgba(26,31,43,0.96) 65%, rgba(13,15,21,0.96) 100%)';
+
+  const cardBorder = `1.5px solid ${hexToRgba(accent, 0.55)}`;
+
   return (
     <div
       style={{
         width: '1920px',
         height: '1080px',
-        backgroundColor: '#050403',
-        backgroundImage:
-          styleConfig.colorTheme === 'custom' && styleConfig.customBackgroundUrl && !canvaBgUrl
-            ? `url(${styleConfig.customBackgroundUrl})`
-            : 'radial-gradient(circle at 50% 35%, #18140a 0%, #090704 65%, #000000 100%)',
+        backgroundColor: bgColor,
+        backgroundImage: bgImage,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         color: '#FFFFFF',
@@ -282,7 +326,7 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
         />
       )}
 
-      {/* Subtle gold ambient glow overlays */}
+      {/* Subtle ambient glow overlays */}
       <div
         style={{
           position: 'absolute',
@@ -291,7 +335,7 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
           transform: 'translateX(-50%)',
           width: '1200px',
           height: '400px',
-          background: 'radial-gradient(ellipse at center, rgba(230,190,90,0.12) 0%, rgba(0,0,0,0) 70%)',
+          background: `radial-gradient(ellipse at center, ${hexToRgba(accent, 0.12)} 0%, rgba(0,0,0,0) 70%)`,
           pointerEvents: 'none',
           zIndex: 1,
         }}
@@ -303,7 +347,7 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
           right: '-100px',
           width: '700px',
           height: '700px',
-          background: 'radial-gradient(circle at center, rgba(230,190,90,0.08) 0%, rgba(0,0,0,0) 70%)',
+          background: `radial-gradient(circle at center, ${hexToRgba(accent, 0.08)} 0%, rgba(0,0,0,0) 70%)`,
           pointerEvents: 'none',
           zIndex: 1,
         }}
@@ -332,7 +376,7 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
             width: '100%',
           }}
         >
-          {/* Top Left: Custom Branding & Tournament Logos (cleanly rendered if present) */}
+          {/* Top Left: Custom Branding & Tournament Logos */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minHeight: '48px' }}>
             {hasBrandingLogo && (
               <img
@@ -364,7 +408,7 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
             )}
           </div>
 
-          {/* Top Right: Logo image (if uploaded) or text subheader badge fallback */}
+          {/* Top Right: Logo image or text subheader badge */}
           <div style={{ display: 'flex', alignItems: 'center' }}>
             {hybridTopRightLogoUrl ? (
               <img
@@ -384,11 +428,11 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
                 style={{
                   fontSize: '26px',
                   fontWeight: 800,
-                  color: '#E6BE5A',
+                  color: accent,
                   letterSpacing: '0.12em',
                   textTransform: 'uppercase',
                   fontFamily: '"Orbitron", "Rajdhani", sans-serif',
-                  textShadow: '0 0 12px rgba(230,190,90,0.3)',
+                  textShadow: `0 0 12px ${hexToRgba(accent, 0.35)}`,
                 }}
               >
                 {resolvedSubheader}
@@ -404,13 +448,13 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
               fontSize: '66px',
               fontWeight: 900,
               letterSpacing: '0.18em',
-              color: '#E6BE5A',
+              color: accent,
               textTransform: 'uppercase',
               margin: 0,
               fontFamily: '"Orbitron", sans-serif',
               lineHeight: 1,
               textShadow:
-                '0 0 25px rgba(230, 190, 90, 0.4), 0 4px 15px rgba(0, 0, 0, 0.95)',
+                `0 0 25px ${hexToRgba(accent, 0.4)}, 0 4px 15px rgba(0, 0, 0, 0.95)`,
             }}
           >
             {resolvedTitle}
@@ -440,11 +484,10 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
                   height: '102px',
                   borderRadius: '12px',
                   position: 'relative',
-                  background:
-                    'linear-gradient(90deg, rgba(35, 27, 14, 0.95) 0%, rgba(65, 52, 26, 0.95) 30%, rgba(85, 68, 33, 0.95) 60%, rgba(40, 31, 16, 0.95) 100%)',
-                  border: '1.5px solid rgba(230, 190, 90, 0.75)',
+                  background: cardBg,
+                  border: cardBorder,
                   boxShadow:
-                    'inset 0 1px 1px rgba(255,255,255,0.25), 0 8px 24px rgba(0,0,0,0.85), 0 0 18px rgba(212,175,55,0.14)',
+                    `inset 0 1px 1px rgba(255,255,255,0.12), 0 8px 24px rgba(0,0,0,0.85), 0 0 18px ${hexToRgba(accent, 0.14)}`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -453,18 +496,18 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
                 }}
               >
                 {/* Sparkle flare accent top-right */}
-                <SparkleFlare />
+                <SparkleFlare accent={accent} />
 
                 {/* Left Side: Logo + Team Name */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>
-                  {/* Square Logo Box with Gold Border */}
+                  {/* Square Logo Box */}
                   <div
                     style={{
                       width: '84px',
                       height: '84px',
                       borderRadius: '10px',
-                      backgroundColor: '#090806',
-                      border: '1.5px solid rgba(230, 190, 90, 0.65)',
+                      backgroundColor: isLight ? 'rgba(255,255,255,0.85)' : '#0B0D12',
+                      border: `1.5px solid ${hexToRgba(accent, 0.55)}`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -473,7 +516,7 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
                       flexShrink: 0,
                     }}
                   >
-                    <TeamLogo logoUrl={team.logoUrl} name={teamName} size={74} />
+                    <TeamLogo logoUrl={team.logoUrl || team.avatarUrl || team.teamLogoUrl} name={teamName} size={74} accent={accent} />
                   </div>
 
                   {/* Team Name */}
@@ -521,11 +564,11 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
             style={{
               fontSize: '20px',
               fontWeight: 700,
-              color: '#E6BE5A',
+              color: accent,
               letterSpacing: '0.38em',
               textTransform: 'uppercase',
               fontFamily: '"Orbitron", "Rajdhani", sans-serif',
-              textShadow: '0 2px 8px rgba(0,0,0,0.8)',
+              textShadow: `0 2px 8px ${hexToRgba(accent, 0.3)}`,
             }}
           >
             R E M E D I U M &nbsp; X &nbsp; F A B . M A Y O W A

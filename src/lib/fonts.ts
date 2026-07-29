@@ -14,13 +14,14 @@ export function cssVarsForTheme(styleConfig: TemplateStyleConfig): string {
   if (!styleConfig) return '';
   const isCustom = styleConfig.colorTheme === 'custom';
   const isDark = styleConfig.colorTheme === 'dark';
-  const accent = styleConfig.accentColor || '#C9A84C';
+  const rawAccent = styleConfig.accentColor;
+  const accent = (!rawAccent || rawAccent === '#C9A84C' || rawAccent === '#E6BE5A') ? '#EC4899' : rawAccent;
 
   // Helper to convert hex to rgba
   const hexToRgba = (hex: string, alpha: number) => {
     if (!hex) return 'transparent';
     const clean = hex.replace('#', '');
-    let r = 201, g = 168, b = 76; // defaults for #C9A84C
+    let r = 236, g = 72, b = 153; // defaults for #EC4899
     if (clean.length === 3) {
       r = parseInt(clean[0] + clean[0], 16);
       g = parseInt(clean[1] + clean[1], 16);
