@@ -213,6 +213,9 @@ export const HybridEraTop5: React.FC<HybridEraTop5Props> = ({ data, styleConfig 
   const groupPrefix = selectedGroup && selectedGroup !== 'all' ? `${selectedGroup.toUpperCase()} — ` : '';
   const mapSuffix = selectedMap && selectedMap !== 'none' ? ` (${selectedMap.toUpperCase()})` : '';
   const resolvedSubheader =
+    data?.hybridEraSubheader ||
+    data?.graphicSubtitle ||
+    data?.subheader ||
     hybridEraSubheader ||
     graphicSubtitle ||
     `${groupPrefix}${hybridEraMode === 'collation' ? 'OVERALL COLLATION' : 'AFTER GAME ONE'}${mapSuffix}`;

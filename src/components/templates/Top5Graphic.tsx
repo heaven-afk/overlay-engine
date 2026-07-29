@@ -104,9 +104,9 @@ function SparkleFlare({ accent }: { accent: string }) {
 
 // ── Utility: hex → rgba ────────────────────────────────────────────────────────
 function hexToRgba(hex: string, alpha: number): string {
-  if (!hex) return `rgba(201, 168, 76, ${alpha})`;
+  if (!hex) return `rgba(236, 72, 153, ${alpha})`;
   const clean = hex.replace('#', '');
-  let r = 201, g = 168, b = 76;
+  let r = 236, g = 72, b = 153;
   if (clean.length === 3) {
     r = parseInt(clean[0] + clean[0], 16);
     g = parseInt(clean[1] + clean[1], 16);
@@ -136,8 +136,9 @@ export const Top5Graphic: React.FC<Top5GraphicProps> = ({ data, styleConfig }) =
     customBackgroundUrl,
   } = styleConfig;
 
-  // Resolved accent — fallback to gold if unset
-  const accent = accentColor || '#C9A84C';
+  // Resolved accent — switch old gold fallback (#C9A84C) to premium neon pink/magenta
+  const defaultAccent = '#EC4899';
+  const accent = (!accentColor || accentColor === '#C9A84C') ? defaultAccent : accentColor;
   const isLight = colorTheme === 'light';
   const isCustom = colorTheme === 'custom';
 
@@ -149,31 +150,38 @@ export const Top5Graphic: React.FC<Top5GraphicProps> = ({ data, styleConfig }) =
   const textPrimary = isLight ? '#111118' : '#FFFFFF';
   const textMuted = isLight ? '#555566' : 'rgba(255,255,255,0.65)';
 
-  // Background styles
-  let bgColor = isLight ? '#F5F0E8' : '#050403';
+  // Background styles — Premium Obsidian Black
+  let bgColor = isLight ? '#F5F7FA' : '#040406';
   let bgImage: string | undefined;
 
   if (isCustom && customBackgroundUrl && !canvaBgUrl) {
     bgImage = `url(${customBackgroundUrl})`;
   } else if (!isLight) {
-    bgImage = 'radial-gradient(circle at 50% 35%, #18140a 0%, #090704 65%, #000000 100%)';
+    bgImage = 'radial-gradient(ellipse at 50% 35%, #12141C 0%, #08090E 60%, #020204 100%)';
   } else {
-    bgImage = 'radial-gradient(circle at 50% 20%, #f5f0e8 0%, #e8e0cc 55%, #d4c8a8 100%)';
+    bgImage = 'radial-gradient(circle at 50% 20%, #F8FAFC 0%, #E2E8F0 55%, #CBD5E1 100%)';
   }
 
-  // Card background gradient
+  // Card background gradient — Premium Black carbon glass
   const cardBg = isLight
-    ? 'linear-gradient(90deg, rgba(235,228,210,0.98) 0%, rgba(245,240,228,0.98) 50%, rgba(230,222,200,0.98) 100%)'
-    : 'linear-gradient(90deg, rgba(20,16,8,0.96) 0%, rgba(38,30,14,0.96) 30%, rgba(48,38,18,0.96) 60%, rgba(22,17,9,0.96) 100%)';
+    ? 'linear-gradient(90deg, rgba(240,243,248,0.98) 0%, rgba(248,250,252,0.98) 50%, rgba(235,240,245,0.98) 100%)'
+    : 'linear-gradient(90deg, rgba(12,14,19,0.96) 0%, rgba(20,24,33,0.96) 35%, rgba(26,31,43,0.96) 65%, rgba(13,15,21,0.96) 100%)';
 
   // Card border
-  const cardBorder = `1.5px solid ${hexToRgba(accent, 0.75)}`;
+  const cardBorder = `1.5px solid ${hexToRgba(accent, 0.55)}`;
 
   // Score colour
   const scoreColor = isLight ? '#111118' : '#FFFFFF';
 
   // Retrieve raw teams data and strictly slice to top 5
-  const rawTeams: any[] = data?.rows || data?.teams || data?.results || [];
+  const rawTeams: any[] =
+    data?.rows ||
+    data?.teams ||
+    data?.results ||
+    data?.currentData?.results ||
+    data?.currentData?.teams ||
+    data?.currentData?.rows ||
+    [];
   const teams = rawTeams.slice(0, 5);
 
   // Pad to 5 rows for clean preview layout
@@ -196,6 +204,9 @@ export const Top5Graphic: React.FC<Top5GraphicProps> = ({ data, styleConfig }) =
   const mapSuffix =
     selectedMap && selectedMap !== 'none' ? ` (${selectedMap.toUpperCase()})` : '';
   const resolvedSubheader =
+    data?.hybridEraSubheader ||
+    data?.graphicSubtitle ||
+    data?.subheader ||
     hybridEraSubheader ||
     graphicSubtitle ||
     `${groupPrefix}${hybridEraMode === 'collation' ? 'OVERALL COLLATION' : 'AFTER GAME ONE'}${mapSuffix}`;
@@ -212,7 +223,7 @@ export const Top5Graphic: React.FC<Top5GraphicProps> = ({ data, styleConfig }) =
     if (dailyPointsColumn === 'placementPts') {
       return team.placementPoints ?? team.placementPts ?? team.scores?.placementPts ?? 0;
     }
-    return team.totalPoints ?? team.totalPts ?? team.scores?.totalPts ?? 0;
+    return team.totalPoints ?? team.totalPts ?? team.points ?? team.scores?.totalPts ?? team.scores?.totalPoints ?? 0;
   };
 
   const hasBrandingLogo = Boolean(brandingLogoUrl);
@@ -468,8 +479,8 @@ export const Top5Graphic: React.FC<Top5GraphicProps> = ({ data, styleConfig }) =
                       width: '84px',
                       height: '84px',
                       borderRadius: '10px',
-                      backgroundColor: isLight ? 'rgba(255,255,255,0.6)' : '#090806',
-                      border: `1.5px solid ${hexToRgba(accent, 0.65)}`,
+                      backgroundColor: isLight ? 'rgba(255,255,255,0.85)' : '#0B0D12',
+                      border: `1.5px solid ${hexToRgba(accent, 0.55)}`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -478,7 +489,7 @@ export const Top5Graphic: React.FC<Top5GraphicProps> = ({ data, styleConfig }) =
                       flexShrink: 0,
                     }}
                   >
-                    <TeamLogo logoUrl={team.logoUrl} name={teamName} size={74} accent={accent} />
+                    <TeamLogo logoUrl={team.logoUrl || team.avatarUrl || team.teamLogoUrl} name={teamName} size={74} accent={accent} />
                   </div>
 
                   {/* Team Name */}

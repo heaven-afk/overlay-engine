@@ -521,7 +521,7 @@ export default function SlotsDashboard() {
     const dataShape = slot.dataShapeType;
     const isPushing = pushingId === slot.id;
 
-    if (dataShape === 'top_standings' || dataShape === 'overall_rankings_dual_column' || dataShape === 'top_5_overall' || dataShape === 'hybrid_era_top5') {
+    if (dataShape === 'top_standings' || dataShape === 'overall_rankings_dual_column' || dataShape === 'top_5_overall' || dataShape === 'hybrid_era_top5' || dataShape === 'top5_graphic') {
       const defaultN = dataShape === 'overall_rankings_dual_column' ? 20 : 5;
       const cfg = standingsConfig[slot.id!] ?? { n: defaultN, type: 'team', tournamentId: '' };
       const warning = partialWarning[slot.id!];
@@ -765,6 +765,7 @@ export default function SlotsDashboard() {
                 >
                   <option value="top_standings">Top Standings Table</option>
                   <option value="hybrid_era_top5">Hybrid Era Top 5 Graphic</option>
+                  <option value="top5_graphic">Top 5 Graphic (Global)</option>
                   <option value="daily_standings">Daily Standings</option>
                   <option value="overall_rankings_dual_column">Overall Rankings Dual Column</option>
                   <option value="top_5_overall">Top 5 Overall</option>

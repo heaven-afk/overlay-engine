@@ -372,7 +372,7 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
           gap: '12px',
           zIndex: 10,
         }}>
-          {graphicSubtitle && (
+          {(data?.graphicSubtitle || data?.hybridEraSubheader || data?.subheader || graphicSubtitle) && (
             <div style={{
               fontSize: '16px',
               fontWeight: 800,
@@ -382,7 +382,7 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
               textTransform: 'uppercase',
               textAlign: 'center',
             }}>
-              {graphicSubtitle}
+              {data?.graphicSubtitle || data?.hybridEraSubheader || data?.subheader || graphicSubtitle}
             </div>
           )}
           <div style={{

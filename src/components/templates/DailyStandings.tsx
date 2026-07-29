@@ -166,7 +166,7 @@ export const DailyStandings: React.FC<DailyStandingsProps> = ({ data, styleConfi
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
             }}>
-              {graphicSubtitle || 'DAY COLLATED RESULTS'}
+              {data?.graphicSubtitle || data?.hybridEraSubheader || data?.subheader || graphicSubtitle || 'DAY COLLATED RESULTS'}
             </p>
           </div>
           {/* Column legend badge */}

@@ -18,6 +18,10 @@ interface FieldEditorProps {
   tournaments: any[];
   /** Called after a successful fetch with the new fields payload */
   onFetched: (fields: Record<string, any>) => void;
+  /** Current fields state in studio workspace */
+  fields?: Record<string, any>;
+  /** Direct field update handler for real-time live editing */
+  onFieldsChange?: (updatedFields: Record<string, any>) => void;
 }
 
 // ─── Sub-editor: Top / Overall / Hybrid-era Standings ─────────────────────────
@@ -915,8 +919,109 @@ const fetchBtnStyle: React.CSSProperties = {
 
 const iconStyle: React.CSSProperties = { width: '13px', height: '13px' };
 
+// ─── Sub-editor: Subheader Badge Text Editor ─────────────────────────────────
+export function SubheaderBadgeEditor({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const presets = [
+    'AFTER GAME ONE',
+    'AFTER GAME TWO',
+    'AFTER GAME THREE',
+    'DAY 1 RESULTS',
+    'OVERALL COLLATION',
+    'GAME 4 STANDINGS',
+    'FINALS DAY 2',
+    'MATCH 5 LIVE',
+  ];
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        marginTop: '12px',
+        paddingTop: '12px',
+        borderTop: '1px solid rgba(255,255,255,0.08)',
+      }}
+    >
+      <label
+        style={{
+          fontSize: '0.78rem',
+          fontWeight: 800,
+          color: 'var(--text-muted, #94a3b8)',
+          letterSpacing: '0.04em',
+          textTransform: 'uppercase',
+        }}
+      >
+        Subheader Badge Text
+      </label>
+      <input
+        type="text"
+        className="text-input"
+        style={{
+          width: '100%',
+          padding: '8px 12px',
+          fontSize: '0.88rem',
+          fontWeight: 700,
+          borderRadius: '8px',
+          background: 'rgba(0, 0, 0, 0.45)',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          color: '#FFFFFF',
+          letterSpacing: '0.04em',
+          boxSizing: 'border-box',
+        }}
+        value={value || ''}
+        placeholder="e.g. AFTER GAME ONE"
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+        {presets.map((preset) => (
+          <button
+            key={preset}
+            type="button"
+            onClick={() => onChange(preset)}
+            style={{
+              fontSize: '11px',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              border: '1px solid rgba(236, 72, 153, 0.4)',
+              background: 'rgba(236, 72, 153, 0.1)',
+              color: '#EC4899',
+              cursor: 'pointer',
+              fontWeight: 800,
+              letterSpacing: '0.03em',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(236, 72, 153, 0.25)';
+              e.currentTarget.style.borderColor = 'rgba(236, 72, 153, 0.8)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(236, 72, 153, 0.1)';
+              e.currentTarget.style.borderColor = 'rgba(236, 72, 153, 0.4)';
+            }}
+          >
+            {preset}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main FieldEditor export ───────────────────────────────────────────────────
-export function FieldEditor({ templateType, tournaments, onFetched }: FieldEditorProps) {
+export function FieldEditor({
+  templateType,
+  tournaments,
+  onFetched,
+  fields = {},
+  onFieldsChange,
+}: FieldEditorProps) {
   if (!templateType) {
     return (
       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
@@ -925,39 +1030,66 @@ export function FieldEditor({ templateType, tournaments, onFetched }: FieldEdito
     );
   }
 
-  switch (templateType) {
-    case 'top_standings':
-      return <StandingsFetchEditor label="Fetch Tournament Standings Data" tournaments={tournaments} defaultN={5} onFetched={onFetched} />;
+  const currentSubheader =
+    fields?.hybridEraSubheader || fields?.graphicSubtitle || fields?.subheader || '';
 
-    case 'overall_rankings_dual_column':
-      return <StandingsFetchEditor label="Fetch Overall Rankings Data" tournaments={tournaments} defaultN={20} onFetched={onFetched} />;
+  const handleSubheaderChange = (val: string) => {
+    const updated = {
+      ...fields,
+      hybridEraSubheader: val,
+      graphicSubtitle: val,
+      subheader: val,
+    };
+    if (onFieldsChange) {
+      onFieldsChange(updated);
+    } else {
+      onFetched(updated);
+    }
+  };
 
-    case 'top_5_overall':
-      return <StandingsFetchEditor label="Fetch Top 5 Overall Data" tournaments={tournaments} defaultN={5} onFetched={onFetched} />;
+  const renderFetchControls = () => {
+    switch (templateType) {
+      case 'top_standings':
+        return <StandingsFetchEditor label="Fetch Tournament Standings Data" tournaments={tournaments} defaultN={5} onFetched={onFetched} />;
 
-    case 'hybrid_era_top5':
-      return <HybridEraFetchEditor tournaments={tournaments} onFetched={onFetched} />;
+      case 'overall_rankings_dual_column':
+        return <StandingsFetchEditor label="Fetch Overall Rankings Data" tournaments={tournaments} defaultN={20} onFetched={onFetched} />;
 
-    case 'daily_standings':
-      return <DailyFetchEditor tournaments={tournaments} onFetched={onFetched} />;
+      case 'top_5_overall':
+        return <StandingsFetchEditor label="Fetch Top 5 Overall Data" tournaments={tournaments} defaultN={5} onFetched={onFetched} />;
 
-    case 'head_to_head':
-      return <H2HFetchEditor tournaments={tournaments} onFetched={onFetched} />;
+      case 'hybrid_era_top5':
+      case 'top5_graphic':
+        return <HybridEraFetchEditor tournaments={tournaments} onFetched={onFetched} />;
 
-    case 'team_profile':
-      return <ProfileFetchEditor type="team" tournaments={tournaments} onFetched={onFetched} />;
+      case 'daily_standings':
+        return <DailyFetchEditor tournaments={tournaments} onFetched={onFetched} />;
 
-    case 'player_profile':
-      return <ProfileFetchEditor type="player" tournaments={tournaments} onFetched={onFetched} />;
+      case 'head_to_head':
+        return <H2HFetchEditor tournaments={tournaments} onFetched={onFetched} />;
 
-    case 'custom_media':
-      return <CustomMediaEditor />;
+      case 'team_profile':
+        return <ProfileFetchEditor type="team" tournaments={tournaments} onFetched={onFetched} />;
 
-    default:
-      return (
-        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
-          No fetch controls available for this template type.
-        </p>
-      );
-  }
+      case 'player_profile':
+        return <ProfileFetchEditor type="player" tournaments={tournaments} onFetched={onFetched} />;
+
+      case 'custom_media':
+        return <CustomMediaEditor />;
+
+      default:
+        return (
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+            No fetch controls available for this template type.
+          </p>
+        );
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {renderFetchControls()}
+      <SubheaderBadgeEditor value={currentSubheader} onChange={handleSubheaderChange} />
+    </div>
+  );
 }

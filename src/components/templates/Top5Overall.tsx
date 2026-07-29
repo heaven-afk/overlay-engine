@@ -169,7 +169,7 @@ export const Top5Overall: React.FC<Top5OverallProps> = ({ data, styleConfig }) =
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
             }}>
-              {graphicSubtitle || 'TOURNAMENT COLLATED RESULTS'}
+              {data?.graphicSubtitle || data?.hybridEraSubheader || data?.subheader || graphicSubtitle || 'TOURNAMENT COLLATED RESULTS'}
             </p>
           </div>
           {/* Column legend badge */}

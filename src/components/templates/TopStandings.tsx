@@ -222,7 +222,7 @@ export const TopStandings: React.FC<TopStandingsProps> = ({ data, styleConfig })
             margin: 0,
             letterSpacing: '0.02em',
           }}>
-            {graphicSubtitle}
+            {data?.graphicSubtitle || data?.hybridEraSubheader || data?.subheader || graphicSubtitle}
           </p>
         </div>
 

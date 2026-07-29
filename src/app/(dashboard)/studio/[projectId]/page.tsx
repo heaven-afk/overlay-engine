@@ -28,6 +28,7 @@ import { CustomMedia } from '@/components/templates/CustomMedia';
 import { OverallRankingsDualColumn } from '@/components/templates/OverallRankingsDualColumn';
 import { Top5Overall } from '@/components/templates/Top5Overall';
 import { HybridEraTop5 } from '@/components/templates/HybridEraTop5';
+import { Top5Graphic } from '@/components/templates/Top5Graphic';
 
 import {
   ArrowLeft, Clapperboard, Send, Save, History, Copy,
@@ -42,6 +43,7 @@ const templateComponentMap: Record<string, React.ComponentType<any>> = {
   overall_rankings_dual_column: OverallRankingsDualColumn,
   top_5_overall: Top5Overall,
   hybrid_era_top5: HybridEraTop5,
+  top5_graphic: Top5Graphic,
   daily_standings: DailyStandings,
   head_to_head: HeadToHead,
   team_profile: TeamProfile,
@@ -855,11 +857,13 @@ export default function StudioWorkspace({ params }: PageProps) {
                 borderRadius: '10px',
                 padding: '1rem',
               }}>
-                <div style={{ ...panelHeader, marginBottom: '10px' }}>Fetch Data</div>
+                <div style={{ ...panelHeader, marginBottom: '10px' }}>Fetch Data & Live Controls</div>
                 <FieldEditor
                   templateType={previewTemplate.templateType}
                   tournaments={tournaments}
-                  onFetched={(fields) => setPreviewFields(fields)}
+                  fields={previewFields}
+                  onFieldsChange={(updated: Record<string, any>) => setPreviewFields(updated)}
+                  onFetched={(fetchedFields) => setPreviewFields((prev) => ({ ...prev, ...fetchedFields }))}
                 />
               </div>
             )}
