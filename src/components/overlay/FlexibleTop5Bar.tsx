@@ -168,24 +168,8 @@ export function FlexibleTop5Bar({
       {/* Sparkle accent */}
       <SparkleFlare accent={accent} />
 
-      {/* Left Side: Rank Badge + Logo Box + Team Name */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-        {/* Absolute Rank Badge */}
-        <span
-          style={{
-            fontSize: '22px',
-            fontWeight: 800,
-            color: hexToRgba(accent, 0.85),
-            fontFamily: '"Orbitron", "Rajdhani", sans-serif',
-            letterSpacing: '0.04em',
-            width: '50px',
-            textAlign: 'center',
-            flexShrink: 0,
-          }}
-        >
-          {rankNumStr}
-        </span>
-
+      {/* Left Side: Logo Box + Team Name */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flex: 1, minWidth: 0, paddingRight: '20px' }}>
         {/* Logo Box */}
         <div
           style={{
@@ -208,17 +192,16 @@ export function FlexibleTop5Bar({
         {/* Team Name */}
         <span
           style={{
-            fontSize: '36px',
+            fontSize: '34px',
             fontWeight: 900,
             color: textPrimary,
             textTransform: 'uppercase',
-            letterSpacing: '0.06em',
+            letterSpacing: '0.05em',
             fontFamily: '"Orbitron", "Rajdhani", sans-serif',
             textShadow: isLight ? 'none' : '0 2px 12px rgba(0,0,0,0.9)',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            maxWidth: '780px',
             opacity: isEmpty ? 0.4 : 1,
           }}
         >
@@ -226,13 +209,30 @@ export function FlexibleTop5Bar({
         </span>
       </div>
 
-      {/* Right Side: Trend Arrow + Score */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+      {/* Right Side: Rank Badge -> Trend Arrow -> Score */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '36px', flexShrink: 0 }}>
+        {/* Absolute Rank Badge Number (before trend arrow) */}
+        <span
+          style={{
+            fontSize: '26px',
+            fontWeight: 800,
+            color: hexToRgba(accent, 0.85),
+            fontFamily: '"Orbitron", "Rajdhani", sans-serif',
+            letterSpacing: '0.04em',
+            opacity: isEmpty ? 0.4 : 1,
+          }}
+        >
+          {rankNumStr}
+        </span>
+
+        {/* Trend Arrow */}
         {!isEmpty && (
-          <div style={{ fontFamily: '"Orbitron", sans-serif', fontSize: '15px' }}>
+          <div style={{ fontFamily: '"Orbitron", sans-serif', fontSize: '15px', minWidth: '40px', textAlign: 'center' }}>
             <TrendArrow delta={team.trendDelta} />
           </div>
         )}
+
+        {/* Points Score */}
         <span
           style={{
             fontSize: '52px',
@@ -244,6 +244,8 @@ export function FlexibleTop5Bar({
               ? 'none'
               : '0 2px 12px rgba(0,0,0,0.9), 0 0 15px rgba(255,255,255,0.15)',
             opacity: isEmpty ? 0.4 : 1,
+            minWidth: '90px',
+            textAlign: 'right',
           }}
         >
           {team.totalPts ?? 0}

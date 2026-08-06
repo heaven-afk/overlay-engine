@@ -35,7 +35,7 @@ import { FlexibleTop5Graphic } from '@/components/templates/FlexibleTop5Graphic'
 import {
   ArrowLeft, Clapperboard, Send, Save, History, Copy,
   Check, Loader2, Plus, Trash, RotateCcw, Radio, Eye,
-  MonitorPlay, Users as UsersIcon, ChevronDown, ChevronUp,
+  MonitorPlay, Users as UsersIcon, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
   ListMusic, X, Pencil,
 } from 'lucide-react';
 
@@ -889,6 +889,71 @@ export default function StudioWorkspace({ params }: PageProps) {
               isLive={false}
             />
 
+            {/* Preview Page Controls — ONLY shown when Flexible Top 5 is active in Preview */}
+            {previewTemplate?.templateType === 'flexible_top5' && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: 'rgba(168, 85, 247, 0.12)',
+                  border: '1px solid rgba(168, 85, 247, 0.3)',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  marginTop: '-4px',
+                }}
+              >
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c084fc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>Preview Page:</span>
+                  <span style={{ fontSize: '0.85rem', color: '#fff', background: 'rgba(168,85,247,0.25)', padding: '2px 8px', borderRadius: '4px' }}>
+                    {previewFields.page || 1}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    type="button"
+                    disabled={(previewFields.page || 1) <= 1}
+                    onClick={() => setPreviewFields((prev) => ({ ...prev, page: Math.max(1, (prev.page || 1) - 1) }))}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      background: 'rgba(255,255,255,0.08)',
+                      color: '#fff',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: (previewFields.page || 1) <= 1 ? 'not-allowed' : 'pointer',
+                      opacity: (previewFields.page || 1) <= 1 ? 0.5 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <ChevronLeft style={{ width: '14px', height: '14px' }} /> Prev Page (Preview)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewFields((prev) => ({ ...prev, page: (prev.page || 1) + 1 }))}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      background: 'rgba(168,85,247,0.3)',
+                      color: '#fff',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    Next Page (Preview) <ChevronRight style={{ width: '14px', height: '14px' }} />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Template Selector */}
             <div>
               <label className="slot-control-label" style={{ marginBottom: '6px' }}>Visual Template</label>
@@ -1001,6 +1066,106 @@ export default function StudioWorkspace({ params }: PageProps) {
               labelColor="#ef4444"
               isLive={true}
             />
+
+            {/* Live Page Controls — ONLY shown when Flexible Top 5 is active on Live Output */}
+            {liveTemplate?.templateType === 'flexible_top5' && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  marginTop: '-4px',
+                }}
+              >
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f87171', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>Live Page (ON AIR):</span>
+                  <span style={{ fontSize: '0.85rem', color: '#fff', background: '#ef4444', padding: '2px 8px', borderRadius: '4px' }}>
+                    {liveState?.fields?.page || 1}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    type="button"
+                    disabled={(liveState?.fields?.page || 1) <= 1 || pushing}
+                    onClick={async () => {
+                      if (!liveState?.templateId || !user) return;
+                      const currentPage = liveState.fields?.page || 1;
+                      const targetPage = Math.max(1, currentPage - 1);
+                      try {
+                        setPushing(true);
+                        await pushStudioProjectToLive(
+                          projectId,
+                          liveState.templateId,
+                          { ...liveState.fields, page: targetPage },
+                          { uid: user.uid, email: user.email || '' }
+                        );
+                      } catch (err: any) {
+                        alert(`Page update failed: ${err?.message}`);
+                      } finally {
+                        setPushing(false);
+                      }
+                    }}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      background: 'rgba(255,255,255,0.08)',
+                      color: '#fff',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: ((liveState?.fields?.page || 1) <= 1 || pushing) ? 'not-allowed' : 'pointer',
+                      opacity: ((liveState?.fields?.page || 1) <= 1 || pushing) ? 0.5 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <ChevronLeft style={{ width: '14px', height: '14px' }} /> Prev Page (Live)
+                  </button>
+                  <button
+                    type="button"
+                    disabled={pushing}
+                    onClick={async () => {
+                      if (!liveState?.templateId || !user) return;
+                      const currentPage = liveState.fields?.page || 1;
+                      const targetPage = currentPage + 1;
+                      try {
+                        setPushing(true);
+                        await pushStudioProjectToLive(
+                          projectId,
+                          liveState.templateId,
+                          { ...liveState.fields, page: targetPage },
+                          { uid: user.uid, email: user.email || '' }
+                        );
+                      } catch (err: any) {
+                        alert(`Page update failed: ${err?.message}`);
+                      } finally {
+                        setPushing(false);
+                      }
+                    }}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid #ef4444',
+                      background: '#ef4444',
+                      color: '#fff',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: pushing ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    Next Page (Live) <ChevronRight style={{ width: '14px', height: '14px' }} />
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Live state info */}
             {liveState?.templateId && (
