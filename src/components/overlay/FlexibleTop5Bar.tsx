@@ -1,10 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Sparkline } from './Sparkline';
 import { TrendArrow } from './TrendArrow';
-import { getRankColor } from '@/lib/getRankColor';
-import { ANIMATION, COLORS, SIZES } from '@/lib/overlayDesignTokens';
 
 export interface FlexibleTop5TeamData {
   id?: string;
@@ -15,198 +12,242 @@ export interface FlexibleTop5TeamData {
   slot?: number | string | null;
   rank: number;
   totalPts: number;
-  avgPlacement?: number | null;
-  rating?: number | null;
-  placementHistory?: number[];
   trendDelta?: number | null;
 }
 
 interface FlexibleTop5BarProps {
   team: FlexibleTop5TeamData;
   index: number;
+  accent: string;
+  cardBg: string;
+  cardBorder: string;
+  textPrimary: string;
+  scoreColor: string;
+  isLight?: boolean;
 }
 
-export function FlexibleTop5Bar({ team, index }: FlexibleTop5BarProps) {
-  const accentColor = getRankColor(team.rank);
-  const rankNumStr = team.rank < 10 ? `0${team.rank}` : `${team.rank}`;
-  const logo = team.logoUrl || team.logo || null;
+function hexToRgba(hex: string, alpha: number): string {
+  if (!hex) return `rgba(236, 72, 153, ${alpha})`;
+  const clean = hex.replace('#', '');
+  let r = 236, g = 72, b = 153;
+  if (clean.length === 3) {
+    r = parseInt(clean[0] + clean[0], 16);
+    g = parseInt(clean[1] + clean[1], 16);
+    b = parseInt(clean[2] + clean[2], 16);
+  } else if (clean.length === 6) {
+    r = parseInt(clean.substring(0, 2), 16);
+    g = parseInt(clean.substring(2, 4), 16);
+    b = parseInt(clean.substring(4, 6), 16);
+  }
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function TeamLogo({
+  logoUrl,
+  name,
+  size,
+  accent,
+}: {
+  logoUrl?: string | null;
+  name?: string;
+  size: number;
+  accent: string;
+}) {
+  const isHttp = logoUrl && (logoUrl.startsWith('http://') || logoUrl.startsWith('https://'));
+  const initials = (name || '??').substring(0, 2).toUpperCase();
+
+  if (isHttp) {
+    return (
+      <img
+        src={logoUrl}
+        alt={name ?? ''}
+        referrerPolicy="no-referrer"
+        crossOrigin="anonymous"
+        style={{
+          width: `${size}px`,
+          height: `${size}px`,
+          objectFit: 'contain',
+          borderRadius: '8px',
+          flexShrink: 0,
+          display: 'block',
+        }}
+      />
+    );
+  }
 
   return (
     <div
       style={{
-        width: '100%',
-        height: `${SIZES.top5BarHeight}px`,
-        marginBottom: '12px',
-        borderRadius: '12px',
-        background: COLORS.barBg,
-        borderLeft: `4px solid ${accentColor}`,
-        borderTop: `1px solid ${COLORS.borderSubtle}`,
-        borderRight: `1px solid ${COLORS.borderSubtle}`,
-        borderBottom: `1px solid ${COLORS.borderSubtle}`,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
-        backdropFilter: 'blur(8px)',
+        width: `${size}px`,
+        height: `${size}px`,
+        borderRadius: '8px',
+        backgroundColor: hexToRgba(accent, 0.12),
+        border: `1px solid ${hexToRgba(accent, 0.4)}`,
         display: 'flex',
         alignItems: 'center',
-        padding: '0 20px',
-        boxSizing: 'border-box',
-        animation: `barSlideIn ${ANIMATION.slideDuration}ms ${ANIMATION.easeOutExpo} ${index * ANIMATION.barStagger}ms forwards`,
-        opacity: 0,
-        transform: 'translateX(60px)',
+        justifyContent: 'center',
+        fontWeight: 900,
+        fontSize: `${Math.round(size * 0.38)}px`,
+        color: accent,
+        fontFamily: '"Orbitron", "Rajdhani", sans-serif',
+        flexShrink: 0,
+        letterSpacing: '0.02em',
       }}
     >
-      <style jsx>{`
-        @keyframes barSlideIn {
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-      `}</style>
+      {initials}
+    </div>
+  );
+}
 
-      {/* 1. Absolute Rank Badge */}
-      <div
-        style={{
-          width: `${SIZES.top5RankWidth}px`,
-          display: 'flex',
-          alignItems: 'baseline',
-          justifyContent: 'flex-start',
-          flexShrink: 0,
-        }}
-      >
-        <span style={{ fontSize: '18px', fontWeight: 700, color: COLORS.textMuted, marginRight: '2px' }}>#</span>
-        <span style={{ fontSize: '32px', fontWeight: 800, color: COLORS.textPrimary }}>
-          {rankNumStr}
-        </span>
-      </div>
+function SparkleFlare({ accent }: { accent: string }) {
+  const r = parseInt(accent.replace('#', '').substring(0, 2), 16) || 230;
+  const g = parseInt(accent.replace('#', '').substring(2, 4), 16) || 190;
+  const b = parseInt(accent.replace('#', '').substring(4, 6), 16) || 90;
 
-      {/* 2. Team Logo */}
-      <div
-        style={{
-          width: `${SIZES.top5LogoSize}px`,
-          height: `${SIZES.top5LogoSize}px`,
-          borderRadius: '50%',
-          margin: '0 16px',
-          overflow: 'hidden',
-          backgroundColor: 'rgba(255,255,255,0.05)',
-          border: '1.5px solid rgba(255,255,255,0.15)',
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {logo ? (
-          <img
-            src={logo}
-            alt={team.teamName}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        ) : (
-          <span style={{ fontSize: '18px', fontWeight: 700, color: COLORS.gold }}>
-            {(team.teamName || '?')[0].toUpperCase()}
-          </span>
-        )}
-      </div>
+  return (
+    <svg
+      width="28"
+      height="28"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{
+        position: 'absolute',
+        top: '-10px',
+        right: '18px',
+        zIndex: 5,
+        filter: `drop-shadow(0 0 6px ${accent})`,
+        pointerEvents: 'none',
+      }}
+    >
+      <path
+        d="M12 0L14.2 9.8L24 12L14.2 14.2L12 24L9.8 14.2L0 12L9.8 9.8L12 0Z"
+        fill={`url(#sparkleGrad-${r}${g}${b})`}
+      />
+      <defs>
+        <radialGradient id={`sparkleGrad-${r}${g}${b}`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="40%" stopColor={accent} stopOpacity={0.8} />
+          <stop offset="100%" stopColor={accent} />
+        </radialGradient>
+      </defs>
+    </svg>
+  );
+}
 
-      {/* 3. Team Identity */}
-      <div
-        style={{
-          width: `${SIZES.top5IdentityWidth}px`,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
+export function FlexibleTop5Bar({
+  team,
+  accent,
+  cardBg,
+  cardBorder,
+  textPrimary,
+  scoreColor,
+  isLight = false,
+}: FlexibleTop5BarProps) {
+  const rankNumStr = team.rank < 10 ? `#0${team.rank}` : `#${team.rank}`;
+  const logo = team.logoUrl || team.logo || null;
+  const isEmpty = !team.teamId || team.teamName.startsWith('TEAM ');
+
+  return (
+    <div
+      style={{
+        width: '1360px',
+        height: '102px',
+        borderRadius: '12px',
+        position: 'relative',
+        background: cardBg,
+        border: cardBorder,
+        boxShadow: `inset 0 1px 1px rgba(255,255,255,0.12), 0 8px 24px rgba(0,0,0,0.7), 0 0 18px ${hexToRgba(accent, 0.1)}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 40px 0 16px',
+        boxSizing: 'border-box',
+      }}
+    >
+      {/* Sparkle accent */}
+      <SparkleFlare accent={accent} />
+
+      {/* Left Side: Rank Badge + Logo Box + Team Name */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        {/* Absolute Rank Badge */}
         <span
           style={{
-            fontSize: '18px',
-            fontWeight: 700,
-            color: COLORS.textPrimary,
+            fontSize: '22px',
+            fontWeight: 800,
+            color: hexToRgba(accent, 0.85),
+            fontFamily: '"Orbitron", "Rajdhani", sans-serif',
+            letterSpacing: '0.04em',
+            width: '50px',
+            textAlign: 'center',
+            flexShrink: 0,
+          }}
+        >
+          {rankNumStr}
+        </span>
+
+        {/* Logo Box */}
+        <div
+          style={{
+            width: '84px',
+            height: '84px',
+            borderRadius: '10px',
+            backgroundColor: isLight ? 'rgba(255,255,255,0.85)' : '#0B0D12',
+            border: `1.5px solid ${hexToRgba(accent, 0.55)}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.5)',
+            flexShrink: 0,
+          }}
+        >
+          <TeamLogo logoUrl={logo} name={team.teamName} size={74} accent={accent} />
+        </div>
+
+        {/* Team Name */}
+        <span
+          style={{
+            fontSize: '36px',
+            fontWeight: 900,
+            color: textPrimary,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            fontFamily: '"Orbitron", "Rajdhani", sans-serif',
+            textShadow: isLight ? 'none' : '0 2px 12px rgba(0,0,0,0.9)',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
+            maxWidth: '780px',
+            opacity: isEmpty ? 0.4 : 1,
           }}
         >
           {team.teamName}
         </span>
-        <span style={{ fontSize: '12px', color: COLORS.textMuted, marginTop: '2px' }}>
-          {team.slot ? `Slot ${team.slot}` : 'Team Roster'}
+      </div>
+
+      {/* Right Side: Trend Arrow + Score */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        {!isEmpty && (
+          <div style={{ fontFamily: '"Orbitron", sans-serif', fontSize: '15px' }}>
+            <TrendArrow delta={team.trendDelta} />
+          </div>
+        )}
+        <span
+          style={{
+            fontSize: '52px',
+            fontWeight: 900,
+            color: scoreColor,
+            fontFamily: '"Orbitron", "Rajdhani", monospace',
+            letterSpacing: '0.02em',
+            textShadow: isLight
+              ? 'none'
+              : '0 2px 12px rgba(0,0,0,0.9), 0 0 15px rgba(255,255,255,0.15)',
+            opacity: isEmpty ? 0.4 : 1,
+          }}
+        >
+          {team.totalPts ?? 0}
         </span>
-      </div>
-
-      {/* 4. Sparkline Graph */}
-      <div
-        style={{
-          width: `${SIZES.top5SparklineWidth}px`,
-          height: `${SIZES.top5SparklineHeight}px`,
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Sparkline data={team.placementHistory || []} />
-      </div>
-
-      {/* 5. Key Stats Cluster */}
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-          gap: '24px',
-          paddingRight: '16px',
-        }}
-      >
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '20px', fontWeight: 800, color: COLORS.textPrimary }}>
-            {team.totalPts ?? 0}
-          </div>
-          <div style={{ fontSize: '10px', fontWeight: 600, color: COLORS.textMuted, letterSpacing: '1px' }}>
-            PTS
-          </div>
-        </div>
-
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '20px', fontWeight: 800, color: COLORS.textPrimary }}>
-            {team.avgPlacement != null ? team.avgPlacement.toFixed(1) : '—'}
-          </div>
-          <div style={{ fontSize: '10px', fontWeight: 600, color: COLORS.textMuted, letterSpacing: '1px' }}>
-            AVG
-          </div>
-        </div>
-
-        <div style={{ textAlign: 'center' }}>
-          <div
-            style={{
-              fontSize: '20px',
-              fontWeight: 800,
-              background: COLORS.goldGradient,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            {team.rating != null ? team.rating.toFixed(1) : '—'}
-          </div>
-          <div style={{ fontSize: '10px', fontWeight: 600, color: COLORS.textMuted, letterSpacing: '1px' }}>
-            RATING
-          </div>
-        </div>
-      </div>
-
-      {/* 6. Trend Arrow */}
-      <div
-        style={{
-          width: `${SIZES.top5TrendWidth}px`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        <TrendArrow delta={team.trendDelta} />
       </div>
     </div>
   );
