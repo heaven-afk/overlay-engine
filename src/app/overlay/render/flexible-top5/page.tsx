@@ -153,7 +153,7 @@ function FlexibleTop5Content() {
           <div style={{ textAlign: 'center', marginBottom: '28px' }}>
             <h1
               style={{
-                fontSize: '26px',
+                fontSize: '24px',
                 fontWeight: 800,
                 color: COLORS.textPrimary,
                 textTransform: 'uppercase',
@@ -164,7 +164,7 @@ function FlexibleTop5Content() {
             >
               TOURNAMENT STANDINGS
             </h1>
-            <div style={{ fontSize: '13px', color: COLORS.textMuted, marginTop: '4px', letterSpacing: '1px' }}>
+            <div style={{ fontSize: '14px', color: COLORS.textMuted, marginTop: '4px', letterSpacing: '1px' }}>
               Page {validatedPage} of {totalPages}
             </div>
           </div>

@@ -4,7 +4,8 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { TeamRosterCard, PlayerRosterData } from '@/components/overlay/TeamRosterCard';
 import { useOverlayState } from '@/hooks/useOverlayState';
-import { ANIMATION, COLORS } from '@/lib/overlayDesignTokens';
+import { COLORS } from '@/lib/overlayDesignTokens';
+import { getLobbyKills } from '@/lib/statsApi';
 
 interface LobbyKillsResponse {
   tournamentId: string;
@@ -48,21 +49,7 @@ function TeamRosterKillsContent() {
     setLoading(true);
     setError(null);
 
-    const apiKey = process.env.NEXT_PUBLIC_OVERLAY_API_KEY || 'heaven-overlay-secret';
-    const baseUrl = process.env.NEXT_PUBLIC_HEAVEN_API_BASE_URL || 'http://localhost:3000';
-
-    fetch(`${baseUrl}/api/overlay/lobby-kills?tournamentId=${tournamentId}&day=${day}&lobby=${lobby}&teamId=${teamId}`, {
-      headers: {
-        'x-overlay-api-key': apiKey,
-      },
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          if (res.status === 404) throw new Error('No match results found');
-          throw new Error(`API Error: ${res.statusText}`);
-        }
-        return res.json();
-      })
+    getLobbyKills(tournamentId, day, lobby, teamId)
       .then((json) => {
         if (isMounted) {
           setData(json);
@@ -72,7 +59,7 @@ function TeamRosterKillsContent() {
       .catch((err) => {
         if (isMounted) {
           console.error('Fetch error in TeamRosterKillsRenderPage:', err);
-          setError(err.message);
+          setError(err.message || 'Failed to fetch lobby kills');
           setData(null);
           setLoading(false);
         }
@@ -93,7 +80,7 @@ function TeamRosterKillsContent() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'flex-start',
-        padding: '60px 40px 40px 40px',
+        padding: '24px 40px 24px 40px',
         boxSizing: 'border-box',
         fontFamily: "'Inter', sans-serif",
       }}
@@ -148,79 +135,69 @@ function TeamRosterKillsContent() {
       {/* Team Header & Roster Cards */}
       {!loading && data && (
         <>
-          {/* Team Header (above cards, centered) */}
+          {/* Team Header (inline row, above cards, centered as one unit) */}
           <div
             style={{
               display: 'flex',
-              flexDirection: 'column',
+              flexDirection: 'row',
               alignItems: 'center',
-              marginBottom: '36px',
-              animation: `headerFadeIn 400ms ${ANIMATION.easeOutExpo} forwards`,
+              justifyContent: 'center',
+              marginBottom: '20px',
+              gap: '12px',
             }}
           >
-            <style jsx>{`
-              @keyframes headerFadeIn {
-                from { opacity: 0; transform: scale(0.9); }
-                to { opacity: 1; transform: scale(1.0); }
-              }
-            `}</style>
-
             {/* Team Logo */}
-            <div
-              style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '50%',
-                overflow: 'hidden',
-                border: `2px solid ${COLORS.gold}`,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '12px',
-              }}
-            >
-              {data.team.logo ? (
-                <img src={data.team.logo} alt={data.team.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
-                <span style={{ fontSize: '24px', fontWeight: 800, color: COLORS.gold }}>
-                  {(data.team.name || '?')[0].toUpperCase()}
-                </span>
-              )}
-            </div>
-
-            {/* Team Name + Slot Pill */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span
+            {data.team.logo ? (
+              <div
                 style={{
-                  fontSize: '28px',
-                  fontWeight: 800,
-                  color: COLORS.textPrimary,
-                  textTransform: 'uppercase',
-                  letterSpacing: '2px',
-                  textShadow: '0 2px 12px rgba(0,0,0,0.6)',
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
                 }}
               >
-                {data.team.name}
+                <img src={data.team.logo} alt={data.team.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+            ) : null}
+
+            {/* Team Name */}
+            <span
+              style={{
+                fontSize: '24px',
+                fontWeight: 800,
+                color: COLORS.textPrimary,
+                textTransform: 'uppercase',
+                letterSpacing: '1.5px',
+                textShadow: '0 2px 10px rgba(0,0,0,0.6)',
+              }}
+            >
+              {data.team.name}
+            </span>
+
+            {/* Slot Badge Pill */}
+            {data.team.slot && (
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  padding: '3px 10px',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(255, 215, 0, 0.15)',
+                  color: COLORS.gold,
+                  border: `1px solid rgba(255, 215, 0, 0.3)`,
+                  letterSpacing: '1px',
+                  marginLeft: '8px',
+                }}
+              >
+                SLOT {data.team.slot}
               </span>
-              {data.team.slot && (
-                <span
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    padding: '3px 10px',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(255, 215, 0, 0.15)',
-                    color: COLORS.gold,
-                    border: `1px solid rgba(255, 215, 0, 0.3)`,
-                    letterSpacing: '1px',
-                  }}
-                >
-                  SLOT {data.team.slot}
-                </span>
-              )}
-            </div>
+            )}
           </div>
 
           {/* Cards Row */}

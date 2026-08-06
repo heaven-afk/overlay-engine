@@ -28,7 +28,7 @@ interface FlexibleTop5BarProps {
 
 export function FlexibleTop5Bar({ team, index }: FlexibleTop5BarProps) {
   const accentColor = getRankColor(team.rank);
-  const formattedRank = team.rank < 10 ? `#0${team.rank}` : `#${team.rank}`;
+  const rankNumStr = team.rank < 10 ? `0${team.rank}` : `${team.rank}`;
   const logo = team.logoUrl || team.logo || null;
 
   return (
@@ -73,8 +73,9 @@ export function FlexibleTop5Bar({ team, index }: FlexibleTop5BarProps) {
           flexShrink: 0,
         }}
       >
-        <span style={{ fontSize: '28px', fontWeight: 800, color: COLORS.textPrimary }}>
-          {formattedRank}
+        <span style={{ fontSize: '18px', fontWeight: 700, color: COLORS.textMuted, marginRight: '2px' }}>#</span>
+        <span style={{ fontSize: '32px', fontWeight: 800, color: COLORS.textPrimary }}>
+          {rankNumStr}
         </span>
       </div>
 

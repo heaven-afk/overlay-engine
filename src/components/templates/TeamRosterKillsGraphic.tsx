@@ -82,77 +82,74 @@ export function TeamRosterKillsGraphic({ data = {}, styleConfig }: TeamRosterKil
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '60px 40px',
+        padding: '24px 40px 24px 40px',
         boxSizing: 'border-box',
         fontFamily: styleConfig?.headingFont ? `'${styleConfig.headingFont}', sans-serif` : "'Inter', sans-serif",
       }}
     >
-      {/* Team Header (above cards, centered) */}
+      {/* Team Header (inline row, above cards, centered as one unit) */}
       <div
         style={{
           display: 'flex',
-          flexDirection: 'column',
+          flexDirection: 'row',
           alignItems: 'center',
-          marginBottom: '40px',
-          animation: `headerFadeIn 400ms ${ANIMATION.easeOutExpo} forwards`,
+          justifyContent: 'center',
+          marginBottom: '20px',
+          gap: '12px',
         }}
       >
         {/* Team Logo */}
-        <div
-          style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            overflow: 'hidden',
-            border: `3px solid ${styleConfig?.accentColor || COLORS.gold}`,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-            backgroundColor: 'rgba(255,255,255,0.05)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '12px',
-          }}
-        >
-          {team.logo ? (
-            <img src={team.logo} alt={team.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          ) : (
-            <span style={{ fontSize: '32px', fontWeight: 800, color: styleConfig?.accentColor || COLORS.gold }}>
-              {(team.name || '?')[0].toUpperCase()}
-            </span>
-          )}
-        </div>
-
-        {/* Team Name + Slot Pill */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span
+        {team.logo ? (
+          <div
             style={{
-              fontSize: '32px',
-              fontWeight: 800,
-              color: COLORS.textPrimary,
-              textTransform: 'uppercase',
-              letterSpacing: '3px',
-              textShadow: '0 2px 12px rgba(0,0,0,0.6)',
+              width: '48px',
+              height: '48px',
+              borderRadius: '50%',
+              overflow: 'hidden',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+              backgroundColor: 'rgba(255,255,255,0.05)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
-            {team.name}
+            <img src={team.logo} alt={team.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
+        ) : null}
+
+        {/* Team Name */}
+        <span
+          style={{
+            fontSize: '24px',
+            fontWeight: 800,
+            color: COLORS.textPrimary,
+            textTransform: 'uppercase',
+            letterSpacing: '1.5px',
+            textShadow: '0 2px 10px rgba(0,0,0,0.6)',
+          }}
+        >
+          {team.name}
+        </span>
+
+        {/* Slot Badge Pill */}
+        {team.slot && (
+          <span
+            style={{
+              fontSize: '12px',
+              fontWeight: 700,
+              padding: '3px 10px',
+              borderRadius: '12px',
+              backgroundColor: 'rgba(255, 215, 0, 0.15)',
+              color: styleConfig?.accentColor || COLORS.gold,
+              border: `1px solid rgba(255, 215, 0, 0.3)`,
+              letterSpacing: '1px',
+              marginLeft: '8px',
+            }}
+          >
+            SLOT {team.slot}
           </span>
-          {team.slot && (
-            <span
-              style={{
-                fontSize: '14px',
-                fontWeight: 700,
-                padding: '4px 12px',
-                borderRadius: '12px',
-                backgroundColor: 'rgba(255, 215, 0, 0.15)',
-                color: styleConfig?.accentColor || COLORS.gold,
-                border: `1px solid rgba(255, 215, 0, 0.3)`,
-                letterSpacing: '1px',
-              }}
-            >
-              SLOT {team.slot}
-            </span>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Cards Row */}
@@ -161,7 +158,7 @@ export function TeamRosterKillsGraphic({ data = {}, styleConfig }: TeamRosterKil
           display: 'flex',
           flexDirection: 'row',
           justifyContent: 'center',
-          gap: '24px',
+          gap: '20px',
           width: '100%',
           maxWidth: '1200px',
         }}

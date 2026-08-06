@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useAnimatedNumber } from '@/hooks/useAnimatedNumber';
-import { ANIMATION, COLORS, SIZES } from '@/lib/overlayDesignTokens';
+import { COLORS, SIZES } from '@/lib/overlayDesignTokens';
 
 export interface PlayerRosterData {
   id: string | null;
@@ -19,11 +18,10 @@ interface TeamRosterCardProps {
   index: number;
 }
 
-export function TeamRosterCard({ player, index }: TeamRosterCardProps) {
-  const animatedKills = useAnimatedNumber(player.kills, ANIMATION.countUpDuration);
-  const isEmptySlot = !player.id || player.professionalName === 'Empty Slot' || player.ign === '—';
+export function TeamRosterCard({ player }: TeamRosterCardProps) {
+  const isEmptySlot = !player.id || player.professionalName === 'Empty Slot' || player.ign === '—' || player.ign === 'EMPTY';
 
-  const initial = (player.professionalName || player.ign || '?')[0].toUpperCase();
+  const initial = (player.professionalName && player.professionalName !== 'Empty Slot' ? player.professionalName : player.ign && player.ign !== '—' ? player.ign : '?')[0].toUpperCase();
 
   return (
     <div
@@ -34,26 +32,13 @@ export function TeamRosterCard({ player, index }: TeamRosterCardProps) {
         border: `1px solid ${COLORS.borderSubtle}`,
         borderRadius: '16px',
         boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-        backdropFilter: 'blur(8px)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '24px 16px',
+        padding: '20px 16px 20px 16px',
         boxSizing: 'border-box',
-        animation: `cardFadeIn 600ms ${ANIMATION.easeOutExpo} ${index * ANIMATION.cardStagger}ms forwards`,
-        opacity: 0,
-        transform: 'translateY(40px)',
       }}
     >
-      <style jsx>{`
-        @keyframes cardFadeIn {
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
-
       {/* Photo Area */}
       <div
         style={{
@@ -61,20 +46,21 @@ export function TeamRosterCard({ player, index }: TeamRosterCardProps) {
           height: `${SIZES.rosterPhotoSize}px`,
           borderRadius: '50%',
           border: isEmptySlot
-            ? '2px dashed rgba(255,255,255,0.2)'
-            : `3px solid rgba(255, 215, 0, 0.6)`,
+            ? '2px dashed rgba(255,255,255,0.1)'
+            : '3px solid rgba(255, 215, 0, 0.6)',
           boxShadow: isEmptySlot ? 'none' : '0 0 16px rgba(255,215,0,0.2)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',
           backgroundColor: 'rgba(255,255,255,0.03)',
-          marginBottom: '20px',
+          marginTop: '0px',
+          marginBottom: '16px',
           flexShrink: 0,
         }}
       >
         {isEmptySlot ? (
-          <span style={{ fontSize: '42px', opacity: 0.3 }}>{player.countryEmoji || '🏳️'}</span>
+          <div style={{ width: '100%', height: '100%' }} />
         ) : player.photoUrl ? (
           <img
             src={player.photoUrl}
@@ -105,59 +91,72 @@ export function TeamRosterCard({ player, index }: TeamRosterCardProps) {
       </div>
 
       {/* Player Identity */}
-      <div style={{ textAlign: 'center', width: '100%', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '4px' }}>
-          <span style={{ fontSize: '20px' }}>{player.countryEmoji || '🏳️'}</span>
+      <div style={{ textAlign: 'center', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px' }}>
+          {!isEmptySlot && player.countryEmoji && (
+            <span style={{ fontSize: '20px', marginRight: '8px' }}>{player.countryEmoji}</span>
+          )}
           <span
             style={{
-              fontSize: '20px',
+              fontSize: '22px',
               fontWeight: 700,
               color: isEmptySlot ? COLORS.textMuted : COLORS.textPrimary,
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              maxWidth: '180px',
+              maxWidth: '190px',
             }}
           >
-            {isEmptySlot ? '—' : player.professionalName}
+            {isEmptySlot ? 'EMPTY' : player.professionalName}
           </span>
         </div>
 
         <div
           style={{
             fontSize: '14px',
-            color: COLORS.textMuted,
+            color: 'rgba(255,255,255,0.5)',
+            marginTop: '4px',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             maxWidth: '200px',
           }}
         >
-          {isEmptySlot ? 'EMPTY' : `@${player.ign}`}
+          {isEmptySlot ? '' : `@${player.ign}`}
         </div>
       </div>
 
+      {/* Thin Divider Line */}
+      <div
+        style={{
+          width: '80%',
+          height: '1px',
+          backgroundColor: 'rgba(255,255,255,0.08)',
+          margin: '16px auto 12px auto',
+        }}
+      />
+
       {/* Kill Count Stat */}
-      <div style={{ textAlign: 'center', marginTop: 'auto', paddingTop: '16px' }}>
+      <div style={{ textAlign: 'center', width: '100%' }}>
         <div
           style={{
-            fontSize: '44px',
+            fontSize: '42px',
             fontWeight: 800,
             lineHeight: 1,
-            background: isEmptySlot ? 'none' : COLORS.goldGradient,
+            background: isEmptySlot ? 'none' : 'linear-gradient(180deg, #FFD700, #FFA500)',
             WebkitBackgroundClip: isEmptySlot ? 'none' : 'text',
-            WebkitTextFillColor: isEmptySlot ? COLORS.textMuted : 'transparent',
-            color: isEmptySlot ? COLORS.textMuted : COLORS.gold,
+            WebkitTextFillColor: isEmptySlot ? 'rgba(255,255,255,0.4)' : 'transparent',
+            color: isEmptySlot ? 'rgba(255,255,255,0.4)' : COLORS.gold,
           }}
         >
-          {isEmptySlot ? 0 : animatedKills}
+          {isEmptySlot ? 0 : player.kills}
         </div>
         <div
           style={{
             fontSize: '12px',
             fontWeight: 600,
             letterSpacing: '2px',
-            color: COLORS.textSecondary,
+            color: 'rgba(255,255,255,0.4)',
             marginTop: '6px',
             textTransform: 'uppercase',
           }}

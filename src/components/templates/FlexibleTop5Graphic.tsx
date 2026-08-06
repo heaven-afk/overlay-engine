@@ -56,7 +56,7 @@ export function FlexibleTop5Graphic({ data = {}, styleConfig }: FlexibleTop5Grap
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <h1
               style={{
-                fontSize: '32px',
+                fontSize: '24px',
                 fontWeight: 800,
                 color: COLORS.textPrimary,
                 textTransform: 'uppercase',
