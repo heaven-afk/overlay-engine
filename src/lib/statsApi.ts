@@ -100,3 +100,20 @@ export async function getDailyStandings(
   if (options.groupId && options.groupId !== 'all') params.groupId = options.groupId;
   return callStatsApi('/api/overlay/standings/daily', params);
 }
+
+/**
+ * Get top 4 player kills for a team in a specific tournament lobby.
+ */
+export async function getLobbyKills(
+  tournamentId: string,
+  day: number,
+  lobby: number,
+  teamId: string
+) {
+  return callStatsApi('/api/overlay/lobby-kills', {
+    tournamentId,
+    day: String(day),
+    lobby: String(lobby),
+    teamId,
+  });
+}

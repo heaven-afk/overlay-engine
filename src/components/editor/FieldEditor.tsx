@@ -9,6 +9,7 @@ import {
   compareEntities,
   getProfile,
   getGlobalRankings,
+  getLobbyKills,
 } from '@/lib/statsApi';
 
 interface FieldEditorProps {
@@ -898,13 +899,7 @@ function TeamRosterKillsFetchEditor({
     }
     try {
       setLoading(true);
-      const apiKey = process.env.NEXT_PUBLIC_OVERLAY_API_KEY || 'heaven-overlay-secret';
-      const baseUrl = process.env.NEXT_PUBLIC_HEAVEN_API_BASE_URL || 'http://localhost:3000';
-      const res = await fetch(`${baseUrl}/api/overlay/lobby-kills?tournamentId=${tournamentId}&day=${day}&lobby=${lobby}&teamId=${teamId}`, {
-        headers: { 'x-overlay-api-key': apiKey },
-      });
-      if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
-      const data = await res.json();
+      const data = await getLobbyKills(tournamentId, day, lobby, teamId);
       onFetched({
         ...data,
         tournamentId,
