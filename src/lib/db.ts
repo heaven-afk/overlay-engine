@@ -81,6 +81,9 @@ export interface TemplateStyleConfig {
   hybridTopRightLogoUrl?: string;       // optional uploaded logo/brand image for top-right corner (replaces text badge)
   selectedGroup?: string;               // group stage filter e.g. 'Qualifiers', 'Finals', 'all'
   selectedMap?: string;                 // map selection e.g. 'Isolated', 'Blackout', 'Rebirth Island', 'none'
+  day?: number;                         // day number for lobby/daily templates
+  lobby?: number;                       // lobby number for lobby/daily templates
+  teamId?: string;                      // selected team ID for team roster kills
 }
 
 export interface OverlayTemplate {

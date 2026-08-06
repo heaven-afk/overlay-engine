@@ -46,15 +46,29 @@ function StandingsFetchEditor({
   const [loading, setLoading] = useState(false);
   const [warning, setWarning] = useState('');
 
-  // Fetch groups dynamically whenever tournament changes
+  const selectedT = tournaments.find((t) => t.id === tournamentId);
+  const isQualifier = Boolean(
+    selectedT?.type === 'qualifier' ||
+    selectedT?.format === 'qualifier' ||
+    selectedT?.isQualifier === true ||
+    availableGroups.length > 0
+  );
+
   useEffect(() => {
     if (!tournamentId) {
       setAvailableGroups([]);
+      setSelectedGroup('all');
       return;
     }
     getTournamentGroups(tournamentId)
-      .then((groups) => setAvailableGroups(groups))
-      .catch(() => setAvailableGroups([]));
+      .then((groups) => {
+        setAvailableGroups(groups);
+        setSelectedGroup('all');
+      })
+      .catch(() => {
+        setAvailableGroups([]);
+        setSelectedGroup('all');
+      });
   }, [tournamentId]);
 
   async function handleFetch() {
@@ -63,9 +77,11 @@ function StandingsFetchEditor({
       return;
     }
 
-    const activeGroupId = selectedGroup === 'custom'
-      ? customGroupId.trim()
-      : (selectedGroup === 'all' ? undefined : selectedGroup);
+    const activeGroupId = isQualifier
+      ? selectedGroup === 'custom'
+        ? customGroupId.trim()
+        : (selectedGroup === 'all' ? undefined : selectedGroup)
+      : undefined;
 
     try {
       setLoading(true);
@@ -74,7 +90,7 @@ function StandingsFetchEditor({
       const { results } = await getTopStandings(tournamentId, n, type, activeGroupId);
 
       if (!results || results.length === 0) {
-        setWarning(`No ${type} data available for tournament${activeGroupId ? ` in group "${activeGroupId}"` : ''}.`);
+        setWarning(`No standings data available for ${selectedT?.name || tournamentId}${activeGroupId ? ` in group "${activeGroupId}"` : ''}.`);
         return;
       }
 
@@ -129,30 +145,24 @@ function StandingsFetchEditor({
         >
           <option value="">-- Choose Tournament --</option>
           {tournaments.map((t: any) => (
-            <option key={t.id} value={t.id}>{t.name}</option>
+            <option key={t.id} value={t.id}>{t.name} {t.format === 'qualifier' || t.isQualifier ? '(Qualifier)' : '(Standard)'}</option>
           ))}
         </select>
 
-        <select
-          className="select-input"
-          style={{ ...selectStyle, flex: 1 }}
-          value={selectedGroup}
-          onChange={(e) => setSelectedGroup(e.target.value)}
-        >
-          <option value="all">All Groups</option>
-          {availableGroups.map((g) => (
-            <option key={g.id} value={g.id}>{g.name} ({g.id})</option>
-          ))}
-          <optgroup label="Presets">
-            <option value="Qualifiers">Qualifiers</option>
-            <option value="Finals">Finals</option>
-            <option value="Group A">Group A</option>
-            <option value="Group B">Group B</option>
-            <option value="Group C">Group C</option>
-            <option value="Group D">Group D</option>
-          </optgroup>
-          <option value="custom">✏ Custom Group ID…</option>
-        </select>
+        {isQualifier && (
+          <select
+            className="select-input"
+            style={{ ...selectStyle, flex: 1 }}
+            value={selectedGroup}
+            onChange={(e) => setSelectedGroup(e.target.value)}
+          >
+            <option value="all">All Groups</option>
+            {availableGroups.map((g) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+            <option value="custom">✏ Custom Group ID…</option>
+          </select>
+        )}
 
         <select
           className="select-input"
@@ -165,7 +175,7 @@ function StandingsFetchEditor({
         </select>
       </div>
 
-      {selectedGroup === 'custom' && (
+      {isQualifier && selectedGroup === 'custom' && (
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <label style={labelStyle}>Group ID / Name:</label>
           <input
@@ -225,15 +235,30 @@ function DailyFetchEditor({
   const [loading, setLoading] = useState(false);
   const [warning, setWarning] = useState('');
 
+  const selectedT = tournaments.find((t) => t.id === tournamentId);
+  const isQualifier = Boolean(
+    selectedT?.type === 'qualifier' ||
+    selectedT?.format === 'qualifier' ||
+    selectedT?.isQualifier === true ||
+    availableGroups.length > 0
+  );
+
   // Fetch groups dynamically whenever tournament changes
   useEffect(() => {
     if (!tournamentId) {
       setAvailableGroups([]);
+      setSelectedGroup('all');
       return;
     }
     getTournamentGroups(tournamentId)
-      .then((groups) => setAvailableGroups(groups))
-      .catch(() => setAvailableGroups([]));
+      .then((groups) => {
+        setAvailableGroups(groups);
+        setSelectedGroup('all');
+      })
+      .catch(() => {
+        setAvailableGroups([]);
+        setSelectedGroup('all');
+      });
   }, [tournamentId]);
 
   async function handleFetch() {
@@ -242,9 +267,11 @@ function DailyFetchEditor({
       return;
     }
 
-    const activeGroupId = selectedGroup === 'custom'
-      ? customGroupId.trim()
-      : (selectedGroup === 'all' ? undefined : selectedGroup);
+    const activeGroupId = isQualifier
+      ? selectedGroup === 'custom'
+        ? customGroupId.trim()
+        : (selectedGroup === 'all' ? undefined : selectedGroup)
+      : undefined;
 
     try {
       setLoading(true);
@@ -305,33 +332,27 @@ function DailyFetchEditor({
         >
           <option value="">-- Choose Tournament --</option>
           {tournaments.map((t: any) => (
-            <option key={t.id} value={t.id}>{t.name}</option>
+            <option key={t.id} value={t.id}>{t.name} {t.format === 'qualifier' || t.isQualifier ? '(Qualifier)' : '(Standard)'}</option>
           ))}
         </select>
 
-        <select
-          className="select-input"
-          style={{ ...selectStyle, flex: 1 }}
-          value={selectedGroup}
-          onChange={(e) => setSelectedGroup(e.target.value)}
-        >
-          <option value="all">All Groups</option>
-          {availableGroups.map((g) => (
-            <option key={g.id} value={g.id}>{g.name} ({g.id})</option>
-          ))}
-          <optgroup label="Presets">
-            <option value="Qualifiers">Qualifiers</option>
-            <option value="Finals">Finals</option>
-            <option value="Group A">Group A</option>
-            <option value="Group B">Group B</option>
-            <option value="Group C">Group C</option>
-            <option value="Group D">Group D</option>
-          </optgroup>
-          <option value="custom">✏ Custom Group ID…</option>
-        </select>
+        {isQualifier && (
+          <select
+            className="select-input"
+            style={{ ...selectStyle, flex: 1 }}
+            value={selectedGroup}
+            onChange={(e) => setSelectedGroup(e.target.value)}
+          >
+            <option value="all">All Groups</option>
+            {availableGroups.map((g) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+            <option value="custom">✏ Custom Group ID…</option>
+          </select>
+        )}
       </div>
 
-      {selectedGroup === 'custom' && (
+      {isQualifier && selectedGroup === 'custom' && (
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <label style={labelStyle}>Group ID / Name:</label>
           <input
@@ -712,35 +733,53 @@ function ProfileFetchEditor({
   );
 }
 
-// ─── Sub-editor: Hybrid Era Top 5 (Daily + Collation) ────────────────────────
+// ─── Sub-editor: Hybrid Era Top 5 & Flexible Top 5 (Daily + Collation) ────────
 function HybridEraFetchEditor({
+  label = 'Fetch Standings Data (Workspace)',
   tournaments,
+  defaultN = 5,
   onFetched,
 }: {
+  label?: string;
   tournaments: any[];
+  defaultN?: number;
   onFetched: (fields: Record<string, any>) => void;
 }) {
   const [mode, setMode] = useState<'daily' | 'collation'>('daily');
   const [tournamentId, setTournamentId] = useState('');
   const [availableGroups, setAvailableGroups] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedGroup, setSelectedGroup] = useState('all');
+  const [customGroupId, setCustomGroupId] = useState('');
   const [day, setDay] = useState(1);
-  const [lobby, setLobby] = useState<number | ''>('' );
+  const [lobby, setLobby] = useState<number | ''>('');
   const [lobbyMode, setLobbyMode] = useState<'full_day' | 'single_lobby'>('full_day');
-  const [n, setN] = useState(5);
+  const [n, setN] = useState(defaultN);
   const [loading, setLoading] = useState(false);
   const [warning, setWarning] = useState('');
 
+  const selectedT = tournaments.find((t) => t.id === tournamentId);
+  const isQualifier = Boolean(
+    selectedT?.type === 'qualifier' ||
+    selectedT?.format === 'qualifier' ||
+    selectedT?.isQualifier === true ||
+    availableGroups.length > 0
+  );
+
   useEffect(() => {
-    if (!tournamentId) { setAvailableGroups([]); return; }
+    if (!tournamentId) { setAvailableGroups([]); setSelectedGroup('all'); return; }
     getTournamentGroups(tournamentId)
-      .then((groups) => setAvailableGroups(groups))
-      .catch(() => setAvailableGroups([]));
+      .then((groups) => { setAvailableGroups(groups); setSelectedGroup('all'); })
+      .catch(() => { setAvailableGroups([]); setSelectedGroup('all'); });
   }, [tournamentId]);
 
   async function handleFetch() {
     if (!tournamentId) { alert('Please select a tournament first.'); return; }
-    const activeGroupId = selectedGroup === 'all' ? undefined : selectedGroup;
+    const activeGroupId = isQualifier
+      ? selectedGroup === 'custom'
+        ? customGroupId.trim()
+        : (selectedGroup === 'all' ? undefined : selectedGroup)
+      : undefined;
+
     try {
       setLoading(true);
       setWarning('');
@@ -750,7 +789,7 @@ function HybridEraFetchEditor({
         const data = await getDailyStandings(tournamentId, day, { lobby: lobbyNum, n, groupId: activeGroupId });
         const results = data?.results || (Array.isArray(data) ? data : []);
         if (!results || results.length === 0) {
-          setWarning(`No daily standings available for Day ${day}.`);
+          setWarning(`No daily standings available for Day ${day}${activeGroupId ? ` in group "${activeGroupId}"` : ''}.`);
         }
         const payload: Record<string, any> = {
           ...data, results, rows: results, teams: results, players: results,
@@ -767,8 +806,7 @@ function HybridEraFetchEditor({
       } else {
         const { results } = await getTopStandings(tournamentId, n, 'team', activeGroupId);
         if (!results || results.length === 0) {
-          setWarning('No standings data available.');
-          return;
+          setWarning(`No standings data available for ${selectedT?.name || tournamentId}${activeGroupId ? ` in group "${activeGroupId}"` : ''}.`);
         }
         const payload: Record<string, any> = {
           results, rows: results, teams: results, players: results,
@@ -791,7 +829,7 @@ function HybridEraFetchEditor({
   return (
     <div style={wrapperStyle}>
       <span className="slot-control-label" style={{ margin: 0, fontWeight: 700 }}>
-        Fetch Hybrid Era Top 5 Data (Workspace)
+        {label}
       </span>
 
       {/* Mode toggle */}
@@ -818,17 +856,35 @@ function HybridEraFetchEditor({
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
         <select className="select-input" style={selectStyle} value={tournamentId} onChange={(e) => setTournamentId(e.target.value)}>
           <option value="">-- Choose Tournament --</option>
-          {tournaments.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          {tournaments.map((t: any) => (
+            <option key={t.id} value={t.id}>{t.name} {t.format === 'qualifier' || t.isQualifier ? '(Qualifier)' : '(Standard)'}</option>
+          ))}
         </select>
-        <select className="select-input" style={{ ...selectStyle, flex: 1 }} value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)}>
-          <option value="all">All Groups</option>
-          {availableGroups.map((g) => <option key={g.id} value={g.id}>{g.name} ({g.id})</option>)}
-          <optgroup label="Presets">
-            <option value="Qualifiers">Qualifiers</option>
-            <option value="Finals">Finals</option>
-          </optgroup>
-        </select>
+
+        {isQualifier && (
+          <select className="select-input" style={{ ...selectStyle, flex: 1 }} value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)}>
+            <option value="all">All Groups</option>
+            {availableGroups.map((g) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+            <option value="custom">✏ Custom Group ID…</option>
+          </select>
+        )}
       </div>
+
+      {isQualifier && selectedGroup === 'custom' && (
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <label style={labelStyle}>Group ID / Name:</label>
+          <input
+            type="text"
+            className="text-input"
+            style={{ flex: 1, padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+            placeholder="e.g. Group A, Qualifiers-1, etc."
+            value={customGroupId}
+            onChange={(e) => setCustomGroupId(e.target.value)}
+          />
+        </div>
+      )}
 
       {/* Day controls — only shown in Daily mode */}
       {mode === 'daily' && (
@@ -1184,7 +1240,7 @@ export function FieldEditor({
         return <TeamRosterKillsFetchEditor tournaments={tournaments} onFetched={onFetched} />;
 
       case 'flexible_top5':
-        return <HybridEraFetchEditor tournaments={tournaments} onFetched={onFetched} />;
+        return <HybridEraFetchEditor label="Fetch Flexible Top 5 Data (Workspace)" tournaments={tournaments} defaultN={100} onFetched={onFetched} />;
 
       case 'daily_standings':
         return <DailyFetchEditor tournaments={tournaments} onFetched={onFetched} />;

@@ -65,7 +65,17 @@ export function FlexibleTop5Graphic({ data = {}, styleConfig = {} }: FlexibleTop
   const cardBorder = `1.5px solid ${hexToRgba(accent, 0.55)}`;
   const scoreColor = isLight ? '#111118' : '#FFFFFF';
 
-  const rawTeams: any[] = data.rows || data.teams || data.results || data.currentData?.results || [
+  const resolvedTeamsArray = (Array.isArray(data.rows) && data.rows.length > 0)
+    ? data.rows
+    : (Array.isArray(data.teams) && data.teams.length > 0)
+      ? data.teams
+      : (Array.isArray(data.results) && data.results.length > 0)
+        ? data.results
+        : (Array.isArray(data.currentData?.results) && data.currentData.results.length > 0)
+          ? data.currentData.results
+          : null;
+
+  const rawTeams: any[] = resolvedTeamsArray || [
     { teamId: 't1', teamName: 'REMEDIUM INVICTUS', rank: 1, totalPts: 180, trendDelta: 2 },
     { teamId: 't2', teamName: 'KYZON ESPORTS', rank: 2, totalPts: 165, trendDelta: 0 },
     { teamId: 't3', teamName: 'HYPERION SQUAD', rank: 3, totalPts: 150, trendDelta: -1 },

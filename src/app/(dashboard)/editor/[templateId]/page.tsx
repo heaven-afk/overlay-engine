@@ -7,7 +7,7 @@ import {
   getTemplate, saveTemplate, getTournaments,
   OverlayTemplate, TemplateStyleConfig, ColorTheme, TemplateType
 } from '@/lib/db';
-import { getTopStandings, getGlobalRankings, getProfile, compareEntities, getDailyStandings } from '@/lib/statsApi';
+import { getTopStandings, getGlobalRankings, getProfile, compareEntities, getDailyStandings, getLobbyKills } from '@/lib/statsApi';
 import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, doc } from 'firebase/firestore';
@@ -540,6 +540,34 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           const { profile, careerStats } = await getProfile('team', previewTeamId);
           if (active) {
             setPreviewData({ team: { ...profile, careerStats } });
+          }
+        }
+
+        else if (templateType === 'flexible_top5') {
+          if (!selectedTournamentId) {
+            setPreviewData(MOCK_HYBRID_ERA_TOP5);
+            return;
+          }
+          const { results } = await getTopStandings(selectedTournamentId, styleConfig.topN || 100, 'team', styleConfig.selectedGroup);
+          if (active) {
+            if (results && results.length > 0) {
+              setPreviewData({ rows: results, page: 1 });
+            } else {
+              setPreviewData(MOCK_HYBRID_ERA_TOP5);
+            }
+          }
+        }
+
+        else if (templateType === 'team_roster_kills') {
+          if (!selectedTournamentId || !previewTeamId) {
+            setPreviewData({});
+            return;
+          }
+          const day = styleConfig.day || 1;
+          const lobby = styleConfig.lobby || 1;
+          const data = await getLobbyKills(selectedTournamentId, day, lobby, previewTeamId).catch(() => ({}));
+          if (active) {
+            setPreviewData(data);
           }
         }
 
