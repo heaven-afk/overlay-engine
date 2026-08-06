@@ -144,7 +144,7 @@ export function FlexibleTop5Bar({
   scoreColor,
   isLight = false,
 }: FlexibleTop5BarProps) {
-  const rankNumStr = team.rank < 10 ? `#0${team.rank}` : `#${team.rank}`;
+  const rankNumStr = team.rank < 10 ? `0${team.rank}` : `${team.rank}`;
   const logo = team.logoUrl || team.logo || null;
   const isEmpty = !team.teamId || team.teamName.startsWith('TEAM ');
 
@@ -211,19 +211,32 @@ export function FlexibleTop5Bar({
 
       {/* Right Side: Rank Badge -> Trend Arrow -> Score */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '36px', flexShrink: 0 }}>
-        {/* Absolute Rank Badge Number (before trend arrow) */}
-        <span
-          style={{
-            fontSize: '26px',
-            fontWeight: 800,
-            color: hexToRgba(accent, 0.85),
-            fontFamily: '"Orbitron", "Rajdhani", sans-serif',
-            letterSpacing: '0.04em',
-            opacity: isEmpty ? 0.4 : 1,
-          }}
-        >
-          {rankNumStr}
-        </span>
+        {/* Absolute Rank Badge Number (RANK 01 before trend arrow) */}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', opacity: isEmpty ? 0.4 : 1 }}>
+          <span
+            style={{
+              fontSize: '14px',
+              fontWeight: 700,
+              color: hexToRgba(accent, 0.75),
+              fontFamily: '"Orbitron", "Rajdhani", sans-serif',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}
+          >
+            RANK
+          </span>
+          <span
+            style={{
+              fontSize: '26px',
+              fontWeight: 800,
+              color: hexToRgba(accent, 0.95),
+              fontFamily: '"Orbitron", "Rajdhani", sans-serif',
+              letterSpacing: '0.04em',
+            }}
+          >
+            {rankNumStr}
+          </span>
+        </div>
 
         {/* Trend Arrow */}
         {!isEmpty && (
