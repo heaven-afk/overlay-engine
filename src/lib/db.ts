@@ -267,6 +267,21 @@ export async function getTemplates(): Promise<OverlayTemplate[]> {
       const freshSnap = await getDocs(collection(db, 'overlayTemplates'));
       list = freshSnap.docs.map((d) => ({ id: d.id, ...d.data() } as OverlayTemplate));
     }
+
+    // Auto-seed default team_roster_kills and flexible_top5 templates if missing
+    let seededNewGraphics = false;
+    if (list.filter((t) => t.templateType === 'team_roster_kills').length === 0) {
+      await seedSingleTemplate('Team Roster Kill Cards', 'team_roster_kills', '#FFD700', 'ROSTER KILL CARDS');
+      seededNewGraphics = true;
+    }
+    if (list.filter((t) => t.templateType === 'flexible_top5').length === 0) {
+      await seedSingleTemplate('Flexible Top 5 Standings', 'flexible_top5', '#A855F7', 'TOURNAMENT STANDINGS');
+      seededNewGraphics = true;
+    }
+    if (seededNewGraphics) {
+      const freshSnap = await getDocs(collection(db, 'overlayTemplates'));
+      list = freshSnap.docs.map((d) => ({ id: d.id, ...d.data() } as OverlayTemplate));
+    }
     
     return list;
   } catch (err) {
@@ -738,6 +753,40 @@ async function seedCustomMediaTemplates(countNeeded: number) {
     } catch (err) {
       console.error('Failed to seed custom media template:', err);
     }
+  }
+}
+
+async function seedSingleTemplate(name: string, templateType: TemplateType, accentColor: string, title: string) {
+  const defaultTemplate: Omit<OverlayTemplate, 'id'> = {
+    name,
+    templateType,
+    styleConfig: {
+      colorTheme: 'dark',
+      accentColor,
+      headingFont: 'Inter',
+      bodyFont: 'Inter',
+      brandingLogoUrl: '',
+      brandingName: 'HEAVEN STAT ENGINE\nAfrican CODM BR Coverage',
+      showStatsStamp: true,
+      tournamentLogoCount: 1,
+      tournamentLogos: [
+        { logoUrl: '', tournamentName: '' }
+      ],
+      topN: 5,
+      showColumns: [],
+      graphicTitle: title,
+      graphicSubtitle: 'Live Overlay Graphic',
+    }
+  };
+
+  try {
+    await addDoc(collection(db, 'overlayTemplates'), {
+      ...defaultTemplate,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    });
+  } catch (err) {
+    console.error(`Failed to seed ${templateType} template:`, err);
   }
 }
 

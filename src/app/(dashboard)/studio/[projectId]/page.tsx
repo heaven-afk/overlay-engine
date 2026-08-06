@@ -311,14 +311,69 @@ export default function StudioWorkspace({ params }: PageProps) {
   // Presence
   const [presence, setPresence] = useState<PresenceUser[]>([]);
 
+  // Helper to resolve virtual built-in templates
+  const resolveTemplate = (idOrType: string | null) => {
+    if (!idOrType) return null;
+    const found = templates.find((t) => t.id === idOrType);
+    if (found) return found;
+
+    if (idOrType.includes('team_roster_kills')) {
+      return {
+        id: 'built-in:team_roster_kills',
+        name: 'Team Roster Kill Cards',
+        templateType: 'team_roster_kills',
+        styleConfig: {
+          colorTheme: 'dark',
+          accentColor: '#FFD700',
+          headingFont: 'Inter',
+          bodyFont: 'Inter',
+          brandingLogoUrl: '',
+          brandingName: 'HEAVEN STAT ENGINE\nAfrican CODM BR Coverage',
+          showStatsStamp: true,
+          tournamentLogoCount: 1,
+          tournamentLogos: [],
+          topN: 4,
+          showColumns: [],
+          graphicTitle: 'ROSTER KILL CARDS',
+          graphicSubtitle: 'Match Kills Breakdown',
+        },
+      } as OverlayTemplate;
+    }
+
+    if (idOrType.includes('flexible_top5')) {
+      return {
+        id: 'built-in:flexible_top5',
+        name: 'Flexible Top 5 Standings',
+        templateType: 'flexible_top5',
+        styleConfig: {
+          colorTheme: 'dark',
+          accentColor: '#A855F7',
+          headingFont: 'Inter',
+          bodyFont: 'Inter',
+          brandingLogoUrl: '',
+          brandingName: 'HEAVEN STAT ENGINE\nAfrican CODM BR Coverage',
+          showStatsStamp: true,
+          tournamentLogoCount: 1,
+          tournamentLogos: [],
+          topN: 5,
+          showColumns: [],
+          graphicTitle: 'TOURNAMENT STANDINGS',
+          graphicSubtitle: 'Paginated Top 5',
+        },
+      } as OverlayTemplate;
+    }
+
+    return null;
+  };
+
   // ── Computed ──────────────────────────────────────────────────────────────
   const previewTemplate = useMemo(
-    () => templates.find((t) => t.id === previewTemplateId) || null,
+    () => resolveTemplate(previewTemplateId),
     [templates, previewTemplateId]
   );
 
   const liveTemplate = useMemo(
-    () => (liveState?.templateId ? templates.find((t) => t.id === liveState.templateId) || null : null),
+    () => resolveTemplate(liveState?.templateId || null),
     [templates, liveState?.templateId]
   );
 
@@ -847,9 +902,15 @@ export default function StudioWorkspace({ params }: PageProps) {
                 }}
               >
                 <option value="">— Select Template —</option>
-                {templates.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name} ({t.templateType})</option>
-                ))}
+                <optgroup label="✨ Default Built-in Templates">
+                  <option value="built-in:team_roster_kills">Team Roster Kill Cards (Default)</option>
+                  <option value="built-in:flexible_top5">Flexible Top 5 Standings (Default)</option>
+                </optgroup>
+                <optgroup label="📁 Saved Templates Library">
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name} ({t.templateType})</option>
+                  ))}
+                </optgroup>
               </select>
             </div>
 
