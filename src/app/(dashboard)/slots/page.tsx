@@ -766,6 +766,8 @@ export default function SlotsDashboard() {
                   <option value="top_standings">Top Standings Table</option>
                   <option value="hybrid_era_top5">Hybrid Era Top 5 Graphic</option>
                   <option value="top5_graphic">Top 5 Graphic (Global)</option>
+                  <option value="team_roster_kills">Team Roster Kill Cards</option>
+                  <option value="flexible_top5">Flexible Top 5 (Paginated)</option>
                   <option value="daily_standings">Daily Standings</option>
                   <option value="overall_rankings_dual_column">Overall Rankings Dual Column</option>
                   <option value="top_5_overall">Top 5 Overall</option>

@@ -18,6 +18,8 @@ import { OverallRankingsDualColumn } from '@/components/templates/OverallRanking
 import { Top5Overall } from '@/components/templates/Top5Overall';
 import { HybridEraTop5 } from '@/components/templates/HybridEraTop5';
 import { Top5Graphic } from '@/components/templates/Top5Graphic';
+import { TeamRosterKillsGraphic } from '@/components/templates/TeamRosterKillsGraphic';
+import { FlexibleTop5Graphic } from '@/components/templates/FlexibleTop5Graphic';
 
 const templateMap: Record<string, React.ComponentType<any>> = {
   top_standings: TopStandings,
@@ -30,6 +32,8 @@ const templateMap: Record<string, React.ComponentType<any>> = {
   team_profile: TeamProfile,
   player_profile: PlayerProfile,
   custom_media: CustomMedia,
+  team_roster_kills: TeamRosterKillsGraphic,
+  flexible_top5: FlexibleTop5Graphic,
 };
 
 interface PageProps {

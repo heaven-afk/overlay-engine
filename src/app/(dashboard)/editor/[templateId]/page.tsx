@@ -26,6 +26,8 @@ import { OverallRankingsDualColumn } from '@/components/templates/OverallRanking
 import { Top5Overall } from '@/components/templates/Top5Overall';
 import { HybridEraTop5 } from '@/components/templates/HybridEraTop5';
 import { Top5Graphic } from '@/components/templates/Top5Graphic';
+import { TeamRosterKillsGraphic } from '@/components/templates/TeamRosterKillsGraphic';
+import { FlexibleTop5Graphic } from '@/components/templates/FlexibleTop5Graphic';
 
 // Columns definitions
 const ALL_COLUMNS = [
@@ -949,6 +951,8 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       case 'team_profile': return TeamProfile;
       case 'player_profile': return PlayerProfile;
       case 'custom_media': return CustomMedia;
+      case 'team_roster_kills': return TeamRosterKillsGraphic;
+      case 'flexible_top5': return FlexibleTop5Graphic;
       default: return TopStandings;
     }
   };
@@ -1066,6 +1070,8 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     <option value="top_5_overall">Top 5 Overall Table</option>
                     <option value="top5_graphic">Top 5 Graphic (Global)</option>
                     <option value="hybrid_era_top5">Hybrid Era Top 5 (RDM x FM)</option>
+                    <option value="team_roster_kills">Team Roster Kill Cards</option>
+                    <option value="flexible_top5">Flexible Top 5 (Paginated)</option>
                     <option value="daily_standings">Daily Standings Table</option>
                     <option value="head_to_head">Head to Head Comparison</option>
                     <option value="team_profile">Team Profile</option>

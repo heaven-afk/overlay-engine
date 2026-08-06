@@ -82,6 +82,10 @@ export default function TemplateLibrary() {
         return <Trophy style={{ width: '20px', height: '20px', color: '#C9A84C' }} />;
       case 'hybrid_era_top5':
         return <Trophy style={{ width: '20px', height: '20px', color: '#E6BE5A' }} />;
+      case 'team_roster_kills':
+        return <Users style={{ width: '20px', height: '20px', color: '#FFD700' }} />;
+      case 'flexible_top5':
+        return <Trophy style={{ width: '20px', height: '20px', color: '#A855F7' }} />;
       case 'daily_standings':
         return <Calendar style={{ width: '20px', height: '20px', color: '#60a5fa' }} />;
       case 'head_to_head':
@@ -104,6 +108,8 @@ export default function TemplateLibrary() {
       case 'top_5_overall': return 'Top 5 Overall Table';
       case 'top5_graphic': return 'Top 5 Graphic (Global)';
       case 'hybrid_era_top5': return 'Hybrid Era Top 5 (RDM x FM)';
+      case 'team_roster_kills': return 'Team Roster Kill Cards';
+      case 'flexible_top5': return 'Flexible Top 5 (Paginated)';
       case 'daily_standings': return 'Daily Standings Table';
       case 'head_to_head': return 'Head to Head';
       case 'team_profile': return 'Team Profile';
