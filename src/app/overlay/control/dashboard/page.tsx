@@ -22,6 +22,10 @@ export default function OverlayControlDashboardPage() {
 
   // Panel B State (Flexible Top 5)
   const [top5TournamentId, setTop5TournamentId] = useState('');
+  const [top5Mode, setTop5Mode] = useState<'daily' | 'collation'>('daily');
+  const [top5Day, setTop5Day] = useState(1);
+  const [top5LobbyMode, setTop5LobbyMode] = useState<'full_day' | 'single_lobby'>('full_day');
+  const [top5Lobby, setTop5Lobby] = useState<number | ''>('');
   const [top5Page, setTop5Page] = useState(1);
   const [showTitle, setShowTitle] = useState(true);
   const [sendingTop5, setSendingTop5] = useState(false);
@@ -37,6 +41,10 @@ export default function OverlayControlDashboardPage() {
 
     if (overlayState?.flexibleTop5) {
       setTop5TournamentId(overlayState.flexibleTop5.tournamentId || '');
+      setTop5Mode(overlayState.flexibleTop5.mode || 'daily');
+      setTop5Day(overlayState.flexibleTop5.day || 1);
+      setTop5LobbyMode(overlayState.flexibleTop5.lobbyMode || 'full_day');
+      setTop5Lobby(overlayState.flexibleTop5.lobby || '');
       setTop5Page(overlayState.flexibleTop5.page || 1);
       setShowTitle(overlayState.flexibleTop5.showTitle ?? true);
     }
@@ -44,7 +52,7 @@ export default function OverlayControlDashboardPage() {
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const rosterRenderUrl = `${origin}/overlay/render/team-roster-kills?tournamentId=${tournamentId}&day=${day}&lobby=${lobby}&teamId=${teamId}`;
-  const top5RenderUrl = `${origin}/overlay/render/flexible-top5?tournamentId=${top5TournamentId}&page=${top5Page}&showTitle=${showTitle ? '1' : '0'}`;
+  const top5RenderUrl = `${origin}/overlay/render/flexible-top5?tournamentId=${top5TournamentId}&mode=${top5Mode}&day=${top5Day}&lobbyMode=${top5LobbyMode}${top5Lobby ? `&lobby=${top5Lobby}` : ''}&page=${top5Page}&showTitle=${showTitle ? '1' : '0'}`;
 
   const handleSendRoster = async () => {
     if (!tournamentId || !teamId) {
@@ -75,10 +83,18 @@ export default function OverlayControlDashboardPage() {
     try {
       await updateState({
         activeTemplate: 'flexible-top5',
-        flexibleTop5: { tournamentId: top5TournamentId, page: targetPage, showTitle },
+        flexibleTop5: {
+          tournamentId: top5TournamentId,
+          mode: top5Mode,
+          day: top5Day,
+          lobbyMode: top5LobbyMode,
+          lobby: top5LobbyMode === 'single_lobby' && top5Lobby !== '' ? Number(top5Lobby) : undefined,
+          page: targetPage,
+          showTitle,
+        },
       });
       setTop5Page(targetPage);
-      showToast(`Flexible Top 5 (Page ${targetPage}) pushed to broadcast render!`, 'success');
+      showToast(`Flexible Top 5 (${top5Mode.toUpperCase()}, Page ${targetPage}) pushed to broadcast render!`, 'success');
     } catch (err: any) {
       showToast('Failed to update overlay state: ' + err.message, 'error');
     } finally {
@@ -268,18 +284,87 @@ export default function OverlayControlDashboardPage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Mode Toggle */}
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>
-                  Tournament ID
+                  Standings Mode
                 </label>
-                <input
-                  type="text"
-                  placeholder="e.g. tour_abc123"
-                  value={top5TournamentId}
-                  onChange={(e) => setTop5TournamentId(e.target.value)}
-                  style={{ width: '100%', padding: '10px 14px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', color: '#fff', fontSize: '14px' }}
-                />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setTop5Mode('daily')}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      background: top5Mode === 'daily' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(255,255,255,0.05)',
+                      color: top5Mode === 'daily' ? '#C084FC' : 'rgba(255,255,255,0.7)',
+                      fontWeight: top5Mode === 'daily' ? 700 : 500,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Daily Results
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTop5Mode('collation')}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      background: top5Mode === 'collation' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(255,255,255,0.05)',
+                      color: top5Mode === 'collation' ? '#C084FC' : 'rgba(255,255,255,0.7)',
+                      fontWeight: top5Mode === 'collation' ? 700 : 500,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Collation (Overall)
+                  </button>
+                </div>
               </div>
+
+              {/* Day & Lobby controls — only when Daily mode selected */}
+              {top5Mode === 'daily' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr', gap: '10px', alignItems: 'center' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>Day</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={top5Day}
+                      onChange={(e) => setTop5Day(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                      style={{ width: '100%', padding: '8px 12px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', color: '#fff', fontSize: '13px' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>Scope</label>
+                    <select
+                      value={top5LobbyMode}
+                      onChange={(e) => setTop5LobbyMode(e.target.value as any)}
+                      style={{ width: '100%', padding: '8px 12px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', color: '#fff', fontSize: '13px' }}
+                    >
+                      <option value="full_day">Full Day</option>
+                      <option value="single_lobby">Single Lobby</option>
+                    </select>
+                  </div>
+                  {top5LobbyMode === 'single_lobby' && (
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>Lobby</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={top5Lobby}
+                        onChange={(e) => setTop5Lobby(e.target.value === '' ? '' : Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        style={{ width: '100%', padding: '8px 12px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', color: '#fff', fontSize: '13px' }}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>

@@ -5,16 +5,26 @@ import { useSearchParams } from 'next/navigation';
 import { FlexibleTop5Graphic } from '@/components/templates/FlexibleTop5Graphic';
 import { useOverlayState } from '@/hooks/useOverlayState';
 import { COLORS } from '@/lib/overlayDesignTokens';
-import { getTopStandings } from '@/lib/statsApi';
+import { getTopStandings, getDailyStandings } from '@/lib/statsApi';
 
 function FlexibleTop5Content() {
   const searchParams = useSearchParams();
   const { state: overlayState } = useOverlayState();
 
   const queryTournamentId = searchParams.get('tournamentId');
+  const queryMode = searchParams.get('mode');
+  const queryDay = searchParams.get('day');
+  const queryLobby = searchParams.get('lobby');
+  const queryLobbyMode = searchParams.get('lobbyMode');
+  const queryGroupId = searchParams.get('groupId');
   const queryPage = searchParams.get('page');
 
   const tournamentId = queryTournamentId || overlayState?.flexibleTop5?.tournamentId || '';
+  const mode = (queryMode || overlayState?.flexibleTop5?.mode || 'daily') as 'daily' | 'collation';
+  const day = queryDay ? parseInt(queryDay, 10) : overlayState?.flexibleTop5?.day || 1;
+  const lobbyMode = (queryLobbyMode || overlayState?.flexibleTop5?.lobbyMode || 'full_day') as 'full_day' | 'single_lobby';
+  const lobby = queryLobby ? parseInt(queryLobby, 10) : overlayState?.flexibleTop5?.lobby;
+  const groupId = queryGroupId || overlayState?.flexibleTop5?.groupId;
   const currentPage = queryPage ? parseInt(queryPage, 10) : overlayState?.flexibleTop5?.page || 1;
 
   const [allTeams, setAllTeams] = useState<any[]>([]);
@@ -31,7 +41,12 @@ function FlexibleTop5Content() {
     setLoading(true);
     setError(null);
 
-    getTopStandings(tournamentId, 100, 'team')
+    const lobbyNum = lobbyMode === 'single_lobby' && lobby ? Number(lobby) : undefined;
+    const fetchPromise = mode === 'daily'
+      ? getDailyStandings(tournamentId, day, { lobby: lobbyNum, n: 100, groupId })
+      : getTopStandings(tournamentId, 100, 'team', groupId);
+
+    fetchPromise
       .then((json) => {
         if (isMounted) {
           const results = (json as any).results || (json as any).standings || [];
@@ -51,7 +66,7 @@ function FlexibleTop5Content() {
     return () => {
       isMounted = false;
     };
-  }, [tournamentId]);
+  }, [tournamentId, mode, day, lobbyMode, lobby, groupId]);
 
   return (
     <div
@@ -114,7 +129,16 @@ function FlexibleTop5Content() {
       {/* Render Full Graphic */}
       {!loading && allTeams.length > 0 && (
         <div style={{ transform: 'scale(1)', transformOrigin: 'center' }}>
-          <FlexibleTop5Graphic data={{ rows: allTeams, page: currentPage }} />
+          <FlexibleTop5Graphic
+            data={{
+              rows: allTeams,
+              page: currentPage,
+              hybridEraMode: mode,
+              day,
+              lobby: lobbyMode === 'single_lobby' ? lobby : undefined,
+              selectedGroup: groupId,
+            }}
+          />
         </div>
       )}
     </div>

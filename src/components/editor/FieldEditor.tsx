@@ -754,6 +754,10 @@ function HybridEraFetchEditor({
         }
         const payload: Record<string, any> = {
           ...data, results, rows: results, teams: results, players: results,
+          hybridEraMode: mode,
+          day,
+          lobbyMode,
+          lobby: lobbyMode === 'single_lobby' && lobby !== '' ? Number(lobby) : undefined,
           selectedGroup: activeGroupId || 'all',
           currentData: { ...data, results, rows: results, teams: results, players: results, groupId: activeGroupId || 'all' },
         };
@@ -768,6 +772,7 @@ function HybridEraFetchEditor({
         }
         const payload: Record<string, any> = {
           results, rows: results, teams: results, players: results,
+          hybridEraMode: mode,
           selectedGroup: activeGroupId || 'all',
           currentData: { results, rows: results, teams: results, players: results, groupId: activeGroupId || 'all' },
         };
@@ -1179,7 +1184,7 @@ export function FieldEditor({
         return <TeamRosterKillsFetchEditor tournaments={tournaments} onFetched={onFetched} />;
 
       case 'flexible_top5':
-        return <StandingsFetchEditor label="Fetch Flexible Top 5 Data" tournaments={tournaments} defaultN={100} onFetched={onFetched} />;
+        return <HybridEraFetchEditor tournaments={tournaments} onFetched={onFetched} />;
 
       case 'daily_standings':
         return <DailyFetchEditor tournaments={tournaments} onFetched={onFetched} />;

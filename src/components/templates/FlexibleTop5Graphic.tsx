@@ -104,7 +104,34 @@ export function FlexibleTop5Graphic({ data = {}, styleConfig = {} }: FlexibleTop
     };
   });
 
-  const resolvedTitle = graphicTitle || 'TOURNAMENT STANDINGS';
+  const resolvedMode = data.hybridEraMode || styleConfig.hybridEraMode || 'daily';
+  const selectedGroup = data.selectedGroup || styleConfig.selectedGroup;
+  const selectedMap = data.selectedMap || styleConfig.selectedMap;
+  const groupPrefix = selectedGroup && selectedGroup !== 'all' ? `${selectedGroup.toUpperCase()} — ` : '';
+  const mapSuffix = selectedMap && selectedMap !== 'none' ? ` (${selectedMap.toUpperCase()})` : '';
+
+  let defaultSubheaderText = 'LIVE OVERLAY GRAPHIC';
+  if (resolvedMode === 'collation') {
+    defaultSubheaderText = `${groupPrefix}OVERALL COLLATION${mapSuffix}`;
+  } else {
+    const dayStr = data.day ? `DAY ${data.day}` : '';
+    const lobbyStr = data.lobby ? `LOBBY ${data.lobby}` : '';
+    const lobbyDetail = dayStr || lobbyStr ? `${dayStr}${dayStr && lobbyStr ? ' · ' : ''}${lobbyStr}` : 'AFTER GAME ONE';
+    defaultSubheaderText = `${groupPrefix}${lobbyDetail}${mapSuffix}`;
+  }
+
+  const resolvedSubheader =
+    data.hybridEraSubheader ||
+    data.graphicSubtitle ||
+    data.subheader ||
+    styleConfig.hybridEraSubheader ||
+    graphicSubtitle ||
+    defaultSubheaderText;
+
+  const resolvedTitle =
+    graphicTitle ||
+    data.graphicTitle ||
+    (resolvedMode === 'collation' ? 'TOP 5 COLLATED' : 'TOURNAMENT STANDINGS');
   const hasBrandingLogo = Boolean(brandingLogoUrl);
   const hasTourneyLogo = Boolean(tournamentLogos && tournamentLogos[0]?.logoUrl);
 
@@ -249,7 +276,7 @@ export function FlexibleTop5Graphic({ data = {}, styleConfig = {} }: FlexibleTop
                   textShadow: `0 0 12px ${hexToRgba(accent, 0.3)}`,
                 }}
               >
-                LIVE OVERLAY GRAPHIC
+                {resolvedSubheader}
               </span>
             )}
           </div>

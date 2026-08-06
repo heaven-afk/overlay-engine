@@ -14,6 +14,11 @@ export interface OverlayStatePayload {
   };
   flexibleTop5?: {
     tournamentId: string;
+    mode?: 'daily' | 'collation';
+    day?: number;
+    lobbyMode?: 'full_day' | 'single_lobby';
+    lobby?: number;
+    groupId?: string;
     page: number;
     showTitle: boolean;
   };
