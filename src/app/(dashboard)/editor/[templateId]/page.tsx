@@ -7,7 +7,7 @@ import {
   getTemplate, saveTemplate, getTournaments,
   OverlayTemplate, TemplateStyleConfig, ColorTheme, TemplateType
 } from '@/lib/db';
-import { getTopStandings, getGlobalRankings, getProfile, compareEntities, getDailyStandings, getLobbyKills } from '@/lib/statsApi';
+import { getTopStandings, getGlobalRankings, getProfile, compareEntities, getDailyStandings, getLobbyKills, getTeamKills } from '@/lib/statsApi';
 import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, doc } from 'firebase/firestore';
@@ -563,9 +563,9 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             setPreviewData({});
             return;
           }
+          const scope = styleConfig.scope || 'collation';
           const day = styleConfig.day || 1;
-          const lobby = styleConfig.lobby || 1;
-          const data = await getLobbyKills(selectedTournamentId, day, lobby, previewTeamId).catch(() => ({}));
+          const data = await getTeamKills(selectedTournamentId, previewTeamId, scope, scope === 'daily' ? day : undefined).catch(() => ({}));
           if (active) {
             setPreviewData(data);
           }

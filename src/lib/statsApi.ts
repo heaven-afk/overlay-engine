@@ -117,3 +117,23 @@ export async function getLobbyKills(
     teamId,
   });
 }
+
+/**
+ * Get top 4 player kills for a team scoped to either full tournament collation or a single day.
+ */
+export async function getTeamKills(
+  tournamentId: string,
+  teamId: string,
+  scope: 'collation' | 'daily' = 'collation',
+  day?: number
+) {
+  const params: Record<string, string> = {
+    tournamentId,
+    teamId,
+    scope,
+  };
+  if (scope === 'daily' && day !== undefined) {
+    params.day = String(day);
+  }
+  return callStatsApi('/api/overlay/team-kills', params);
+}

@@ -13,10 +13,10 @@ export default function OverlayControlDashboardPage() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // Panel A State (Team Roster Kill Cards)
+  // Panel A State (Team Roster Kills)
   const [tournamentId, setTournamentId] = useState('');
+  const [scope, setScope] = useState<'collation' | 'daily'>('collation');
   const [day, setDay] = useState(1);
-  const [lobby, setLobby] = useState(1);
   const [teamId, setTeamId] = useState('');
   const [sendingRoster, setSendingRoster] = useState(false);
 
@@ -34,8 +34,8 @@ export default function OverlayControlDashboardPage() {
   useEffect(() => {
     if (overlayState?.teamRosterKills) {
       setTournamentId(overlayState.teamRosterKills.tournamentId || '');
+      setScope((overlayState.teamRosterKills.scope as any) || 'collation');
       setDay(overlayState.teamRosterKills.day || 1);
-      setLobby(overlayState.teamRosterKills.lobby || 1);
       setTeamId(overlayState.teamRosterKills.teamId || '');
     }
 
@@ -51,7 +51,7 @@ export default function OverlayControlDashboardPage() {
   }, [overlayState]);
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const rosterRenderUrl = `${origin}/overlay/render/team-roster-kills?tournamentId=${tournamentId}&day=${day}&lobby=${lobby}&teamId=${teamId}`;
+  const rosterRenderUrl = `${origin}/overlay/render/team-roster-kills?tournamentId=${tournamentId}&teamId=${teamId}&scope=${scope}${scope === 'daily' ? `&day=${day}` : ''}`;
   const top5RenderUrl = `${origin}/overlay/render/flexible-top5?tournamentId=${top5TournamentId}&mode=${top5Mode}&day=${top5Day}&lobbyMode=${top5LobbyMode}${top5Lobby ? `&lobby=${top5Lobby}` : ''}&page=${top5Page}&showTitle=${showTitle ? '1' : '0'}`;
 
   const handleSendRoster = async () => {
@@ -63,9 +63,9 @@ export default function OverlayControlDashboardPage() {
     try {
       await updateState({
         activeTemplate: 'team-roster-kills',
-        teamRosterKills: { tournamentId, day, lobby, teamId },
+        teamRosterKills: { tournamentId, scope, day, teamId },
       });
-      showToast('Roster Kill Cards pushed to broadcast render!', 'success');
+      showToast(`Team Roster Kills (${scope.toUpperCase()}) pushed to broadcast render!`, 'success');
     } catch (err: any) {
       showToast('Failed to update overlay state: ' + err.message, 'error');
     } finally {
@@ -175,6 +175,49 @@ export default function OverlayControlDashboardPage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Scope Mode Toggle: Collation vs Daily */}
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>
+                  Scope Mode
+                </label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setScope('collation')}
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      borderRadius: '6px',
+                      border: '1px solid ' + (scope === 'collation' ? '#FFD700' : 'rgba(255,255,255,0.15)'),
+                      background: scope === 'collation' ? 'rgba(255, 215, 0, 0.15)' : 'rgba(255,255,255,0.05)',
+                      color: scope === 'collation' ? '#FFD700' : '#fff',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Collation (Tournament)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScope('daily')}
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      borderRadius: '6px',
+                      border: '1px solid ' + (scope === 'daily' ? '#FFD700' : 'rgba(255,255,255,0.15)'),
+                      background: scope === 'daily' ? 'rgba(255, 215, 0, 0.15)' : 'rgba(255,255,255,0.05)',
+                      color: scope === 'daily' ? '#FFD700' : '#fff',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Daily Results
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>
                   Tournament ID
@@ -188,7 +231,7 @@ export default function OverlayControlDashboardPage() {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              {scope === 'daily' && (
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>Day</label>
                   <input
@@ -199,17 +242,7 @@ export default function OverlayControlDashboardPage() {
                     style={{ width: '100%', padding: '10px 14px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', color: '#fff', fontSize: '14px' }}
                   />
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>Lobby</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={lobby}
-                    onChange={(e) => setLobby(parseInt(e.target.value, 10) || 1)}
-                    style={{ width: '100%', padding: '10px 14px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', color: '#fff', fontSize: '14px' }}
-                  />
-                </div>
-              </div>
+              )}
 
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>

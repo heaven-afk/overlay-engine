@@ -8,9 +8,11 @@ export interface OverlayStatePayload {
   activeTemplate?: 'team-roster-kills' | 'flexible-top5' | string;
   teamRosterKills?: {
     tournamentId: string;
+    scope?: 'collation' | 'daily';
     day: number;
-    lobby: number;
+    lobby?: number;
     teamId: string;
+    frameColor?: string;
   };
   flexibleTop5?: {
     tournamentId: string;

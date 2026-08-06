@@ -84,6 +84,8 @@ export interface TemplateStyleConfig {
   day?: number;                         // day number for lobby/daily templates
   lobby?: number;                       // lobby number for lobby/daily templates
   teamId?: string;                      // selected team ID for team roster kills
+  scope?: 'collation' | 'daily';        // scope mode for team roster kills ('collation' or 'daily')
+  frameColor?: string;                  // operator-configurable base color for metallic card border
 }
 
 export interface OverlayTemplate {

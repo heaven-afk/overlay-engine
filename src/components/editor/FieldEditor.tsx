@@ -10,6 +10,7 @@ import {
   getProfile,
   getGlobalRankings,
   getLobbyKills,
+  getTeamKills,
 } from '@/lib/statsApi';
 
 interface FieldEditorProps {
@@ -941,8 +942,8 @@ function TeamRosterKillsFetchEditor({
   onFetched: (fields: Record<string, any>) => void;
 }) {
   const [tournamentId, setTournamentId] = useState('');
+  const [scope, setScope] = useState<'collation' | 'daily'>('collation');
   const [day, setDay] = useState(1);
-  const [lobby, setLobby] = useState(1);
   const [teamId, setTeamId] = useState('');
   const [teamsList, setTeamsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -960,16 +961,16 @@ function TeamRosterKillsFetchEditor({
     }
     try {
       setLoading(true);
-      const data = await getLobbyKills(tournamentId, day, lobby, teamId);
+      const data = await getTeamKills(tournamentId, teamId, scope, scope === 'daily' ? day : undefined);
       onFetched({
         ...data,
         tournamentId,
-        day,
-        lobby,
         teamId,
+        scope,
+        day,
       });
     } catch (err: any) {
-      console.error('Lobby kills fetch error:', err);
+      console.error('Roster kills fetch error:', err);
       alert(`Failed to fetch roster kills: ${err?.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
@@ -981,6 +982,26 @@ function TeamRosterKillsFetchEditor({
       <span className="slot-control-label" style={{ margin: 0, fontWeight: 700 }}>
         Fetch Team Roster Kills (Workspace)
       </span>
+
+      {/* Scope toggle: Collation vs Daily */}
+      <div style={{ display: 'flex', gap: '6px' }}>
+        <button
+          type="button"
+          onClick={() => setScope('collation')}
+          className={`toggle-btn${scope === 'collation' ? ' active' : ''}`}
+          style={{ fontSize: '0.75rem', padding: '3px 12px', height: '28px' }}
+        >
+          Collation (Tournament)
+        </button>
+        <button
+          type="button"
+          onClick={() => setScope('daily')}
+          className={`toggle-btn${scope === 'daily' ? ' active' : ''}`}
+          style={{ fontSize: '0.75rem', padding: '3px 12px', height: '28px' }}
+        >
+          Daily Results
+        </button>
+      </div>
 
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
         <select
@@ -1011,31 +1032,21 @@ function TeamRosterKillsFetchEditor({
       </div>
 
       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <label style={labelStyle}>Day</label>
-          <input
-            type="number"
-            min={1}
-            className="text-input"
-            style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
-            value={day}
-            onChange={(e) => setDay(Number(e.target.value))}
-          />
-        </div>
+        {scope === 'daily' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <label style={labelStyle}>Day</label>
+            <input
+              type="number"
+              min={1}
+              className="text-input"
+              style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+              value={day}
+              onChange={(e) => setDay(Number(e.target.value))}
+            />
+          </div>
+        )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <label style={labelStyle}>Lobby</label>
-          <input
-            type="number"
-            min={1}
-            className="text-input"
-            style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
-            value={lobby}
-            onChange={(e) => setLobby(Number(e.target.value))}
-          />
-        </div>
-
-        <button onClick={handleFetch} disabled={loading} className="btn btn-secondary btn-sm" style={fetchBtnStyle}>
+        <button onClick={handleFetch} disabled={loading} className="btn btn-secondary btn-sm" style={{ ...fetchBtnStyle, flex: 1 }}>
           {loading ? <Loader2 className="animate-spin" style={iconStyle} /> : <RefreshCw style={iconStyle} />}
           Update Draft Data
         </button>
