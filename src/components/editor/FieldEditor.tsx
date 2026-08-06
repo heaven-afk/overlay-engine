@@ -870,6 +870,124 @@ function HybridEraFetchEditor({
   );
 }
 
+// ─── Sub-editor: Team Roster Kills ─────────────────────────────────────────────
+function TeamRosterKillsFetchEditor({
+  tournaments,
+  onFetched,
+}: {
+  tournaments: any[];
+  onFetched: (fields: Record<string, any>) => void;
+}) {
+  const [tournamentId, setTournamentId] = useState('');
+  const [day, setDay] = useState(1);
+  const [lobby, setLobby] = useState(1);
+  const [teamId, setTeamId] = useState('');
+  const [teamsList, setTeamsList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    getGlobalRankings('team', 50)
+      .then((res) => setTeamsList(res.results || []))
+      .catch(() => setTeamsList([]));
+  }, []);
+
+  async function handleFetch() {
+    if (!tournamentId || !teamId) {
+      alert('Please select both a tournament and a team.');
+      return;
+    }
+    try {
+      setLoading(true);
+      const apiKey = process.env.NEXT_PUBLIC_OVERLAY_API_KEY || 'heaven-overlay-secret';
+      const baseUrl = process.env.NEXT_PUBLIC_HEAVEN_API_BASE_URL || 'http://localhost:3000';
+      const res = await fetch(`${baseUrl}/api/overlay/lobby-kills?tournamentId=${tournamentId}&day=${day}&lobby=${lobby}&teamId=${teamId}`, {
+        headers: { 'x-overlay-api-key': apiKey },
+      });
+      if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+      const data = await res.json();
+      onFetched({
+        ...data,
+        tournamentId,
+        day,
+        lobby,
+        teamId,
+      });
+    } catch (err: any) {
+      console.error('Lobby kills fetch error:', err);
+      alert(`Failed to fetch roster kills: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={wrapperStyle}>
+      <span className="slot-control-label" style={{ margin: 0, fontWeight: 700 }}>
+        Fetch Team Roster Kills (Workspace)
+      </span>
+
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <select
+          className="select-input"
+          style={selectStyle}
+          value={tournamentId}
+          onChange={(e) => setTournamentId(e.target.value)}
+        >
+          <option value="">-- Choose Tournament --</option>
+          {tournaments.map((t: any) => (
+            <option key={t.id} value={t.id}>{t.name}</option>
+          ))}
+        </select>
+
+        <select
+          className="select-input"
+          style={selectStyle}
+          value={teamId}
+          onChange={(e) => setTeamId(e.target.value)}
+        >
+          <option value="">-- Choose Team --</option>
+          {teamsList.map((t: any) => (
+            <option key={t.teamId || t.id} value={t.teamId || t.id}>
+              {t.teamName || t.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <label style={labelStyle}>Day</label>
+          <input
+            type="number"
+            min={1}
+            className="text-input"
+            style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+            value={day}
+            onChange={(e) => setDay(Number(e.target.value))}
+          />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <label style={labelStyle}>Lobby</label>
+          <input
+            type="number"
+            min={1}
+            className="text-input"
+            style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+            value={lobby}
+            onChange={(e) => setLobby(Number(e.target.value))}
+          />
+        </div>
+
+        <button onClick={handleFetch} disabled={loading} className="btn btn-secondary btn-sm" style={fetchBtnStyle}>
+          {loading ? <Loader2 className="animate-spin" style={iconStyle} /> : <RefreshCw style={iconStyle} />}
+          Update Draft Data
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Custom Media notice ───────────────────────────────────────────────────────
 function CustomMediaEditor() {
   return (
@@ -1061,6 +1179,12 @@ export function FieldEditor({
       case 'hybrid_era_top5':
       case 'top5_graphic':
         return <HybridEraFetchEditor tournaments={tournaments} onFetched={onFetched} />;
+
+      case 'team_roster_kills':
+        return <TeamRosterKillsFetchEditor tournaments={tournaments} onFetched={onFetched} />;
+
+      case 'flexible_top5':
+        return <StandingsFetchEditor label="Fetch Flexible Top 5 Data" tournaments={tournaments} defaultN={100} onFetched={onFetched} />;
 
       case 'daily_standings':
         return <DailyFetchEditor tournaments={tournaments} onFetched={onFetched} />;
