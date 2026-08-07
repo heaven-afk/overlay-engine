@@ -945,14 +945,35 @@ function TeamRosterKillsFetchEditor({
   const [scope, setScope] = useState<'collation' | 'daily'>('collation');
   const [day, setDay] = useState(1);
   const [teamId, setTeamId] = useState('');
-  const [teamsList, setTeamsList] = useState<any[]>([]);
+  const [globalEntities, setGlobalEntities] = useState<any[]>([]);
+  const [tournamentParticipants, setTournamentParticipants] = useState<any[]>([]);
+  const [pickerLoading, setPickerLoading] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    getGlobalRankings('team', 50)
-      .then((res) => setTeamsList(res.results || []))
-      .catch(() => setTeamsList([]));
-  }, []);
+    let active = true;
+    async function loadTeams() {
+      setPickerLoading(true);
+      try {
+        const [globalRes, tourneyRes] = await Promise.all([
+          getGlobalRankings('team', 50).catch(() => ({ results: [] })),
+          tournamentId
+            ? getTopStandings(tournamentId, 50, 'team').catch(() => ({ results: [] }))
+            : Promise.resolve({ results: [] }),
+        ]);
+
+        if (!active) return;
+        setGlobalEntities(globalRes.results || []);
+        setTournamentParticipants(tourneyRes.results || []);
+      } catch (err) {
+        console.error('Error loading team roster pickers:', err);
+      } finally {
+        if (active) setPickerLoading(false);
+      }
+    }
+    loadTeams();
+    return () => { active = false; };
+  }, [tournamentId]);
 
   async function handleFetch() {
     if (!tournamentId || !teamId) {
@@ -976,6 +997,14 @@ function TeamRosterKillsFetchEditor({
       setLoading(false);
     }
   }
+
+  const participantIds = new Set(
+    tournamentParticipants.map((p) => p.teamId || p.id).filter(Boolean)
+  );
+
+  const otherEntities = globalEntities.filter(
+    (e) => !participantIds.has(e.teamId || e.id)
+  );
 
   return (
     <div style={wrapperStyle}>
@@ -1023,11 +1052,23 @@ function TeamRosterKillsFetchEditor({
           onChange={(e) => setTeamId(e.target.value)}
         >
           <option value="">-- Choose Team --</option>
-          {teamsList.map((t: any) => (
-            <option key={t.teamId || t.id} value={t.teamId || t.id}>
-              {t.teamName || t.name}
-            </option>
-          ))}
+          {pickerLoading && <option disabled>Loading teams…</option>}
+          {tournamentParticipants.length > 0 && (
+            <optgroup label="⚡ Tournament Participants (Active in Selected Event)">
+              {tournamentParticipants.map((e: any) => {
+                const id = e.teamId || e.id;
+                const name = e.teamName || e.name;
+                return <option key={id} value={id}>🟢 {name} (Played in Event)</option>;
+              })}
+            </optgroup>
+          )}
+          <optgroup label={tournamentParticipants.length > 0 ? "🌐 Other Registered Entities" : "Registered Teams"}>
+            {otherEntities.map((e: any) => {
+              const id = e.teamId || e.id;
+              const name = e.teamName || e.name;
+              return <option key={id} value={id}>{name}</option>;
+            })}
+          </optgroup>
         </select>
       </div>
 

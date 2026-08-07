@@ -7,6 +7,7 @@ import { getCanvaEmbedUrl } from './SharedElements';
 interface FlexibleTop5GraphicProps {
   data?: any;
   styleConfig?: any;
+  isPreview?: boolean;
 }
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -25,7 +26,7 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function FlexibleTop5Graphic({ data = {}, styleConfig = {} }: FlexibleTop5GraphicProps) {
+export function FlexibleTop5Graphic({ data = {}, styleConfig = {}, isPreview = false }: FlexibleTop5GraphicProps) {
   const {
     graphicTitle,
     graphicSubtitle,
@@ -37,6 +38,8 @@ export function FlexibleTop5Graphic({ data = {}, styleConfig = {} }: FlexibleTop
     customBackgroundUrl,
     brandingName,
   } = styleConfig;
+
+  const isEditorPreview = isPreview || Boolean(styleConfig?.isPreview);
 
   const defaultAccent = '#EC4899';
   const accent = (!accentColor || accentColor === '#C9A84C') ? defaultAccent : accentColor;
@@ -75,17 +78,20 @@ export function FlexibleTop5Graphic({ data = {}, styleConfig = {} }: FlexibleTop
           ? data.currentData.results
           : null;
 
-  const rawTeams: any[] = resolvedTeamsArray || [
-    { teamId: 't1', teamName: 'REMEDIUM INVICTUS', rank: 1, totalPts: 180, trendDelta: 2 },
-    { teamId: 't2', teamName: 'KYZON ESPORTS', rank: 2, totalPts: 165, trendDelta: 0 },
-    { teamId: 't3', teamName: 'HYPERION SQUAD', rank: 3, totalPts: 150, trendDelta: -1 },
-    { teamId: 't4', teamName: 'PARIS CHITAURI', rank: 4, totalPts: 135, trendDelta: 1 },
-    { teamId: 't5', teamName: 'VORTEX ONE', rank: 5, totalPts: 120, trendDelta: -2 },
+  const mockTeams: any[] = [
+    { teamId: 't1', teamName: 'REMEDIUM INVICTUS', rank: 1, totalPts: 180, trendDelta: 2, formLabel: 'Red Hot', trend: 'up', confidence: 'full' },
+    { teamId: 't2', teamName: 'KYZON ESPORTS', rank: 2, totalPts: 165, trendDelta: 0, formLabel: 'Steady', trend: 'flat', confidence: 'full' },
+    { teamId: 't3', teamName: 'HYPERION SQUAD', rank: 3, totalPts: 150, trendDelta: -1, formLabel: 'Cooling Off', trend: 'down', confidence: 'full' },
+    { teamId: 't4', teamName: 'PARIS CHITAURI', rank: 4, totalPts: 135, trendDelta: 1, formLabel: 'In Form', trend: 'up', confidence: 'full' },
+    { teamId: 't5', teamName: 'VORTEX ONE', rank: 5, totalPts: 120, trendDelta: -2, formLabel: 'Cold', trend: 'down', confidence: 'full' },
   ];
+
+  const rawTeams: any[] = resolvedTeamsArray || (isEditorPreview ? mockTeams : []);
+  const hasData = rawTeams.length > 0;
 
   const currentPage = data.page || 1;
   const pageSize = 5;
-  const totalPages = Math.max(Math.ceil(rawTeams.length / pageSize), 1);
+  const totalPages = Math.max(Math.ceil((rawTeams.length || 1) / pageSize), 1);
   const startIdx = (currentPage - 1) * pageSize;
 
   const pageSlice = rawTeams.slice(startIdx, startIdx + pageSize);
@@ -98,19 +104,20 @@ export function FlexibleTop5Graphic({ data = {}, styleConfig = {} }: FlexibleTop
         teamId: item.teamId || item.id,
         teamName: item.teamName || item.name || `TEAM ${startIdx + i + 1}`,
         logoUrl: item.logoUrl || item.logo || null,
-        slot: item.slot || null,
-        rank: item.rank || startIdx + i + 1,
-        totalPts: item.totalPts ?? item.points ?? 0,
+        rank: item.rank || (startIdx + i + 1),
+        totalPts: item.totalPts ?? item.pts ?? 0,
         trendDelta: item.trendDelta ?? null,
+        formLabel: item.formLabel ?? null,
+        trend: item.trend ?? null,
+        confidence: item.confidence ?? null,
+        decayedForm: item.decayedForm ?? null,
       };
     }
     return {
       teamId: '',
       teamName: `TEAM ${startIdx + i + 1}`,
-      logoUrl: null,
       rank: startIdx + i + 1,
       totalPts: 0,
-      trendDelta: null,
     };
   });
 
@@ -194,6 +201,30 @@ export function FlexibleTop5Graphic({ data = {}, styleConfig = {} }: FlexibleTop
             pointerEvents: 'none',
           }}
         />
+      )}
+
+      {/* PREVIEW MODE Badge */}
+      {isEditorPreview && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '20px',
+            left: '20px',
+            zIndex: 100,
+            padding: '6px 14px',
+            backgroundColor: 'rgba(234, 179, 8, 0.95)',
+            color: '#000000',
+            fontWeight: 900,
+            fontSize: '12px',
+            letterSpacing: '1.5px',
+            borderRadius: '6px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+            fontFamily: '"Orbitron", sans-serif',
+            textTransform: 'uppercase',
+          }}
+        >
+          PREVIEW MODE (SAMPLE DATA)
+        </div>
       )}
 
       <div

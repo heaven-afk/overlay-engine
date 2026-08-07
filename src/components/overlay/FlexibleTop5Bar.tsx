@@ -13,6 +13,10 @@ export interface FlexibleTop5TeamData {
   rank: number;
   totalPts: number;
   trendDelta?: number | null;
+  formLabel?: string | null;
+  trend?: 'up' | 'down' | 'flat' | 'new' | null;
+  confidence?: 'full' | 'provisional' | 'unranked' | null;
+  decayedForm?: number | null;
 }
 
 interface FlexibleTop5BarProps {
@@ -238,10 +242,31 @@ export function FlexibleTop5Bar({
           </span>
         </div>
 
-        {/* Trend Arrow */}
+        {/* Global Form Badge / Trend Arrow */}
         {!isEmpty && (
-          <div style={{ fontFamily: '"Orbitron", sans-serif', fontSize: '15px', minWidth: '40px', textAlign: 'center' }}>
-            <TrendArrow delta={team.trendDelta} />
+          <div style={{ fontFamily: '"Orbitron", sans-serif', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px', minWidth: '70px', justifyContent: 'center' }}>
+            {team.formLabel && team.confidence !== 'unranked' ? (
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  padding: '3px 10px',
+                  borderRadius: '12px',
+                  letterSpacing: '1px',
+                  textTransform: 'uppercase',
+                  backgroundColor: team.trend === 'up' ? 'rgba(239,68,68,0.2)' : team.trend === 'down' ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.08)',
+                  color: team.trend === 'up' ? '#ef4444' : team.trend === 'down' ? '#60a5fa' : hexToRgba(accent, 0.9),
+                  border: `1px solid ${team.trend === 'up' ? 'rgba(239,68,68,0.4)' : team.trend === 'down' ? 'rgba(59,130,246,0.4)' : hexToRgba(accent, 0.3)}`,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                {team.trend === 'up' ? '🔥' : team.trend === 'down' ? '↘' : '➡'} {team.formLabel}
+              </span>
+            ) : (
+              <TrendArrow delta={team.trendDelta} />
+            )}
           </div>
         )}
 

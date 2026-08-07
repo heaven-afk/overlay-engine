@@ -7,11 +7,14 @@ import { getTeamKills } from '@/lib/statsApi';
 interface TeamRosterKillsGraphicProps {
   data?: any;
   styleConfig?: any;
+  isPreview?: boolean;
 }
 
-export function TeamRosterKillsGraphic({ data = {}, styleConfig }: TeamRosterKillsGraphicProps) {
+export function TeamRosterKillsGraphic({ data = {}, styleConfig, isPreview = false }: TeamRosterKillsGraphicProps) {
   const [resolvedData, setResolvedData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+
+  const isEditorPreview = isPreview || Boolean(styleConfig?.isPreview);
 
   const tournamentId = data.tournamentId || styleConfig?.tournamentId || '';
   const teamId = data.teamId || styleConfig?.teamId || '';
@@ -52,20 +55,59 @@ export function TeamRosterKillsGraphic({ data = {}, styleConfig }: TeamRosterKil
     };
   }, [tournamentId, teamId, scope, day, data]);
 
-  const team = resolvedData?.team || data.team || {
-    id: teamId,
+  const mockTeam = {
+    id: 't_sample',
     name: data.teamName || 'SAMPLE TEAM',
     logo: data.logoUrl || data.logo || null,
-    currentRank: data.currentRank || 1,
-    totalKills: data.totalKills || 0,
+    currentRank: 1,
+    totalKills: 47,
   };
 
-  const players: PlayerRosterData[] = resolvedData?.players || data.players || [
+  const mockPlayers: PlayerRosterData[] = [
     { id: 'p1', ign: 'PlayerOne', professionalName: 'Pro One', country: 'NG', kills: 18, photoUrl: null },
     { id: 'p2', ign: 'PlayerTwo', professionalName: 'Pro Two', country: 'US', kills: 14, photoUrl: null },
     { id: 'p3', ign: 'PlayerThree', professionalName: 'Pro Three', country: 'BR', kills: 9, photoUrl: null },
-    { id: 'p4', ign: 'PlayerFour', professionalName: 'Pro Four', country: 'IN', countryEmoji: '🇮🇳', kills: 6, photoUrl: null },
+    { id: 'p4', ign: 'PlayerFour', professionalName: 'Pro Four', country: 'IN', kills: 6, photoUrl: null },
   ];
+
+  const hasResolvedData = Boolean(resolvedData || (data.players && data.team));
+  const team = resolvedData?.team || data.team || (isEditorPreview ? mockTeam : null);
+  const players: PlayerRosterData[] = resolvedData?.players || data.players || (isEditorPreview ? mockPlayers : []);
+
+  if (!team && !loading) {
+    return (
+      <div
+        style={{
+          width: '1920px',
+          height: '1080px',
+          backgroundColor: 'transparent',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: '"Orbitron", sans-serif',
+        }}
+      >
+        <div
+          style={{
+            padding: '32px 48px',
+            background: 'rgba(10, 10, 15, 0.85)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '16px',
+            textAlign: 'center',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <div style={{ fontSize: '24px', fontWeight: 900, color: '#C9A84C', marginBottom: '8px', letterSpacing: '2px' }}>
+            NO TEAM ROSTER KILLS DATA AVAILABLE
+          </div>
+          <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>
+            Select a tournament and team in the Studio or Broadcast Control Dashboard.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -79,9 +121,33 @@ export function TeamRosterKillsGraphic({ data = {}, styleConfig }: TeamRosterKil
         justifyContent: 'center',
         padding: '24px 40px 20px 40px',
         boxSizing: 'border-box',
+        position: 'relative',
         fontFamily: styleConfig?.headingFont ? `'${styleConfig.headingFont}', sans-serif` : '"Orbitron", "Rajdhani", sans-serif',
       }}
     >
+      {/* PREVIEW MODE Badge */}
+      {isEditorPreview && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '24px',
+            left: '24px',
+            zIndex: 100,
+            padding: '6px 14px',
+            backgroundColor: 'rgba(234, 179, 8, 0.95)',
+            color: '#000000',
+            fontWeight: 900,
+            fontSize: '12px',
+            letterSpacing: '1.5px',
+            borderRadius: '6px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+            fontFamily: '"Orbitron", sans-serif',
+            textTransform: 'uppercase',
+          }}
+        >
+          PREVIEW MODE (SAMPLE DATA)
+        </div>
+      )}
       {/* Team Header (inline row, above cards, centered as one unit) */}
       <div
         style={{

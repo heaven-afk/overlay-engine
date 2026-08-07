@@ -15,6 +15,7 @@ import {
   getProfile,
   compareEntities,
   getDailyStandings,
+  getTeamKills,
 } from '@/lib/statsApi';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
@@ -34,6 +35,23 @@ interface DailyStandingsConfig {
   mode: 'full_day' | 'single_lobby';
   lobby: number | '';
   n: number;
+  groupId?: string;
+}
+
+interface TeamRosterKillsSlotConfig {
+  tournamentId: string;
+  teamId: string;
+  scope: 'collation' | 'daily';
+  day: number;
+}
+
+interface FlexibleTop5SlotConfig {
+  tournamentId: string;
+  mode: 'daily' | 'collation';
+  type: 'team' | 'player';
+  day: number;
+  startRank: number;
+  count: number;
   groupId?: string;
 }
 
@@ -98,9 +116,12 @@ export default function SlotsDashboard() {
   // Per-slot configuration state
   const [standingsConfig, setStandingsConfig] = useState<Record<string, StandingsConfig>>({});
   const [dailyConfig, setDailyConfig] = useState<Record<string, DailyStandingsConfig>>({});
+  const [teamRosterConfig, setTeamRosterConfig] = useState<Record<string, TeamRosterKillsSlotConfig>>({});
+  const [flexibleTop5Config, setFlexibleTop5Config] = useState<Record<string, FlexibleTop5SlotConfig>>({});
   const [teamProfileConfig, setTeamProfileConfig] = useState<Record<string, TeamProfileConfig>>({});
   const [h2hConfig, setH2HConfig] = useState<Record<string, H2HConfig>>({});
   const [playerCardConfig, setPlayerCardConfig] = useState<Record<string, PlayerCardConfig>>({});
+  const [tournamentTeamsMap, setTournamentTeamsMap] = useState<Record<string, any[]>>({});
 
   // Global pickers data
   const [globalTeams, setGlobalTeams] = useState<any[]>([]);
@@ -498,6 +519,107 @@ export default function SlotsDashboard() {
     }
   }
 
+  async function loadTournamentTeams(tournamentId: string) {
+    if (!tournamentId || tournamentTeamsMap[tournamentId]) return;
+    try {
+      const { results } = await getTopStandings(tournamentId, 50, 'team').catch(() => ({ results: [] }));
+      setTournamentTeamsMap((prev) => ({ ...prev, [tournamentId]: results || [] }));
+    } catch (err) {
+      console.error('Error loading tournament teams:', err);
+    }
+  }
+
+  async function fetchTeamRosterKillsData(slot: OverlaySlot) {
+    const cfg = teamRosterConfig[slot.id!];
+    const tournamentId = cfg?.tournamentId;
+    const teamId = cfg?.teamId;
+    const scope = cfg?.scope ?? 'collation';
+    const day = cfg?.day ?? 1;
+
+    if (!tournamentId || !teamId) {
+      alert('Please select both a tournament and a team.');
+      return;
+    }
+
+    try {
+      setPushingId(slot.id!);
+      const data = await getTeamKills(tournamentId, teamId, scope, scope === 'daily' ? day : undefined);
+      const payload: Record<string, any> = {
+        ...data,
+        tournamentId,
+        teamId,
+        scope,
+        day,
+        currentData: data,
+      };
+      await updateSlotWorkspaceFields(slot, payload);
+    } catch (err: any) {
+      console.error('Error fetching team roster kills:', err);
+      alert(`Failed to load roster kills: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setPushingId(null);
+    }
+  }
+
+  async function fetchFlexibleTop5Data(slot: OverlaySlot) {
+    const cfg = flexibleTop5Config[slot.id!];
+    const tournamentId = cfg?.tournamentId;
+    const mode = cfg?.mode ?? 'daily';
+    const type = cfg?.type ?? 'team';
+    const day = cfg?.day ?? 1;
+    const startRank = cfg?.startRank ?? 1;
+    const count = cfg?.count ?? 5;
+    const fetchN = startRank + count - 1;
+
+    if (!tournamentId) {
+      alert('Please select a tournament first.');
+      return;
+    }
+
+    try {
+      setPushingId(slot.id!);
+      let rawResults: any[] = [];
+      let fullData: any = {};
+
+      if (mode === 'daily') {
+        fullData = await getDailyStandings(tournamentId, day, { n: fetchN, groupId: cfg?.groupId });
+        rawResults = fullData?.results || (Array.isArray(fullData) ? fullData : []);
+      } else {
+        const resp = await getTopStandings(tournamentId, fetchN, type, cfg?.groupId);
+        fullData = resp;
+        rawResults = resp?.results || [];
+      }
+
+      const slicedResults = rawResults.slice(startRank - 1, startRank - 1 + count);
+
+      const payload: Record<string, any> = {
+        ...fullData,
+        results: slicedResults,
+        rows: slicedResults,
+        teams: slicedResults,
+        players: slicedResults,
+        mode,
+        type,
+        page: Math.ceil(startRank / count),
+        startRank,
+        count,
+        currentData: {
+          ...fullData,
+          results: slicedResults,
+          rows: slicedResults,
+          teams: slicedResults,
+          players: slicedResults,
+        },
+      };
+      await updateSlotWorkspaceFields(slot, payload);
+    } catch (err: any) {
+      console.error('Error fetching flexible top 5 data:', err);
+      alert(`Failed to load flexible top 5 data: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setPushingId(null);
+    }
+  }
+
   async function handleDeleteSlot(slotId: string) {
     if (!confirm('Are you sure you want to delete this slot? All live OBS targets will go offline.')) return;
     try {
@@ -676,6 +798,228 @@ export default function SlotsDashboard() {
               onClick={() => fetchDailyStandingsData(slot)}
               className="btn btn-secondary btn-sm"
               style={{ height: '32px', fontSize: '0.8rem', padding: '0 0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+              disabled={isPushing}
+            >
+              {isPushing ? <Loader2 className="animate-spin" style={{ width: '13px', height: '13px' }} /> : <RefreshCw style={{ width: '13px', height: '13px' }} />}
+              Update Draft Data
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (dataShape === 'team_roster_kills') {
+      const cfg = teamRosterConfig[slot.id!] ?? { tournamentId: '', teamId: '', scope: 'collation', day: 1 };
+      const tournamentTeams = cfg.tournamentId ? (tournamentTeamsMap[cfg.tournamentId] || []) : [];
+      const participantIds = new Set(tournamentTeams.map((p) => p.teamId || p.id).filter(Boolean));
+      const otherTeams = globalTeams.filter((e) => !participantIds.has(e.teamId || e.id));
+
+      return (
+        <div style={{
+          background: 'rgba(255,255,255,0.02)',
+          padding: '0.75rem',
+          borderRadius: '8px',
+          border: '1px solid rgba(255,255,255,0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem',
+        }}>
+          <span className="slot-control-label" style={{ margin: 0, fontWeight: 600 }}>
+            Fetch Team Roster Kills Data (Workspace)
+          </span>
+
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              type="button"
+              onClick={() => setTeamRosterConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, scope: 'collation' } }))}
+              style={{
+                fontSize: '0.72rem',
+                padding: '2px 10px',
+                borderRadius: '4px',
+                border: '1px solid ' + (cfg.scope === 'collation' ? '#d946ef' : 'rgba(255,255,255,0.1)'),
+                background: cfg.scope === 'collation' ? 'rgba(217,70,239,0.15)' : 'transparent',
+                color: cfg.scope === 'collation' ? '#d946ef' : 'var(--text-muted)',
+                cursor: 'pointer',
+              }}
+            >
+              Collation
+            </button>
+            <button
+              type="button"
+              onClick={() => setTeamRosterConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, scope: 'daily' } }))}
+              style={{
+                fontSize: '0.72rem',
+                padding: '2px 10px',
+                borderRadius: '4px',
+                border: '1px solid ' + (cfg.scope === 'daily' ? '#d946ef' : 'rgba(255,255,255,0.1)'),
+                background: cfg.scope === 'daily' ? 'rgba(217,70,239,0.15)' : 'transparent',
+                color: cfg.scope === 'daily' ? '#d946ef' : 'var(--text-muted)',
+                cursor: 'pointer',
+              }}
+            >
+              Daily
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <select
+              className="select-input"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px', flex: 1 }}
+              value={cfg.tournamentId}
+              onChange={(e) => {
+                const newTid = e.target.value;
+                setTeamRosterConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, tournamentId: newTid } }));
+                if (newTid) loadTournamentTeams(newTid);
+              }}
+            >
+              <option value="">-- Choose Tournament --</option>
+              {tournaments.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+
+            <select
+              className="select-input"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px', flex: 1 }}
+              value={cfg.teamId}
+              onFocus={ensurePickerData}
+              onChange={(e) => setTeamRosterConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, teamId: e.target.value } }))}
+            >
+              <option value="">-- Choose Team --</option>
+              {pickerLoading && <option disabled>Loading teams…</option>}
+              {tournamentTeams.length > 0 && (
+                <optgroup label="⚡ Tournament Participants (Active in Event)">
+                  {tournamentTeams.map((e: any) => {
+                    const id = e.teamId || e.id;
+                    const name = e.teamName || e.name;
+                    return <option key={id} value={id}>🟢 {name} (Played in Event)</option>;
+                  })}
+                </optgroup>
+              )}
+              <optgroup label={tournamentTeams.length > 0 ? "🌐 Other Registered Teams" : "Registered Teams"}>
+                {otherTeams.map((e: any) => {
+                  const id = e.teamId || e.id;
+                  const name = e.teamName || e.name;
+                  return <option key={id} value={id}>{name}</option>;
+                })}
+              </optgroup>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            {cfg.scope === 'daily' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>Day</label>
+                <input
+                  type="number" min={1} className="text-input"
+                  style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+                  value={cfg.day}
+                  onChange={(e) => setTeamRosterConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, day: Math.max(1, Number(e.target.value)) } }))}
+                />
+              </div>
+            )}
+
+            <button
+              onClick={() => fetchTeamRosterKillsData(slot)}
+              className="btn btn-secondary btn-sm"
+              style={{ height: '32px', fontSize: '0.8rem', padding: '0 0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', flex: 1 }}
+              disabled={isPushing}
+            >
+              {isPushing ? <Loader2 className="animate-spin" style={{ width: '13px', height: '13px' }} /> : <RefreshCw style={{ width: '13px', height: '13px' }} />}
+              Update Draft Data
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (dataShape === 'flexible_top5') {
+      const cfg = flexibleTop5Config[slot.id!] ?? { tournamentId: '', mode: 'daily', type: 'team', day: 1, startRank: 1, count: 5 };
+      return (
+        <div style={{
+          background: 'rgba(255,255,255,0.02)',
+          padding: '0.75rem',
+          borderRadius: '8px',
+          border: '1px solid rgba(255,255,255,0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem',
+        }}>
+          <span className="slot-control-label" style={{ margin: 0, fontWeight: 600 }}>
+            Fetch Flexible Top 5 Data (Workspace)
+          </span>
+
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <select
+              className="select-input"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px', flex: 2 }}
+              value={cfg.tournamentId}
+              onChange={(e) => setFlexibleTop5Config((prev) => ({ ...prev, [slot.id!]: { ...cfg, tournamentId: e.target.value } }))}
+            >
+              <option value="">-- Choose Tournament --</option>
+              {tournaments.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+
+            <select
+              className="select-input"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px', flex: 1 }}
+              value={cfg.mode}
+              onChange={(e) => setFlexibleTop5Config((prev) => ({ ...prev, [slot.id!]: { ...cfg, mode: e.target.value as 'daily' | 'collation' } }))}
+            >
+              <option value="daily">Daily Standings</option>
+              <option value="collation">Overall Collation</option>
+            </select>
+
+            <select
+              className="select-input"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px', flex: 1 }}
+              value={cfg.type}
+              onChange={(e) => setFlexibleTop5Config((prev) => ({ ...prev, [slot.id!]: { ...cfg, type: e.target.value as 'team' | 'player' } }))}
+            >
+              <option value="team">Teams</option>
+              <option value="player">Players</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>Start Rank</label>
+              <input
+                type="number" min={1} className="text-input"
+                style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+                value={cfg.startRank}
+                onChange={(e) => setFlexibleTop5Config((prev) => ({ ...prev, [slot.id!]: { ...cfg, startRank: Math.max(1, Number(e.target.value)) } }))}
+              />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>Count</label>
+              <input
+                type="number" min={1} max={20} className="text-input"
+                style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+                value={cfg.count}
+                onChange={(e) => setFlexibleTop5Config((prev) => ({ ...prev, [slot.id!]: { ...cfg, count: Math.max(1, Number(e.target.value)) } }))}
+              />
+            </div>
+
+            {cfg.mode === 'daily' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>Day</label>
+                <input
+                  type="number" min={1} className="text-input"
+                  style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+                  value={cfg.day}
+                  onChange={(e) => setFlexibleTop5Config((prev) => ({ ...prev, [slot.id!]: { ...cfg, day: Math.max(1, Number(e.target.value)) } }))}
+                />
+              </div>
+            )}
+
+            <button
+              onClick={() => fetchFlexibleTop5Data(slot)}
+              className="btn btn-secondary btn-sm"
+              style={{ height: '32px', fontSize: '0.8rem', padding: '0 0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', flex: 1 }}
               disabled={isPushing}
             >
               {isPushing ? <Loader2 className="animate-spin" style={{ width: '13px', height: '13px' }} /> : <RefreshCw style={{ width: '13px', height: '13px' }} />}
