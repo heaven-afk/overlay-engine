@@ -295,7 +295,58 @@ export async function getTemplates(): Promise<OverlayTemplate[]> {
   }
 }
 
+export function getBuiltInTemplate(id?: string | null): OverlayTemplate | null {
+  if (!id) return null;
+  if (id.includes('team_roster_kills')) {
+    return {
+      id: 'built-in:team_roster_kills',
+      name: 'Team Roster Kill Cards',
+      templateType: 'team_roster_kills',
+      styleConfig: {
+        colorTheme: 'dark',
+        accentColor: '#FFD700',
+        headingFont: 'Inter',
+        bodyFont: 'Inter',
+        brandingLogoUrl: '',
+        brandingName: 'HEAVEN STAT ENGINE\nAfrican CODM BR Coverage',
+        showStatsStamp: true,
+        tournamentLogoCount: 1,
+        tournamentLogos: [],
+        topN: 4,
+        showColumns: [],
+        graphicTitle: 'ROSTER KILL CARDS',
+        graphicSubtitle: 'Match Kills Breakdown',
+      },
+    } as OverlayTemplate;
+  }
+  if (id.includes('flexible_top5')) {
+    return {
+      id: 'built-in:flexible_top5',
+      name: 'Flexible Top 5 Standings',
+      templateType: 'flexible_top5',
+      styleConfig: {
+        colorTheme: 'dark',
+        accentColor: '#A855F7',
+        headingFont: 'Inter',
+        bodyFont: 'Inter',
+        brandingLogoUrl: '',
+        brandingName: 'HEAVEN STAT ENGINE\nAfrican CODM BR Coverage',
+        showStatsStamp: true,
+        tournamentLogoCount: 1,
+        tournamentLogos: [],
+        topN: 5,
+        showColumns: [],
+        graphicTitle: 'TOURNAMENT STANDINGS',
+        graphicSubtitle: 'Paginated Top 5',
+      },
+    } as OverlayTemplate;
+  }
+  return null;
+}
+
 export async function getTemplate(id: string): Promise<OverlayTemplate | null> {
+  const builtIn = getBuiltInTemplate(id);
+  if (builtIn) return builtIn;
   try {
     const d = await getDoc(doc(db, 'overlayTemplates', id));
     return d.exists() ? ({ id: d.id, ...d.data() } as OverlayTemplate) : null;

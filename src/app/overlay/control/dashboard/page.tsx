@@ -52,7 +52,7 @@ export default function OverlayControlDashboardPage() {
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const rosterRenderUrl = `${origin}/overlay/render/team-roster-kills?tournamentId=${tournamentId}&teamId=${teamId}&scope=${scope}${scope === 'daily' ? `&day=${day}` : ''}`;
-  const top5RenderUrl = `${origin}/overlay/render/flexible-top5?tournamentId=${top5TournamentId}&mode=${top5Mode}&day=${top5Day}&lobbyMode=${top5LobbyMode}${top5Lobby ? `&lobby=${top5Lobby}` : ''}&page=${top5Page}&showTitle=${showTitle ? '1' : '0'}`;
+  const top5RenderUrl = `${origin}/overlay/render/flexible-top5?tournamentId=${top5TournamentId}&mode=${top5Mode}&day=${top5Day}&lobbyMode=${top5LobbyMode}${top5Lobby ? `&lobby=${top5Lobby}` : ''}&showTitle=${showTitle ? '1' : '0'}`;
 
   const handleSendRoster = async () => {
     if (!tournamentId || !teamId) {

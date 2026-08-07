@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { getSlotByToken, getTemplate, OverlaySlot, OverlayTemplate, normalizeSlot } from '@/lib/db';
+import { getSlotByToken, getTemplate, getBuiltInTemplate, OverlaySlot, OverlayTemplate, normalizeSlot } from '@/lib/db';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { googleFontsLink, cssVarsForTheme } from '@/lib/fonts';
@@ -76,6 +76,11 @@ export default function PublicRenderPage({ params }: PageProps) {
 
         const startTemplateListener = (templateId: string) => {
           unsubscribeTemplate();
+          const builtIn = getBuiltInTemplate(templateId);
+          if (builtIn) {
+            setTemplate(builtIn);
+            return;
+          }
           unsubscribeTemplate = onSnapshot(
             doc(db, 'overlayTemplates', templateId),
             (snapshot) => {
@@ -146,7 +151,7 @@ export default function PublicRenderPage({ params }: PageProps) {
   }
 
   // Published fields data
-  const publishedFields = slot.published?.fields?.currentData || slot.published?.fields || slot.currentData || {};
+  const publishedFields = slot.published?.fields || slot.currentData || {};
   const isVisible = template.templateType === 'custom_media' || (publishedFields && Object.keys(publishedFields).length > 0);
 
   return (

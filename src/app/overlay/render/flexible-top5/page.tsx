@@ -19,13 +19,13 @@ function FlexibleTop5Content() {
   const queryGroupId = searchParams.get('groupId');
   const queryPage = searchParams.get('page');
 
-  const tournamentId = queryTournamentId || overlayState?.flexibleTop5?.tournamentId || '';
-  const mode = (queryMode || overlayState?.flexibleTop5?.mode || 'daily') as 'daily' | 'collation';
-  const day = queryDay ? parseInt(queryDay, 10) : overlayState?.flexibleTop5?.day || 1;
-  const lobbyMode = (queryLobbyMode || overlayState?.flexibleTop5?.lobbyMode || 'full_day') as 'full_day' | 'single_lobby';
-  const lobby = queryLobby ? parseInt(queryLobby, 10) : overlayState?.flexibleTop5?.lobby;
-  const groupId = queryGroupId || overlayState?.flexibleTop5?.groupId;
-  const currentPage = queryPage ? parseInt(queryPage, 10) : overlayState?.flexibleTop5?.page || 1;
+  const tournamentId = overlayState?.flexibleTop5?.tournamentId || queryTournamentId || '';
+  const mode = (overlayState?.flexibleTop5?.mode || queryMode || 'daily') as 'daily' | 'collation';
+  const day = overlayState?.flexibleTop5?.day ?? (queryDay ? parseInt(queryDay, 10) : 1);
+  const lobbyMode = (overlayState?.flexibleTop5?.lobbyMode || queryLobbyMode || 'full_day') as 'full_day' | 'single_lobby';
+  const lobby = overlayState?.flexibleTop5?.lobby ?? (queryLobby ? parseInt(queryLobby, 10) : undefined);
+  const groupId = overlayState?.flexibleTop5?.groupId || queryGroupId || undefined;
+  const currentPage = overlayState?.flexibleTop5?.page ?? (queryPage ? parseInt(queryPage, 10) : 1);
 
   const [allTeams, setAllTeams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

@@ -16,12 +16,12 @@ function TeamRosterKillsContent() {
   const queryDay = searchParams.get('day');
   const queryFrameColor = searchParams.get('frameColor');
 
-  // Resolve params either from URL query params or real-time Firestore overlay state
-  const tournamentId = queryTournamentId || overlayState?.teamRosterKills?.tournamentId || '';
-  const teamId = queryTeamId || overlayState?.teamRosterKills?.teamId || '';
-  const scope: 'collation' | 'daily' = queryScope || overlayState?.teamRosterKills?.scope || 'collation';
-  const day = queryDay ? parseInt(queryDay, 10) : overlayState?.teamRosterKills?.day || 1;
-  const frameColor = queryFrameColor || overlayState?.teamRosterKills?.frameColor || '#C9A84C';
+  // Resolve params either from real-time Firestore overlay state or URL query params
+  const tournamentId = overlayState?.teamRosterKills?.tournamentId || queryTournamentId || '';
+  const teamId = overlayState?.teamRosterKills?.teamId || queryTeamId || '';
+  const scope: 'collation' | 'daily' = overlayState?.teamRosterKills?.scope || queryScope || 'collation';
+  const day = overlayState?.teamRosterKills?.day ?? (queryDay ? parseInt(queryDay, 10) : 1);
+  const frameColor = overlayState?.teamRosterKills?.frameColor || queryFrameColor || '#C9A84C';
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);

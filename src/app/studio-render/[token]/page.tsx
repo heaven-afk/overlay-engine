@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { getStudioProjectByToken, getTemplate, StudioProject, OverlayTemplate, StudioLiveState } from '@/lib/db';
+import { getStudioProjectByToken, getTemplate, getBuiltInTemplate, StudioProject, OverlayTemplate, StudioLiveState } from '@/lib/db';
 import { db } from '@/lib/firebase';
 import { onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { getStudioLiveDocRef } from '@/lib/db';
@@ -74,6 +74,11 @@ export default function StudioRenderPage({ params }: PageProps) {
         // Helper: start / restart template listener
         const startTemplateListener = (templateId: string) => {
           unsubTemplate();
+          const builtIn = getBuiltInTemplate(templateId);
+          if (builtIn) {
+            setTemplate(builtIn);
+            return;
+          }
           unsubTemplate = onSnapshot(
             doc(db, 'overlayTemplates', templateId),
             (snap: any) => {
@@ -155,7 +160,7 @@ export default function StudioRenderPage({ params }: PageProps) {
   if (loading) return null;
 
   const TemplateComponent = template ? templateMap[template.templateType] : null;
-  const fields = liveState?.fields?.currentData || liveState?.fields || {};
+  const fields = liveState?.fields || {};
   const isVisible = Boolean(template && TemplateComponent);
 
   return (
