@@ -564,9 +564,12 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             setPreviewData({});
             return;
           }
-          const scope = styleConfig.scope || 'collation';
+          const scope = styleConfig.scope || 'lobby';
           const day = styleConfig.day || 1;
-          const data = await getTeamKills(selectedTournamentId, previewTeamId, scope, scope === 'daily' ? day : undefined).catch(() => ({}));
+          const lobby = styleConfig.lobby || 1;
+          const data = scope === 'lobby'
+            ? await getLobbyKills(selectedTournamentId, day, lobby, previewTeamId).catch(() => ({}))
+            : await getTeamKills(selectedTournamentId, previewTeamId, scope, scope === 'daily' ? day : undefined).catch(() => ({}));
           if (active) {
             setPreviewData(data);
           }

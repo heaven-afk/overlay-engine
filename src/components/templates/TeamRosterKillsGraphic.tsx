@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { TeamRosterCard, PlayerRosterData } from '@/components/overlay/TeamRosterCard';
-import { getTeamKills } from '@/lib/statsApi';
+import { getTeamKills, getLobbyKills } from '@/lib/statsApi';
 
 interface TeamRosterKillsGraphicProps {
   data?: any;
@@ -18,8 +18,9 @@ export function TeamRosterKillsGraphic({ data = {}, styleConfig, isPreview = fal
 
   const tournamentId = data.tournamentId || styleConfig?.tournamentId || '';
   const teamId = data.teamId || styleConfig?.teamId || '';
-  const scope: 'collation' | 'daily' = data.scope || styleConfig?.scope || 'collation';
+  const scope: 'lobby' | 'daily' | 'collation' = data.scope || styleConfig?.scope || 'lobby';
   const day = data.day || styleConfig?.day || 1;
+  const lobby = data.lobby || styleConfig?.lobby || 1;
   const frameColor = styleConfig?.frameColor || styleConfig?.accentColor || '#C9A84C';
 
   useEffect(() => {
@@ -36,7 +37,11 @@ export function TeamRosterKillsGraphic({ data = {}, styleConfig, isPreview = fal
     let isMounted = true;
     setLoading(true);
 
-    getTeamKills(tournamentId, teamId, scope, scope === 'daily' ? day : undefined)
+    const fetchPromise = scope === 'lobby'
+      ? getLobbyKills(tournamentId, day, lobby, teamId)
+      : getTeamKills(tournamentId, teamId, scope, scope === 'daily' ? day : undefined);
+
+    fetchPromise
       .then((json) => {
         if (isMounted) {
           setResolvedData(json);
@@ -53,7 +58,7 @@ export function TeamRosterKillsGraphic({ data = {}, styleConfig, isPreview = fal
     return () => {
       isMounted = false;
     };
-  }, [tournamentId, teamId, scope, day, data]);
+  }, [tournamentId, teamId, scope, day, lobby, data]);
 
   const mockTeam = {
     id: 't_sample',
@@ -73,6 +78,9 @@ export function TeamRosterKillsGraphic({ data = {}, styleConfig, isPreview = fal
   const hasResolvedData = Boolean(resolvedData || (data.players && data.team));
   const team = resolvedData?.team || data.team || (isEditorPreview ? mockTeam : null);
   const players: PlayerRosterData[] = resolvedData?.players || data.players || (isEditorPreview ? mockPlayers : []);
+
+  const totalKills = team?.totalKills ?? players.reduce((sum: number, p: any) => sum + (p.kills || 0), 0);
+  const displayRank = team?.currentRank ?? team?.slot;
 
   if (!team && !loading) {
     return (
@@ -148,6 +156,26 @@ export function TeamRosterKillsGraphic({ data = {}, styleConfig, isPreview = fal
           PREVIEW MODE (SAMPLE DATA)
         </div>
       )}
+
+      {/* Prominent Day / Lobby Title */}
+      <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+        <span
+          style={{
+            fontSize: '32px',
+            fontWeight: 900,
+            letterSpacing: '4px',
+            color: '#FFFFFF',
+            textTransform: 'uppercase',
+            fontFamily: '"Orbitron", sans-serif',
+            textShadow: '0 2px 12px rgba(0,0,0,0.7)',
+          }}
+        >
+          {scope === 'lobby' && `DAY ${day} · LOBBY ${lobby}`}
+          {scope === 'daily' && `DAY ${day} — FULL DAY`}
+          {scope === 'collation' && `SEASON COLLATION`}
+        </span>
+      </div>
+
       {/* Team Header (inline row, above cards, centered as one unit) */}
       <div
         style={{
@@ -199,20 +227,22 @@ export function TeamRosterKillsGraphic({ data = {}, styleConfig, isPreview = fal
           {team.name}
         </span>
 
-        {/* Dot Divider */}
-        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '22px' }}>·</span>
-
-        {/* Rank Chip */}
-        <span
-          style={{
-            fontSize: '18px',
-            fontWeight: 800,
-            color: 'rgba(255,255,255,0.9)',
-            letterSpacing: '1px',
-          }}
-        >
-          RANK <span style={{ color: frameColor }}>#{team.currentRank}</span>
-        </span>
+        {/* Rank Chip (if rank or slot present) */}
+        {displayRank != null && (
+          <>
+            <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '22px' }}>·</span>
+            <span
+              style={{
+                fontSize: '18px',
+                fontWeight: 800,
+                color: 'rgba(255,255,255,0.9)',
+                letterSpacing: '1px',
+              }}
+            >
+              RANK <span style={{ color: frameColor }}>#{displayRank}</span>
+            </span>
+          </>
+        )}
 
         {/* Dot Divider */}
         <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '22px' }}>·</span>
@@ -226,7 +256,7 @@ export function TeamRosterKillsGraphic({ data = {}, styleConfig, isPreview = fal
             letterSpacing: '1px',
           }}
         >
-          <span style={{ color: frameColor }}>{team.totalKills}</span> KILLS {scope === 'daily' ? `(DAY ${day})` : '(TOTAL)'}
+          <span style={{ color: frameColor }}>{totalKills}</span> KILLS
         </span>
       </div>
 

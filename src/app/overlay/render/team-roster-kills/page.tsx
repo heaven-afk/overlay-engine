@@ -4,7 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { TeamRosterKillsGraphic } from '@/components/templates/TeamRosterKillsGraphic';
 import { useOverlayState } from '@/hooks/useOverlayState';
-import { getTeamKills } from '@/lib/statsApi';
+import { getTeamKills, getLobbyKills } from '@/lib/statsApi';
 
 function TeamRosterKillsContent() {
   const searchParams = useSearchParams();
@@ -12,15 +12,17 @@ function TeamRosterKillsContent() {
 
   const queryTournamentId = searchParams.get('tournamentId');
   const queryTeamId = searchParams.get('teamId');
-  const queryScope = searchParams.get('scope') as 'collation' | 'daily' | null;
+  const queryScope = searchParams.get('scope') as 'lobby' | 'daily' | 'collation' | null;
   const queryDay = searchParams.get('day');
+  const queryLobby = searchParams.get('lobby');
   const queryFrameColor = searchParams.get('frameColor');
 
   // Resolve params either from real-time Firestore overlay state or URL query params
   const tournamentId = overlayState?.teamRosterKills?.tournamentId || queryTournamentId || '';
   const teamId = overlayState?.teamRosterKills?.teamId || queryTeamId || '';
-  const scope: 'collation' | 'daily' = overlayState?.teamRosterKills?.scope || queryScope || 'collation';
+  const scope: 'lobby' | 'daily' | 'collation' = overlayState?.teamRosterKills?.scope || queryScope || 'lobby';
   const day = overlayState?.teamRosterKills?.day ?? (queryDay ? parseInt(queryDay, 10) : 1);
+  const lobby = overlayState?.teamRosterKills?.lobby ?? (queryLobby ? parseInt(queryLobby, 10) : 1);
   const frameColor = overlayState?.teamRosterKills?.frameColor || queryFrameColor || '#C9A84C';
 
   const [data, setData] = useState<any>(null);
@@ -37,7 +39,11 @@ function TeamRosterKillsContent() {
     setLoading(true);
     setError(null);
 
-    getTeamKills(tournamentId, teamId, scope, scope === 'daily' ? day : undefined)
+    const fetchPromise = scope === 'lobby'
+      ? getLobbyKills(tournamentId, day, lobby, teamId)
+      : getTeamKills(tournamentId, teamId, scope, scope === 'daily' ? day : undefined);
+
+    fetchPromise
       .then((json) => {
         if (isMounted) {
           setData(json);
@@ -56,7 +62,7 @@ function TeamRosterKillsContent() {
     return () => {
       isMounted = false;
     };
-  }, [tournamentId, teamId, scope, day]);
+  }, [tournamentId, teamId, scope, day, lobby]);
 
   if (loading) {
     return (
@@ -79,7 +85,7 @@ function TeamRosterKillsContent() {
 
   return (
     <TeamRosterKillsGraphic
-      data={{ ...data, scope, day, tournamentId, teamId }}
+      data={{ ...data, scope, day, lobby, tournamentId, teamId }}
       styleConfig={{ frameColor }}
     />
   );

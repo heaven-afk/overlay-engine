@@ -942,8 +942,9 @@ function TeamRosterKillsFetchEditor({
   onFetched: (fields: Record<string, any>) => void;
 }) {
   const [tournamentId, setTournamentId] = useState('');
-  const [scope, setScope] = useState<'collation' | 'daily'>('collation');
+  const [scope, setScope] = useState<'lobby' | 'daily' | 'collation'>('lobby');
   const [day, setDay] = useState(1);
+  const [lobby, setLobby] = useState(1);
   const [teamId, setTeamId] = useState('');
   const [globalEntities, setGlobalEntities] = useState<any[]>([]);
   const [tournamentParticipants, setTournamentParticipants] = useState<any[]>([]);
@@ -982,13 +983,16 @@ function TeamRosterKillsFetchEditor({
     }
     try {
       setLoading(true);
-      const data = await getTeamKills(tournamentId, teamId, scope, scope === 'daily' ? day : undefined);
+      const data = scope === 'lobby'
+        ? await getLobbyKills(tournamentId, day, lobby, teamId)
+        : await getTeamKills(tournamentId, teamId, scope, scope === 'daily' ? day : undefined);
       onFetched({
         ...data,
         tournamentId,
         teamId,
         scope,
         day,
+        lobby,
       });
     } catch (err: any) {
       console.error('Roster kills fetch error:', err);
@@ -1012,15 +1016,15 @@ function TeamRosterKillsFetchEditor({
         Fetch Team Roster Kills (Workspace)
       </span>
 
-      {/* Scope toggle: Collation vs Daily */}
+      {/* Scope toggle: Lobby vs Daily vs Collation */}
       <div style={{ display: 'flex', gap: '6px' }}>
         <button
           type="button"
-          onClick={() => setScope('collation')}
-          className={`toggle-btn${scope === 'collation' ? ' active' : ''}`}
+          onClick={() => setScope('lobby')}
+          className={`toggle-btn${scope === 'lobby' ? ' active' : ''}`}
           style={{ fontSize: '0.75rem', padding: '3px 12px', height: '28px' }}
         >
-          Collation (Tournament)
+          Lobby
         </button>
         <button
           type="button"
@@ -1029,6 +1033,14 @@ function TeamRosterKillsFetchEditor({
           style={{ fontSize: '0.75rem', padding: '3px 12px', height: '28px' }}
         >
           Daily Results
+        </button>
+        <button
+          type="button"
+          onClick={() => setScope('collation')}
+          className={`toggle-btn${scope === 'collation' ? ' active' : ''}`}
+          style={{ fontSize: '0.75rem', padding: '3px 12px', height: '28px' }}
+        >
+          Collation
         </button>
       </div>
 
@@ -1073,7 +1085,7 @@ function TeamRosterKillsFetchEditor({
       </div>
 
       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-        {scope === 'daily' && (
+        {(scope === 'daily' || scope === 'lobby') && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <label style={labelStyle}>Day</label>
             <input
@@ -1083,6 +1095,20 @@ function TeamRosterKillsFetchEditor({
               style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
               value={day}
               onChange={(e) => setDay(Number(e.target.value))}
+            />
+          </div>
+        )}
+
+        {scope === 'lobby' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <label style={labelStyle}>Lobby</label>
+            <input
+              type="number"
+              min={1}
+              className="text-input"
+              style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+              value={lobby}
+              onChange={(e) => setLobby(Number(e.target.value))}
             />
           </div>
         )}

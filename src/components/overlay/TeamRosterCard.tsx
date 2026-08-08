@@ -66,11 +66,11 @@ export function TeamRosterCard({ player, frameColor = '#C9A84C' }: TeamRosterCar
           position: 'relative',
         }}
       >
-        {/* Photo Area (Top 60–65% of card: 255px tall) */}
+        {/* Photo Area (Top portion of card: 285px tall) */}
         <div
           style={{
             width: '100%',
-            height: '255px',
+            height: '285px',
             position: 'relative',
             backgroundColor: 'rgba(255,255,255,0.03)',
             borderBottom: '1px solid rgba(255,255,255,0.08)',
@@ -80,6 +80,50 @@ export function TeamRosterCard({ player, frameColor = '#C9A84C' }: TeamRosterCar
             overflow: 'hidden',
           }}
         >
+          {/* Top-Left Kills Badge */}
+          {!isEmptySlot && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '14px',
+                left: '14px',
+                zIndex: 15,
+                width: '64px',
+                height: '64px',
+                borderRadius: '12px',
+                background: `linear-gradient(135deg, ${frameColor} 0%, #FFA500 100%)`,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 6px 20px rgba(0,0,0,0.6)',
+                border: '2px solid rgba(255,255,255,0.4)',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '28px',
+                  fontWeight: 900,
+                  color: '#0A0A0F',
+                  lineHeight: 1,
+                  fontFamily: '"Orbitron", sans-serif',
+                }}
+              >
+                {player.kills}
+              </span>
+              <span
+                style={{
+                  fontSize: '9px',
+                  fontWeight: 800,
+                  color: '#0A0A0F',
+                  letterSpacing: '1px',
+                }}
+              >
+                KILLS
+              </span>
+            </div>
+          )}
+
           {isEmptySlot ? (
             <div
               style={{
@@ -130,12 +174,12 @@ export function TeamRosterCard({ player, frameColor = '#C9A84C' }: TeamRosterCar
             </div>
           )}
 
-          {/* Flag Badge overlapping photo & name plate */}
+          {/* Flag Badge overlapping photo (bottom-left) */}
           {!isEmptySlot && flagUrl && (
             <div
               style={{
                 position: 'absolute',
-                bottom: '10px',
+                bottom: '12px',
                 left: '14px',
                 width: '36px',
                 height: '24px',
@@ -155,98 +199,68 @@ export function TeamRosterCard({ player, frameColor = '#C9A84C' }: TeamRosterCar
           )}
         </div>
 
-        {/* Name Plate */}
+        {/* Player Info & Name Plate Area */}
         <div
           style={{
-            padding: '12px 16px 6px 16px',
+            flex: 1,
+            padding: '16px 16px 14px 16px',
             textAlign: 'center',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            minHeight: '65px',
+            position: 'relative',
+            background: 'linear-gradient(180deg, rgba(10,10,15,0.9) 0%, rgba(18,18,26,0.95) 100%)',
           }}
         >
           <span
             style={{
-              fontSize: '20px',
+              fontSize: '22px',
               fontWeight: 900,
               color: isEmptySlot ? 'rgba(255,255,255,0.4)' : '#FFFFFF',
               textTransform: 'uppercase',
-              letterSpacing: '0.05em',
+              letterSpacing: '0.06em',
               fontFamily: '"Orbitron", "Rajdhani", sans-serif',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               maxWidth: '260px',
+              textShadow: '0 2px 8px rgba(0,0,0,0.8)',
             }}
           >
             {isEmptySlot ? 'EMPTY SLOT' : player.professionalName}
           </span>
           <span
             style={{
-              fontSize: '13px',
-              fontWeight: 600,
-              color: 'rgba(255,255,255,0.5)',
-              marginTop: '2px',
+              fontSize: '14px',
+              fontWeight: 700,
+              color: isEmptySlot ? 'rgba(255,255,255,0.3)' : frameColor,
+              marginTop: '4px',
               fontFamily: '"Rajdhani", sans-serif',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               maxWidth: '260px',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
             }}
           >
             {isEmptySlot ? '—' : `@${player.ign}`}
           </span>
-        </div>
 
-        {/* Thin Divider Line */}
-        <div
-          style={{
-            width: '80%',
-            height: '1px',
-            backgroundColor: 'rgba(255,255,255,0.08)',
-            margin: '0 auto',
-          }}
-        />
-
-        {/* Stat Readout */}
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingBottom: '8px',
-          }}
-        >
-          <span
-            style={{
-              fontSize: '36px',
-              fontWeight: 900,
-              lineHeight: 1,
-              fontFamily: '"Orbitron", sans-serif',
-              background: isEmptySlot ? 'none' : `linear-gradient(180deg, ${frameColor} 0%, #FFA500 100%)`,
-              WebkitBackgroundClip: isEmptySlot ? 'none' : 'text',
-              WebkitTextFillColor: isEmptySlot ? 'rgba(255,255,255,0.3)' : 'transparent',
-              color: isEmptySlot ? 'rgba(255,255,255,0.3)' : frameColor,
-            }}
-          >
-            {isEmptySlot ? 0 : player.kills}
-          </span>
-          <span
-            style={{
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '2px',
-              color: 'rgba(255,255,255,0.4)',
-              marginTop: '4px',
-              textTransform: 'uppercase',
-            }}
-          >
-            KILLS
-          </span>
+          {/* Bottom Accent Bar */}
+          {!isEmptySlot && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: '20%',
+                right: '20%',
+                height: '2px',
+                background: `linear-gradient(90deg, transparent 0%, ${frameColor} 50%, transparent 100%)`,
+              }}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -16,6 +16,7 @@ import {
   compareEntities,
   getDailyStandings,
   getTeamKills,
+  getLobbyKills,
   getMatchSummary,
 } from '@/lib/statsApi';
 import { auth } from '@/lib/firebase';
@@ -42,8 +43,9 @@ interface DailyStandingsConfig {
 interface TeamRosterKillsSlotConfig {
   tournamentId: string;
   teamId: string;
-  scope: 'collation' | 'daily';
+  scope: 'lobby' | 'daily' | 'collation';
   day: number;
+  lobby?: number;
 }
 
 interface FlexibleTop5SlotConfig {
@@ -543,8 +545,9 @@ export default function SlotsDashboard() {
     const cfg = teamRosterConfig[slot.id!];
     const tournamentId = cfg?.tournamentId;
     const teamId = cfg?.teamId;
-    const scope = cfg?.scope ?? 'collation';
+    const scope = cfg?.scope ?? 'lobby';
     const day = cfg?.day ?? 1;
+    const lobby = cfg?.lobby ?? 1;
 
     if (!tournamentId || !teamId) {
       alert('Please select both a tournament and a team.');
@@ -553,13 +556,16 @@ export default function SlotsDashboard() {
 
     try {
       setPushingId(slot.id!);
-      const data = await getTeamKills(tournamentId, teamId, scope, scope === 'daily' ? day : undefined);
+      const data = scope === 'lobby'
+        ? await getLobbyKills(tournamentId, day, lobby, teamId)
+        : await getTeamKills(tournamentId, teamId, scope, scope === 'daily' ? day : undefined);
       const payload: Record<string, any> = {
         ...data,
         tournamentId,
         teamId,
         scope,
         day,
+        lobby,
         currentData: data,
       };
       await updateSlotWorkspaceFields(slot, payload);
@@ -850,7 +856,7 @@ export default function SlotsDashboard() {
     }
 
     if (dataShape === 'team_roster_kills') {
-      const cfg = teamRosterConfig[slot.id!] ?? { tournamentId: '', teamId: '', scope: 'collation', day: 1 };
+      const cfg = teamRosterConfig[slot.id!] ?? { tournamentId: '', teamId: '', scope: 'lobby', day: 1, lobby: 1 };
       const tournamentTeams = cfg.tournamentId ? (tournamentTeamsMap[cfg.tournamentId] || []) : [];
       const participantIds = new Set(tournamentTeams.map((p) => p.teamId || p.id).filter(Boolean));
       const otherTeams = globalTeams.filter((e) => !participantIds.has(e.teamId || e.id));
@@ -872,18 +878,18 @@ export default function SlotsDashboard() {
           <div style={{ display: 'flex', gap: '6px' }}>
             <button
               type="button"
-              onClick={() => setTeamRosterConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, scope: 'collation' } }))}
+              onClick={() => setTeamRosterConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, scope: 'lobby' } }))}
               style={{
                 fontSize: '0.72rem',
                 padding: '2px 10px',
                 borderRadius: '4px',
-                border: '1px solid ' + (cfg.scope === 'collation' ? '#d946ef' : 'rgba(255,255,255,0.1)'),
-                background: cfg.scope === 'collation' ? 'rgba(217,70,239,0.15)' : 'transparent',
-                color: cfg.scope === 'collation' ? '#d946ef' : 'var(--text-muted)',
+                border: '1px solid ' + (cfg.scope === 'lobby' || !cfg.scope ? '#d946ef' : 'rgba(255,255,255,0.1)'),
+                background: (cfg.scope === 'lobby' || !cfg.scope) ? 'rgba(217,70,239,0.15)' : 'transparent',
+                color: (cfg.scope === 'lobby' || !cfg.scope) ? '#d946ef' : 'var(--text-muted)',
                 cursor: 'pointer',
               }}
             >
-              Collation
+              Lobby
             </button>
             <button
               type="button"
@@ -899,6 +905,21 @@ export default function SlotsDashboard() {
               }}
             >
               Daily
+            </button>
+            <button
+              type="button"
+              onClick={() => setTeamRosterConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, scope: 'collation' } }))}
+              style={{
+                fontSize: '0.72rem',
+                padding: '2px 10px',
+                borderRadius: '4px',
+                border: '1px solid ' + (cfg.scope === 'collation' ? '#d946ef' : 'rgba(255,255,255,0.1)'),
+                background: cfg.scope === 'collation' ? 'rgba(217,70,239,0.15)' : 'transparent',
+                color: cfg.scope === 'collation' ? '#d946ef' : 'var(--text-muted)',
+                cursor: 'pointer',
+              }}
+            >
+              Collation
             </button>
           </div>
 
@@ -948,14 +969,26 @@ export default function SlotsDashboard() {
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            {cfg.scope === 'daily' && (
+            {(cfg.scope === 'daily' || cfg.scope === 'lobby' || !cfg.scope) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>Day</label>
                 <input
                   type="number" min={1} className="text-input"
                   style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
-                  value={cfg.day}
+                  value={cfg.day ?? 1}
                   onChange={(e) => setTeamRosterConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, day: Math.max(1, Number(e.target.value)) } }))}
+                />
+              </div>
+            )}
+
+            {(cfg.scope === 'lobby' || !cfg.scope) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>Lobby</label>
+                <input
+                  type="number" min={1} className="text-input"
+                  style={{ width: '56px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+                  value={cfg.lobby ?? 1}
+                  onChange={(e) => setTeamRosterConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, lobby: Math.max(1, Number(e.target.value)) } }))}
                 />
               </div>
             )}
