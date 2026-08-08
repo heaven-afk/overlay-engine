@@ -137,3 +137,24 @@ export async function getTeamKills(
   }
   return callStatsApi('/api/overlay/team-kills', params);
 }
+
+/**
+ * Get match summary including winner cards, top 3, and callouts with logos.
+ */
+export async function getMatchSummary(
+  tournamentId: string,
+  scope: 'lobby' | 'match' = 'match',
+  day?: number,
+  lobby?: number,
+  groupId?: string
+) {
+  const params: Record<string, string> = {
+    tournamentId,
+    scope,
+  };
+  if (day !== undefined) params.day = String(day);
+  if (lobby !== undefined) params.lobby = String(lobby);
+  if (groupId && groupId !== 'all') params.groupId = groupId;
+  return callStatsApi('/api/overlay/match-summary', params);
+}
+

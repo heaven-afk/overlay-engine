@@ -261,7 +261,7 @@ export const RankBadge: React.FC<RankBadgeProps> = ({ rank }) => {
 };
 
 interface LogoProps {
-  logoUrl?: string;
+  logoUrl?: string | null;
   size?: number;
   name?: string;
 }

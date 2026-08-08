@@ -20,6 +20,7 @@ import { HybridEraTop5 } from '@/components/templates/HybridEraTop5';
 import { Top5Graphic } from '@/components/templates/Top5Graphic';
 import { TeamRosterKillsGraphic } from '@/components/templates/TeamRosterKillsGraphic';
 import { FlexibleTop5Graphic } from '@/components/templates/FlexibleTop5Graphic';
+import { MatchSummary } from '@/components/templates/MatchSummary';
 
 const templateMap: Record<string, React.ComponentType<any>> = {
   top_standings: TopStandings,
@@ -34,6 +35,7 @@ const templateMap: Record<string, React.ComponentType<any>> = {
   custom_media: CustomMedia,
   team_roster_kills: TeamRosterKillsGraphic,
   flexible_top5: FlexibleTop5Graphic,
+  match_summary: MatchSummary,
 };
 
 interface PageProps {

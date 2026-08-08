@@ -16,6 +16,7 @@ import {
   compareEntities,
   getDailyStandings,
   getTeamKills,
+  getMatchSummary,
 } from '@/lib/statsApi';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';

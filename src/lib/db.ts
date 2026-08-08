@@ -30,7 +30,8 @@ export type TemplateType =
   | 'hybrid_era_top5'  // NEW: Hybrid Era Top 5 Graphic (Remedium Gaming x Fabrizio Mayowa)
   | 'top5_graphic'     // NEW: Top 5 Graphic — same layout, fully themeable (global use)
   | 'team_roster_kills'// NEW: Team Roster Kill Cards Graphic
-  | 'flexible_top5';   // NEW: Flexible Top 5 Graphic (Paginated Standings)
+  | 'flexible_top5'    // NEW: Flexible Top 5 Graphic (Paginated Standings)
+  | 'match_summary';   // NEW: Match Summary Graphic (Lobby / Match Scope)
 
 export type ColorTheme = 'dark' | 'light' | 'custom';
 
@@ -338,6 +339,28 @@ export function getBuiltInTemplate(id?: string | null): OverlayTemplate | null {
         showColumns: [],
         graphicTitle: 'TOURNAMENT STANDINGS',
         graphicSubtitle: 'Paginated Top 5',
+      },
+    } as OverlayTemplate;
+  }
+  if (id.includes('match_summary')) {
+    return {
+      id: 'built-in:match_summary',
+      name: 'Match Summary',
+      templateType: 'match_summary',
+      styleConfig: {
+        colorTheme: 'dark',
+        accentColor: '#FFD700',
+        headingFont: 'Inter',
+        bodyFont: 'Inter',
+        brandingLogoUrl: '',
+        brandingName: 'HEAVEN STAT ENGINE\nAfrican CODM BR Coverage',
+        showStatsStamp: true,
+        tournamentLogoCount: 1,
+        tournamentLogos: [],
+        topN: 3,
+        showColumns: [],
+        graphicTitle: 'MATCH SUMMARY',
+        graphicSubtitle: 'Lobby & Tournament Overview',
       },
     } as OverlayTemplate;
   }

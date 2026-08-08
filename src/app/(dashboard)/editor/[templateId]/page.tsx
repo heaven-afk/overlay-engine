@@ -7,7 +7,7 @@ import {
   getTemplate, saveTemplate, getTournaments,
   OverlayTemplate, TemplateStyleConfig, ColorTheme, TemplateType
 } from '@/lib/db';
-import { getTopStandings, getGlobalRankings, getProfile, compareEntities, getDailyStandings, getLobbyKills, getTeamKills } from '@/lib/statsApi';
+import { getTopStandings, getGlobalRankings, getProfile, compareEntities, getDailyStandings, getLobbyKills, getTeamKills, getMatchSummary } from '@/lib/statsApi';
 import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, doc } from 'firebase/firestore';
@@ -28,6 +28,7 @@ import { HybridEraTop5 } from '@/components/templates/HybridEraTop5';
 import { Top5Graphic } from '@/components/templates/Top5Graphic';
 import { TeamRosterKillsGraphic } from '@/components/templates/TeamRosterKillsGraphic';
 import { FlexibleTop5Graphic } from '@/components/templates/FlexibleTop5Graphic';
+import { MatchSummary } from '@/components/templates/MatchSummary';
 
 // Columns definitions
 const ALL_COLUMNS = [
@@ -981,6 +982,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       case 'custom_media': return CustomMedia;
       case 'team_roster_kills': return TeamRosterKillsGraphic;
       case 'flexible_top5': return FlexibleTop5Graphic;
+      case 'match_summary': return MatchSummary;
       default: return TopStandings;
     }
   };
