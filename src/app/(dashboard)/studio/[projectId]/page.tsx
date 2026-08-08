@@ -32,6 +32,7 @@ import { HybridEraTop5 } from '@/components/templates/HybridEraTop5';
 import { Top5Graphic } from '@/components/templates/Top5Graphic';
 import { TeamRosterKillsGraphic } from '@/components/templates/TeamRosterKillsGraphic';
 import { FlexibleTop5Graphic } from '@/components/templates/FlexibleTop5Graphic';
+import { MatchSummary } from '@/components/templates/MatchSummary';
 
 import {
   ArrowLeft, Clapperboard, Send, Save, History, Copy,
@@ -54,6 +55,7 @@ const templateComponentMap: Record<string, React.ComponentType<any>> = {
   custom_media: CustomMedia,
   team_roster_kills: TeamRosterKillsGraphic,
   flexible_top5: FlexibleTop5Graphic,
+  match_summary: MatchSummary,
 };
 
 // ─── Display dimensions ───────────────────────────────────────────────────────
@@ -924,6 +926,7 @@ export default function StudioWorkspace({ params }: PageProps) {
                 <optgroup label="✨ Default Built-in Templates">
                   <option value="built-in:team_roster_kills">Team Roster Kill Cards (Default)</option>
                   <option value="built-in:flexible_top5">Flexible Top 5 Standings (Default)</option>
+                  <option value="built-in:match_summary">Match Summary (Default)</option>
                 </optgroup>
                 <optgroup label="📁 Saved Templates Library">
                   {templates.map((t) => (

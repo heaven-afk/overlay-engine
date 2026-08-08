@@ -274,7 +274,7 @@ export async function getTemplates(): Promise<OverlayTemplate[]> {
       list = freshSnap.docs.map((d) => ({ id: d.id, ...d.data() } as OverlayTemplate));
     }
 
-    // Auto-seed default team_roster_kills and flexible_top5 templates if missing
+    // Auto-seed default team_roster_kills, flexible_top5, and match_summary templates if missing
     let seededNewGraphics = false;
     if (list.filter((t) => t.templateType === 'team_roster_kills').length === 0) {
       await seedSingleTemplate('Team Roster Kill Cards', 'team_roster_kills', '#FFD700', 'ROSTER KILL CARDS');
@@ -282,6 +282,10 @@ export async function getTemplates(): Promise<OverlayTemplate[]> {
     }
     if (list.filter((t) => t.templateType === 'flexible_top5').length === 0) {
       await seedSingleTemplate('Flexible Top 5 Standings', 'flexible_top5', '#A855F7', 'TOURNAMENT STANDINGS');
+      seededNewGraphics = true;
+    }
+    if (list.filter((t) => t.templateType === 'match_summary').length === 0) {
+      await seedSingleTemplate('Match Summary', 'match_summary', '#FFD700', 'MATCH SUMMARY');
       seededNewGraphics = true;
     }
     if (seededNewGraphics) {

@@ -56,6 +56,14 @@ interface FlexibleTop5SlotConfig {
   groupId?: string;
 }
 
+interface MatchSummarySlotConfig {
+  tournamentId: string;
+  scope: 'lobby' | 'match';
+  day?: number;
+  lobby?: number;
+  groupId?: string;
+}
+
 interface TeamProfileConfig {
   teamId: string;
 }
@@ -119,6 +127,7 @@ export default function SlotsDashboard() {
   const [dailyConfig, setDailyConfig] = useState<Record<string, DailyStandingsConfig>>({});
   const [teamRosterConfig, setTeamRosterConfig] = useState<Record<string, TeamRosterKillsSlotConfig>>({});
   const [flexibleTop5Config, setFlexibleTop5Config] = useState<Record<string, FlexibleTop5SlotConfig>>({});
+  const [matchSummaryConfig, setMatchSummaryConfig] = useState<Record<string, MatchSummarySlotConfig>>({});
   const [teamProfileConfig, setTeamProfileConfig] = useState<Record<string, TeamProfileConfig>>({});
   const [h2hConfig, setH2HConfig] = useState<Record<string, H2HConfig>>({});
   const [playerCardConfig, setPlayerCardConfig] = useState<Record<string, PlayerCardConfig>>({});
@@ -621,6 +630,37 @@ export default function SlotsDashboard() {
     }
   }
 
+  async function fetchMatchSummaryData(slot: OverlaySlot) {
+    const cfg = matchSummaryConfig[slot.id!];
+    const tournamentId = cfg?.tournamentId;
+    const scope = cfg?.scope ?? 'match';
+    const day = cfg?.day;
+    const lobby = cfg?.lobby;
+
+    if (!tournamentId) {
+      alert('Please select a tournament first.');
+      return;
+    }
+
+    try {
+      setPushingId(slot.id!);
+      const data = await getMatchSummary(tournamentId, scope, day, lobby, cfg?.groupId);
+      const payload: Record<string, any> = {
+        ...data,
+        scope,
+        day,
+        lobby,
+        currentData: data,
+      };
+      await updateSlotWorkspaceFields(slot, payload);
+    } catch (err: any) {
+      console.error('Error fetching match summary:', err);
+      alert(`Failed to load match summary: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setPushingId(null);
+    }
+  }
+
   async function handleDeleteSlot(slotId: string) {
     if (!confirm('Are you sure you want to delete this slot? All live OBS targets will go offline.')) return;
     try {
@@ -1031,6 +1071,59 @@ export default function SlotsDashboard() {
       );
     }
 
+    if (dataShape === 'match_summary') {
+      const cfg = matchSummaryConfig[slot.id!] ?? { tournamentId: '', scope: 'match' };
+      return (
+        <div style={{
+          background: 'rgba(255,255,255,0.02)',
+          padding: '0.75rem',
+          borderRadius: '8px',
+          border: '1px solid rgba(255,255,255,0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem',
+        }}>
+          <span className="slot-control-label" style={{ margin: 0, fontWeight: 600 }}>
+            Fetch Match Summary Data
+          </span>
+
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <select
+              className="select-input"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px', flex: 2 }}
+              value={cfg.tournamentId}
+              onChange={(e) => setMatchSummaryConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, tournamentId: e.target.value } }))}
+            >
+              <option value="">-- Choose Tournament --</option>
+              {tournaments.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+
+            <select
+              className="select-input"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px', flex: 1 }}
+              value={cfg.scope}
+              onChange={(e) => setMatchSummaryConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, scope: e.target.value as 'lobby' | 'match' } }))}
+            >
+              <option value="match">Match Scope</option>
+              <option value="lobby">Lobby Scope</option>
+            </select>
+
+            <button
+              onClick={() => fetchMatchSummaryData(slot)}
+              className="btn btn-secondary btn-sm"
+              style={{ height: '32px', fontSize: '0.8rem', padding: '0 0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', flex: 1 }}
+              disabled={isPushing}
+            >
+              {isPushing ? <Loader2 className="animate-spin" style={{ width: '13px', height: '13px' }} /> : <RefreshCw style={{ width: '13px', height: '13px' }} />}
+              Update Draft Data
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return null;
   }
 
@@ -1113,6 +1206,7 @@ export default function SlotsDashboard() {
                   <option value="top5_graphic">Top 5 Graphic (Global)</option>
                   <option value="team_roster_kills">Team Roster Kill Cards</option>
                   <option value="flexible_top5">Flexible Top 5 (Paginated)</option>
+                  <option value="match_summary">Match Summary</option>
                   <option value="daily_standings">Daily Standings</option>
                   <option value="overall_rankings_dual_column">Overall Rankings Dual Column</option>
                   <option value="top_5_overall">Top 5 Overall</option>

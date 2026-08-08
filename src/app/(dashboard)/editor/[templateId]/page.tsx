@@ -572,6 +572,20 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           }
         }
 
+        else if (templateType === 'match_summary') {
+          if (!selectedTournamentId) {
+            setPreviewData({});
+            return;
+          }
+          const scope = (styleConfig.hybridEraMode === 'daily' ? 'lobby' : 'match') as 'lobby' | 'match';
+          const day = styleConfig.day;
+          const lobby = styleConfig.lobby;
+          const data = await getMatchSummary(selectedTournamentId, scope, day, lobby, styleConfig.selectedGroup).catch(() => ({}));
+          if (active) {
+            setPreviewData(data);
+          }
+        }
+
         else if (templateType === 'player_profile') {
           if (!previewPlayerId) {
             setPreviewData(MOCK_PLAYER_PROFILE);
@@ -1102,6 +1116,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     <option value="hybrid_era_top5">Hybrid Era Top 5 (RDM x FM)</option>
                     <option value="team_roster_kills">Team Roster Kill Cards</option>
                     <option value="flexible_top5">Flexible Top 5 (Paginated)</option>
+                    <option value="match_summary">Match Summary</option>
                     <option value="daily_standings">Daily Standings Table</option>
                     <option value="head_to_head">Head to Head Comparison</option>
                     <option value="team_profile">Team Profile</option>
