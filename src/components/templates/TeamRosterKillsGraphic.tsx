@@ -63,7 +63,7 @@ export function TeamRosterKillsGraphic({ data = {}, styleConfig, isPreview = fal
     return () => {
       isMounted = false;
     };
-  }, [tournamentId, teamId, scope, day, lobby, data]);
+  }, [tournamentId, teamId, scope, day, lobby, data.players, data.team]);
 
   // ── Mock Data ──────────────────────────────────────────────────────────────
   const mockTeam = {
@@ -82,9 +82,14 @@ export function TeamRosterKillsGraphic({ data = {}, styleConfig, isPreview = fal
     { id: 'p4', ign: 'Alch3mist', professionalName: 'ALCHEMIST',  country: 'NG', countryCode: 'NGA', kills: 18, photoUrl: null },
   ];
 
-  const team = resolvedData?.team || data.team || (isEditorPreview ? mockTeam : null);
-  const players: PlayerRosterData[] = resolvedData?.players || data.players || (isEditorPreview ? mockPlayers : []);
-  const totalKills = team?.totalKills ?? players.reduce((sum: number, p: any) => sum + (p.kills || 0), 0);
+  const team = data?.team || resolvedData?.team || (isEditorPreview ? mockTeam : null);
+  const players: PlayerRosterData[] = (data?.players && data.players.length > 0)
+    ? data.players
+    : (resolvedData?.players && resolvedData.players.length > 0)
+    ? resolvedData.players
+    : (isEditorPreview ? mockPlayers : []);
+
+  const totalKills = team?.totalKills ?? players.reduce((sum: number, p: any) => sum + (Number(p.kills) || 0), 0);
 
   // Day / scope label
   const scopeLabel = scope === 'lobby'

@@ -30,23 +30,10 @@ export function TeamRosterCard({ player, index, frameColor = '#D4E82A' }: TeamRo
       : '?'
   )[0].toUpperCase();
 
-  // Use 2-letter ISO code for flag (fallback from countryCode like "NGA" → look up, or use country directly)
-  const iso2 = player.country && player.country.length === 2
-    ? player.country.toLowerCase()
-    : player.country && player.country.length === 3
-    ? iso3to2(player.country)
-    : null;
-
-  const flagUrl = iso2 ? `https://flagcdn.com/w80/${iso2}.png` : null;
-
-  // 3-letter display code
-  const displayCode = player.countryCode
-    ? player.countryCode.toUpperCase()
-    : player.country && player.country.length === 3
-    ? player.country.toUpperCase()
-    : player.country && player.country.length === 2
-    ? iso2ToCode(player.country)
-    : '';
+  // Resolve country flag and 3-letter code
+  const countryInfo = resolveCountry(player.countryCode || player.country);
+  const flagUrl = countryInfo.iso2 ? `https://flagcdn.com/w80/${countryInfo.iso2}.png` : null;
+  const displayCode = countryInfo.code;
 
   // Pad index to 2 digits
   const slotNumber = String(index + 1).padStart(2, '0');
@@ -329,7 +316,52 @@ export function TeamRosterCard({ player, index, frameColor = '#D4E82A' }: TeamRo
   );
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+function resolveCountry(country: string | null): { iso2: string | null; code: string } {
+  if (!country) return { iso2: null, code: '' };
+  const clean = country.trim();
+  if (clean.length === 2) {
+    const iso2 = clean.toLowerCase();
+    return { iso2, code: iso2ToCode(iso2) };
+  }
+  if (clean.length === 3) {
+    const iso2 = iso3to2(clean);
+    return { iso2, code: clean.toUpperCase() };
+  }
+  const nameMap: Record<string, { iso2: string; code: string }> = {
+    nigeria: { iso2: 'ng', code: 'NGA' },
+    ghana: { iso2: 'gh', code: 'GHA' },
+    kenya: { iso2: 'ke', code: 'KEN' },
+    'south africa': { iso2: 'za', code: 'ZAF' },
+    egypt: { iso2: 'eg', code: 'EGY' },
+    morocco: { iso2: 'ma', code: 'MAR' },
+    senegal: { iso2: 'sn', code: 'SEN' },
+    cameroon: { iso2: 'cm', code: 'CMR' },
+    'united states': { iso2: 'us', code: 'USA' },
+    usa: { iso2: 'us', code: 'USA' },
+    'united kingdom': { iso2: 'gb', code: 'GBR' },
+    uk: { iso2: 'gb', code: 'GBR' },
+    france: { iso2: 'fr', code: 'FRA' },
+    germany: { iso2: 'de', code: 'DEU' },
+    spain: { iso2: 'es', code: 'ESP' },
+    italy: { iso2: 'it', code: 'ITA' },
+    brazil: { iso2: 'br', code: 'BRA' },
+    argentina: { iso2: 'ar', code: 'ARG' },
+    japan: { iso2: 'jp', code: 'JPN' },
+    'south korea': { iso2: 'kr', code: 'KOR' },
+    korea: { iso2: 'kr', code: 'KOR' },
+    philippines: { iso2: 'ph', code: 'PHL' },
+    indonesia: { iso2: 'id', code: 'IDN' },
+    malaysia: { iso2: 'my', code: 'MYS' },
+    thailand: { iso2: 'th', code: 'THA' },
+    vietnam: { iso2: 'vn', code: 'VNM' },
+    singapore: { iso2: 'sg', code: 'SGP' },
+    australia: { iso2: 'au', code: 'AUS' },
+    canada: { iso2: 'ca', code: 'CAN' },
+  };
+  const match = nameMap[clean.toLowerCase()];
+  if (match) return match;
+  return { iso2: null, code: clean.toUpperCase().slice(0, 3) };
+}
 
 function iso3to2(code: string): string | null {
   const map: Record<string, string> = {

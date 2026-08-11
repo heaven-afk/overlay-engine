@@ -620,7 +620,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
 
     loadLivePreview();
     return () => { active = false; };
-  }, [templateType, selectedTournamentId, previewTeamAId, previewTeamBId, previewTeamId, previewPlayerId, styleConfig.topN, styleConfig.dailyStandingsDay, styleConfig.dailyStandingsLobby, styleConfig.dailyStandingsMode, loading]);
+  }, [templateType, selectedTournamentId, previewTeamAId, previewTeamBId, previewTeamId, previewPlayerId, styleConfig.topN, styleConfig.dailyStandingsDay, styleConfig.dailyStandingsLobby, styleConfig.dailyStandingsMode, styleConfig.scope, styleConfig.day, styleConfig.lobby, styleConfig.selectedGroup, styleConfig.selectedMap, loading]);
 
   // Update specific style configuration field
   const updateStyleConfig = (patch: Partial<TemplateStyleConfig>) => {
@@ -2616,8 +2616,8 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     </>
                   )}
 
-                  {/* Team Profile Source Picker */}
-                  {templateType === 'team_profile' && (
+                  {/* Team Profile & Team Roster Source Picker */}
+                  {(templateType === 'team_profile' || templateType === 'team_roster_kills') && (
                     <div className="editor-preview-selector">
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Team:</span>
                       <select 
