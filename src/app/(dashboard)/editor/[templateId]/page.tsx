@@ -2160,10 +2160,168 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             </div>
           )}
 
+          {/* Section 6f: Team Roster Kills Settings */}
+          {templateType === 'team_roster_kills' && (
+            <div>
+              <div className="sidebar-section-title" style={{ color: '#D4E82A' }}>Team Roster Kills Settings</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+                {/* Frame / Accent Colour */}
+                <div className="property-field">
+                  <span className="property-label">Card Accent Colour</span>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      type="color"
+                      value={styleConfig.frameColor || '#D4E82A'}
+                      onChange={(e) => updateStyleConfig({ frameColor: e.target.value })}
+                      style={{ width: '40px', height: '32px', padding: '2px', border: '1px solid var(--border)', borderRadius: '6px', backgroundColor: 'transparent', cursor: 'pointer' }}
+                    />
+                    <input
+                      type="text"
+                      className="text-input"
+                      value={styleConfig.frameColor || '#D4E82A'}
+                      placeholder="#D4E82A"
+                      onChange={(e) => updateStyleConfig({ frameColor: e.target.value })}
+                      style={{ flex: 1 }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }}>
+                    {['#D4E82A', '#FFD700', '#C9A84C', '#00E5FF', '#FF4D4D', '#A855F7', '#FFFFFF'].map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => updateStyleConfig({ frameColor: color })}
+                        title={color}
+                        style={{
+                          width: '22px', height: '22px',
+                          borderRadius: '4px',
+                          backgroundColor: color,
+                          border: styleConfig.frameColor === color ? '2px solid #fff' : '1px solid rgba(255,255,255,0.2)',
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* League Logo */}
+                <div className="property-field">
+                  <span className="property-label">League Logo (Top-Left, Optional)</span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    Leave empty if no league logo is needed.
+                  </span>
+                  {styleConfig.leagueLogoUrl && (
+                    <div style={{ position: 'relative', display: 'inline-block', marginBottom: '0.5rem' }}>
+                      <img
+                        src={styleConfig.leagueLogoUrl}
+                        alt="league logo"
+                        style={{
+                          maxHeight: '64px', maxWidth: '160px',
+                          objectFit: 'contain', borderRadius: '6px',
+                          border: '1px solid rgba(212,232,42,0.3)',
+                          backgroundColor: 'rgba(255,255,255,0.04)', display: 'block',
+                        }}
+                      />
+                      <button
+                        onClick={() => updateStyleConfig({ leagueLogoUrl: '' })}
+                        title="Remove logo"
+                        style={{
+                          position: 'absolute', top: '-6px', right: '-6px',
+                          width: '18px', height: '18px', borderRadius: '50%',
+                          backgroundColor: '#333', border: '1px solid var(--border)',
+                          color: '#ccc', fontSize: '11px', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center',
+                          cursor: 'pointer', lineHeight: 1,
+                        }}
+                      >×</button>
+                    </div>
+                  )}
+                  <input
+                    type="text"
+                    className="text-input"
+                    placeholder="Paste league logo URL or leave blank"
+                    value={styleConfig.leagueLogoUrl || ''}
+                    onChange={(e) => updateStyleConfig({ leagueLogoUrl: e.target.value })}
+                  />
+                </div>
+
+                {/* League Subtitle */}
+                <div className="property-field">
+                  <span className="property-label">League Subtitle</span>
+                  <input
+                    type="text"
+                    className="text-input"
+                    placeholder="e.g. R3IGN CODM MULTIPLAYER LEAGUE"
+                    value={styleConfig.leagueSubtitle || ''}
+                    onChange={(e) => updateStyleConfig({ leagueSubtitle: e.target.value })}
+                  />
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    Shown below the Day badge. Leave empty to hide.
+                  </span>
+                </div>
+
+                {/* Team Tagline */}
+                <div className="property-field">
+                  <span className="property-label">Team Tagline / Slogan</span>
+                  <input
+                    type="text"
+                    className="text-input"
+                    placeholder="e.g. WE DON'T FOLLOW. WE DOMINATE."
+                    value={styleConfig.teamTagline || ''}
+                    onChange={(e) => updateStyleConfig({ teamTagline: e.target.value })}
+                  />
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    Italic tagline below team name. From team data or override here.
+                  </span>
+                </div>
+
+                {/* Day/Scope */}
+                <div className="property-field">
+                  <span className="property-label">Scope</span>
+                  <div className="toggle-group">
+                    {(['lobby', 'daily', 'collation'] as const).map((s) => (
+                      <button
+                        key={s}
+                        className={`toggle-btn ${(styleConfig.scope || 'lobby') === s ? 'active' : ''}`}
+                        onClick={() => updateStyleConfig({ scope: s as any })}
+                      >
+                        {s === 'lobby' ? 'Lobby' : s === 'daily' ? 'Daily' : 'Season'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <div className="property-field" style={{ flex: 1 }}>
+                    <span className="property-label">Day #</span>
+                    <input
+                      type="number" className="text-input" min={1} max={30}
+                      value={styleConfig.day || 1}
+                      onChange={(e) => updateStyleConfig({ day: Math.max(1, Number(e.target.value)) })}
+                    />
+                  </div>
+                  {(styleConfig.scope || 'lobby') === 'lobby' && (
+                    <div className="property-field" style={{ flex: 1 }}>
+                      <span className="property-label">Lobby #</span>
+                      <input
+                        type="number" className="text-input" min={1} max={20}
+                        value={styleConfig.lobby || 1}
+                        onChange={(e) => updateStyleConfig({ lobby: Math.max(1, Number(e.target.value)) })}
+                      />
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            </div>
+          )}
+
           {/* Section 7: Custom Media Configurator */}
           {templateType === 'custom_media' && (
             <div>
               <div className="sidebar-section-title" style={{ color: '#d946ef' }}>Media Settings</div>
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 <div style={{
                   border: '1px solid #d946ef',

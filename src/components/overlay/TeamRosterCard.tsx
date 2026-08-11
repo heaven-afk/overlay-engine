@@ -7,6 +7,7 @@ export interface PlayerRosterData {
   ign: string;
   professionalName: string;
   country: string | null;
+  countryCode?: string; // e.g. "NGA", "USA"
   countryEmoji?: string;
   kills: number;
   photoUrl: string | null;
@@ -18,7 +19,7 @@ interface TeamRosterCardProps {
   frameColor?: string;
 }
 
-export function TeamRosterCard({ player, frameColor = '#C9A84C' }: TeamRosterCardProps) {
+export function TeamRosterCard({ player, index, frameColor = '#D4E82A' }: TeamRosterCardProps) {
   const isEmptySlot = !player.id || player.professionalName === 'Empty Slot' || player.ign === '—' || player.ign === 'EMPTY';
 
   const initial = (
@@ -29,240 +30,329 @@ export function TeamRosterCard({ player, frameColor = '#C9A84C' }: TeamRosterCar
       : '?'
   )[0].toUpperCase();
 
-  const flagUrl = player.country && player.country.length === 2
-    ? `https://flagcdn.com/w80/${player.country.toLowerCase()}.png`
+  // Use 2-letter ISO code for flag (fallback from countryCode like "NGA" → look up, or use country directly)
+  const iso2 = player.country && player.country.length === 2
+    ? player.country.toLowerCase()
+    : player.country && player.country.length === 3
+    ? iso3to2(player.country)
     : null;
 
-  // Chamfered card shape: cut top-right & bottom-left corners at 45°
-  const chamferClipPath = 'polygon(24px 0, 100% 0, 100% calc(100% - 24px), calc(100% - 24px) 100%, 0 100%, 0 24px)';
+  const flagUrl = iso2 ? `https://flagcdn.com/w80/${iso2}.png` : null;
 
-  const metallicBorderGradient = `linear-gradient(135deg, ${frameColor}66 0%, ${frameColor} 30%, #FFFFFF 65%, ${frameColor}88 100%)`;
+  // 3-letter display code
+  const displayCode = player.countryCode
+    ? player.countryCode.toUpperCase()
+    : player.country && player.country.length === 3
+    ? player.country.toUpperCase()
+    : player.country && player.country.length === 2
+    ? iso2ToCode(player.country)
+    : '';
+
+  // Pad index to 2 digits
+  const slotNumber = String(index + 1).padStart(2, '0');
+
+  const accent = isEmptySlot ? 'rgba(255,255,255,0.2)' : frameColor;
 
   return (
     <div
       style={{
-        width: '300px',
-        height: '420px',
+        width: '280px',
+        height: '440px',
         position: 'relative',
-        clipPath: chamferClipPath,
-        background: isEmptySlot ? 'rgba(255,255,255,0.1)' : metallicBorderGradient,
-        padding: '5px', // Creates 5px metallic border width
-        boxSizing: 'border-box',
-        boxShadow: '0 12px 40px rgba(0,0,0,0.8)',
         flexShrink: 0,
+        // card border using outline trick + border-radius clip
+        borderRadius: '4px',
+        border: `2px solid ${accent}`,
+        backgroundColor: '#0C0C0C',
+        overflow: 'hidden',
+        boxShadow: isEmptySlot
+          ? 'none'
+          : `0 0 0 1px rgba(0,0,0,0.6), 0 12px 40px rgba(0,0,0,0.85), inset 0 0 80px rgba(0,0,0,0.5)`,
+        display: 'flex',
+        flexDirection: 'column',
+        fontFamily: '"Barlow Condensed", "Rajdhani", "Orbitron", sans-serif',
       }}
     >
-      {/* Inner Card Background */}
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          clipPath: chamferClipPath,
-          backgroundColor: '#0A0A0F',
+      {/* ── Corner diamond decorations ── */}
+      {!isEmptySlot && (
+        <>
+          {/* Top-left corner accent line */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0,
+            width: '28px', height: '28px',
+            borderTop: `3px solid ${accent}`,
+            borderLeft: `3px solid ${accent}`,
+            zIndex: 20,
+          }} />
+          {/* Bottom-right corner accent line */}
+          <div style={{
+            position: 'absolute', bottom: 0, right: 0,
+            width: '28px', height: '28px',
+            borderBottom: `3px solid ${accent}`,
+            borderRight: `3px solid ${accent}`,
+            zIndex: 20,
+          }} />
+        </>
+      )}
+
+      {/* ── Slot number badge (top-left) ── */}
+      {!isEmptySlot && (
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          left: '10px',
+          zIndex: 30,
+          minWidth: '38px',
+          padding: '2px 6px',
+          backgroundColor: accent,
+          clipPath: 'polygon(0 0, 100% 0, 100% 70%, 92% 100%, 0 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <span style={{
+            fontSize: '20px',
+            fontWeight: 900,
+            color: '#000000',
+            lineHeight: 1,
+            fontFamily: '"Barlow Condensed", "Orbitron", sans-serif',
+            letterSpacing: '-0.5px',
+          }}>
+            {slotNumber}
+          </span>
+        </div>
+      )}
+
+      {/* ── Country flag + code (top-right) ── */}
+      {!isEmptySlot && (
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          zIndex: 30,
           display: 'flex',
           flexDirection: 'column',
-          boxSizing: 'border-box',
-          overflow: 'hidden',
-          position: 'relative',
-        }}
-      >
-        {/* Photo Area (Top portion of card: 285px tall) */}
-        <div
-          style={{
-            width: '100%',
-            height: '285px',
-            position: 'relative',
-            backgroundColor: 'rgba(255,255,255,0.03)',
-            borderBottom: '1px solid rgba(255,255,255,0.08)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Top-Left Kills Badge */}
-          {!isEmptySlot && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '14px',
-                left: '14px',
-                zIndex: 15,
-                width: '64px',
-                height: '64px',
-                borderRadius: '12px',
-                background: `linear-gradient(135deg, ${frameColor} 0%, #FFA500 100%)`,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 6px 20px rgba(0,0,0,0.6)',
-                border: '2px solid rgba(255,255,255,0.4)',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '28px',
-                  fontWeight: 900,
-                  color: '#0A0A0F',
-                  lineHeight: 1,
-                  fontFamily: '"Orbitron", sans-serif',
-                }}
-              >
-                {player.kills}
-              </span>
-              <span
-                style={{
-                  fontSize: '9px',
-                  fontWeight: 800,
-                  color: '#0A0A0F',
-                  letterSpacing: '1px',
-                }}
-              >
-                KILLS
-              </span>
-            </div>
-          )}
-
-          {isEmptySlot ? (
-            <div
-              style={{
-                width: '85%',
-                height: '85%',
-                border: '2px dashed rgba(255,255,255,0.15)',
-                borderRadius: '8px',
-              }}
-            />
-          ) : player.photoUrl ? (
-            <>
-              <img
-                src={player.photoUrl}
-                alt={player.professionalName}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  objectPosition: 'top center',
-                }}
-              />
-              {/* Bottom Vignette Overlay */}
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'linear-gradient(to bottom, transparent 40%, rgba(10,10,15,0.85) 100%)',
-                }}
-              />
-            </>
-          ) : (
-            <div
-              style={{
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: `radial-gradient(ellipse at 50% 40%, ${frameColor}33 0%, rgba(10,10,15,0.95) 75%)`,
-                color: frameColor,
-                fontWeight: 900,
-                fontSize: '72px',
-                fontFamily: '"Orbitron", "Rajdhani", sans-serif',
-                textShadow: '0 4px 20px rgba(0,0,0,0.8)',
-              }}
-            >
-              {initial}
-            </div>
-          )}
-
-          {/* Flag Badge overlapping photo (bottom-left) */}
-          {!isEmptySlot && flagUrl && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '12px',
-                left: '14px',
-                width: '36px',
-                height: '24px',
-                borderRadius: '3px',
-                overflow: 'hidden',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.8)',
-                border: '1.5px solid rgba(255,255,255,0.3)',
-                zIndex: 10,
-              }}
-            >
+          alignItems: 'center',
+          gap: '3px',
+        }}>
+          {flagUrl && (
+            <div style={{
+              width: '34px',
+              height: '22px',
+              borderRadius: '2px',
+              overflow: 'hidden',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.7)',
+              border: '1px solid rgba(255,255,255,0.2)',
+            }}>
               <img
                 src={flagUrl}
-                alt={player.country || 'Flag'}
+                alt={displayCode}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             </div>
           )}
-        </div>
-
-        {/* Player Info & Name Plate Area */}
-        <div
-          style={{
-            flex: 1,
-            padding: '16px 16px 14px 16px',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-            background: 'linear-gradient(180deg, rgba(10,10,15,0.9) 0%, rgba(18,18,26,0.95) 100%)',
-          }}
-        >
-          <span
-            style={{
-              fontSize: '22px',
-              fontWeight: 900,
-              color: isEmptySlot ? 'rgba(255,255,255,0.4)' : '#FFFFFF',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              fontFamily: '"Orbitron", "Rajdhani", sans-serif',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: '260px',
-              textShadow: '0 2px 8px rgba(0,0,0,0.8)',
-            }}
-          >
-            {isEmptySlot ? 'EMPTY SLOT' : player.professionalName}
-          </span>
-          <span
-            style={{
-              fontSize: '14px',
+          {displayCode && (
+            <span style={{
+              fontSize: '10px',
               fontWeight: 700,
-              color: isEmptySlot ? 'rgba(255,255,255,0.3)' : frameColor,
-              marginTop: '4px',
-              fontFamily: '"Rajdhani", sans-serif',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: '260px',
-              letterSpacing: '1px',
-              textTransform: 'uppercase',
-            }}
-          >
-            {isEmptySlot ? '—' : `@${player.ign}`}
-          </span>
-
-          {/* Bottom Accent Bar */}
-          {!isEmptySlot && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                left: '20%',
-                right: '20%',
-                height: '2px',
-                background: `linear-gradient(90deg, transparent 0%, ${frameColor} 50%, transparent 100%)`,
-              }}
-            />
+              color: 'rgba(255,255,255,0.85)',
+              letterSpacing: '0.5px',
+              fontFamily: '"Barlow Condensed", sans-serif',
+            }}>
+              {displayCode}
+            </span>
           )}
         </div>
+      )}
+
+      {/* ── Photo area ── */}
+      <div style={{
+        flex: 1,
+        position: 'relative',
+        overflow: 'hidden',
+        backgroundColor: '#111',
+      }}>
+        {isEmptySlot ? (
+          <div style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'rgba(255,255,255,0.2)',
+            fontSize: '14px',
+            fontWeight: 700,
+            letterSpacing: '2px',
+          }}>
+            EMPTY
+          </div>
+        ) : player.photoUrl ? (
+          <>
+            <img
+              src={player.photoUrl}
+              alt={player.professionalName}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: 'top center',
+                display: 'block',
+              }}
+            />
+            {/* Gradient overlay — heavier at bottom to blend into name plate */}
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(to bottom, transparent 30%, rgba(10,10,10,0.6) 70%, rgba(10,10,10,0.97) 100%)',
+            }} />
+          </>
+        ) : (
+          <div style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: `radial-gradient(ellipse at 50% 40%, ${accent}25 0%, rgba(10,10,10,0.95) 70%)`,
+            color: accent,
+            fontWeight: 900,
+            fontSize: '80px',
+            fontFamily: '"Orbitron", sans-serif',
+          }}>
+            {initial}
+          </div>
+        )}
+
+        {/* Subtle diagonal lines overlay for texture */}
+        {!isEmptySlot && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: `repeating-linear-gradient(
+              -45deg,
+              transparent,
+              transparent 18px,
+              rgba(255,255,255,0.012) 18px,
+              rgba(255,255,255,0.012) 19px
+            )`,
+            pointerEvents: 'none',
+          }} />
+        )}
+      </div>
+
+      {/* ── Name Plate ── */}
+      <div style={{
+        backgroundColor: '#0C0C0C',
+        padding: '10px 12px 12px 12px',
+        borderTop: `1px solid ${isEmptySlot ? 'rgba(255,255,255,0.08)' : accent}40`,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: '1px',
+        position: 'relative',
+      }}>
+        {/* Accent bottom border line */}
+        {!isEmptySlot && (
+          <div style={{
+            position: 'absolute',
+            bottom: 0, left: 0, right: 0,
+            height: '2px',
+            background: `linear-gradient(90deg, ${accent} 0%, ${accent}60 60%, transparent 100%)`,
+          }} />
+        )}
+
+        {/* Professional Name (large) */}
+        <span style={{
+          fontSize: '26px',
+          fontWeight: 900,
+          color: isEmptySlot ? 'rgba(255,255,255,0.3)' : '#FFFFFF',
+          textTransform: 'uppercase',
+          lineHeight: 1,
+          letterSpacing: '0.5px',
+          fontFamily: '"Barlow Condensed", "Rajdhani", sans-serif',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          maxWidth: '256px',
+        }}>
+          {isEmptySlot ? 'EMPTY SLOT' : player.professionalName}
+        </span>
+
+        {/* IGN (small, accent color) */}
+        <span style={{
+          fontSize: '13px',
+          fontWeight: 600,
+          color: isEmptySlot ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.55)',
+          letterSpacing: '0.3px',
+          fontFamily: '"Barlow Condensed", sans-serif',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          maxWidth: '256px',
+        }}>
+          {isEmptySlot ? '—' : player.ign}
+        </span>
+
+        {/* Kills row */}
+        {!isEmptySlot && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: '5px',
+            marginTop: '6px',
+          }}>
+            <span style={{
+              fontSize: '48px',
+              fontWeight: 900,
+              color: accent,
+              lineHeight: 1,
+              fontFamily: '"Barlow Condensed", "Orbitron", sans-serif',
+              letterSpacing: '-1px',
+            }}>
+              {player.kills}
+            </span>
+            <span style={{
+              fontSize: '13px',
+              fontWeight: 700,
+              color: 'rgba(255,255,255,0.5)',
+              letterSpacing: '1.5px',
+              textTransform: 'uppercase',
+              fontFamily: '"Barlow Condensed", sans-serif',
+              paddingBottom: '6px',
+            }}>
+              KILLS
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function iso3to2(code: string): string | null {
+  const map: Record<string, string> = {
+    NGA: 'ng', GBR: 'gb', USA: 'us', GHA: 'gh', KEN: 'ke', ZAF: 'za',
+    BRA: 'br', ARG: 'ar', IND: 'in', PAK: 'pk', AUS: 'au', CAN: 'ca',
+    FRA: 'fr', DEU: 'de', ESP: 'es', ITA: 'it', NLD: 'nl', PRT: 'pt',
+    MEX: 'mx', COL: 'co', VEN: 've', PER: 'pe', CHL: 'cl', EGY: 'eg',
+    MAR: 'ma', SEN: 'sn', CMR: 'cm', JPN: 'jp', KOR: 'kr', PHL: 'ph',
+    IDN: 'id', MYS: 'my', THA: 'th', VNM: 'vn', SGP: 'sg', TUR: 'tr',
+    SAU: 'sa', ARE: 'ae', QAT: 'qa', IRQ: 'iq', IRN: 'ir', RUS: 'ru',
+    UKR: 'ua', POL: 'pl', SWE: 'se', NOR: 'no', DNK: 'dk', FIN: 'fi',
+  };
+  return map[code.toUpperCase()] ?? null;
+}
+
+function iso2ToCode(code: string): string {
+  const map: Record<string, string> = {
+    ng: 'NGA', gb: 'GBR', us: 'USA', gh: 'GHA', ke: 'KEN', za: 'ZAF',
+    br: 'BRA', ar: 'ARG', in: 'IND', pk: 'PAK', au: 'AUS', ca: 'CAN',
+    fr: 'FRA', de: 'DEU', es: 'ESP', it: 'ITA', nl: 'NLD', pt: 'PRT',
+    mx: 'MEX', co: 'COL', jp: 'JPN', kr: 'KOR', ph: 'PHL', id: 'IDN',
+    my: 'MYS', th: 'THA', vn: 'VNM', sg: 'SGP', tr: 'TUR', sa: 'SAU',
+    ae: 'ARE', qa: 'QAT', eg: 'EGY', ma: 'MAR', sn: 'SEN', cm: 'CMR',
+  };
+  return map[code.toLowerCase()] ?? code.toUpperCase();
 }

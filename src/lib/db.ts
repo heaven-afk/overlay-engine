@@ -87,6 +87,11 @@ export interface TemplateStyleConfig {
   teamId?: string;                      // selected team ID for team roster kills
   scope?: 'collation' | 'daily';        // scope mode for team roster kills ('collation' or 'daily')
   frameColor?: string;                  // operator-configurable base color for metallic card border
+
+  // Team Roster Kills — overlay identity fields
+  leagueLogoUrl?: string;              // optional league/tournament logo shown top-left (can be empty)
+  leagueSubtitle?: string;             // e.g. "R3IGN CODM MULTIPLAYER LEAGUE"
+  teamTagline?: string;                // e.g. "WE DON'T FOLLOW. WE DOMINATE."
 }
 
 export interface OverlayTemplate {
