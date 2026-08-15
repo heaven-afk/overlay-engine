@@ -58,6 +58,7 @@ const MOCK_OVERALL_RANKINGS = {
     teamId: `team-${i}`,
     teamName: i === 0 ? 'REMEDIUM INVICTUS' : i === 1 ? 'KYZON ESPORTS' : i === 2 ? 'HYPERION SQUAD' : `TEAM UNICORN ${i + 1}`,
     logoUrl: '',
+    wins: Math.max(0, 4 - i),
     placementPoints: 120 - i * 5,
     kills: 80 - i * 3,
     totalPoints: 200 - i * 8,

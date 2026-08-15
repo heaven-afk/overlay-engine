@@ -95,6 +95,16 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
             textAlign: 'center',
             letterSpacing: '0.05em',
           }}>
+            WINS
+          </div>
+          <div style={{
+            fontSize: '15px',
+            fontWeight: 800,
+            color: 'var(--text-muted)',
+            fontFamily: 'var(--heading-font)',
+            textAlign: 'center',
+            letterSpacing: '0.05em',
+          }}>
             PL PTS
           </div>
           <div style={{
@@ -110,22 +120,12 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
           <div style={{
             fontSize: '15px',
             fontWeight: 800,
-            color: 'var(--text-muted)',
+            color: 'var(--accent)',
             fontFamily: 'var(--heading-font)',
             textAlign: 'center',
             letterSpacing: '0.05em',
           }}>
             TOTAL
-          </div>
-          <div style={{
-            fontSize: '15px',
-            fontWeight: 800,
-            color: 'var(--text-muted)',
-            fontFamily: 'var(--heading-font)',
-            textAlign: 'center',
-            letterSpacing: '0.05em',
-          }}>
-            WINS
           </div>
         </div>
 
@@ -183,6 +183,20 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
                   {cleanEntityName(team.teamName)}
                 </div>
 
+                {/* Wins */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
+                  fontSize: `${textFontSize}px`,
+                  fontWeight: 800,
+                  color: '#FFF',
+                  borderLeft: '1px solid rgba(255, 255, 255, 0.15)',
+                }}>
+                  {team.wins}
+                </div>
+
                 {/* Placement Points */}
                 <div style={{
                   display: 'flex',
@@ -219,24 +233,10 @@ export const OverallRankingsDualColumn: React.FC<OverallRankingsDualColumnProps>
                   height: '100%',
                   fontSize: `${textFontSize + 2}px`,
                   fontWeight: 900,
-                  color: '#FFF',
+                  color: 'var(--accent)',
                   borderLeft: '1px solid rgba(255, 255, 255, 0.15)',
                 }}>
                   {team.totalPoints}
-                </div>
-
-                {/* Wins */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100%',
-                  fontSize: `${textFontSize}px`,
-                  fontWeight: 800,
-                  color: '#FFF',
-                  borderLeft: '1px solid rgba(255, 255, 255, 0.15)',
-                }}>
-                  {team.wins}
                 </div>
               </div>
             );
