@@ -21,6 +21,7 @@ import { Top5Graphic } from '@/components/templates/Top5Graphic';
 import { TeamRosterKillsGraphic } from '@/components/templates/TeamRosterKillsGraphic';
 import { FlexibleTop5Graphic } from '@/components/templates/FlexibleTop5Graphic';
 import { MatchSummary } from '@/components/templates/MatchSummary';
+import { PmncTop15Standings } from '@/components/templates/PmncTop15Standings';
 
 const templateMap: Record<string, React.ComponentType<any>> = {
   top_standings: TopStandings,
@@ -35,6 +36,7 @@ const templateMap: Record<string, React.ComponentType<any>> = {
   custom_media: CustomMedia,
   team_roster_kills: TeamRosterKillsGraphic,
   flexible_top5: FlexibleTop5Graphic,
+  pmnc_top15_standings: PmncTop15Standings,
   match_summary: MatchSummary,
 };
 

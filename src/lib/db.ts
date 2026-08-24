@@ -31,6 +31,7 @@ export type TemplateType =
   | 'top5_graphic'     // NEW: Top 5 Graphic — same layout, fully themeable (global use)
   | 'team_roster_kills'// NEW: Team Roster Kill Cards Graphic
   | 'flexible_top5'    // NEW: Flexible Top 5 Graphic (Paginated Standings)
+  | 'pmnc_top15_standings' // NEW: Esports Top 15 Standings (PMNC Style)
   | 'match_summary';   // NEW: Match Summary Graphic (Lobby / Match Scope)
 
 export type ColorTheme = 'dark' | 'light' | 'custom';
@@ -92,6 +93,13 @@ export interface TemplateStyleConfig {
   leagueLogoUrl?: string;              // optional league/tournament logo shown top-left (can be empty)
   leagueSubtitle?: string;             // e.g. "R3IGN CODM MULTIPLAYER LEAGUE"
   teamTagline?: string;                // e.g. "WE DON'T FOLLOW. WE DOMINATE."
+
+  // Esports / PMNC Standings specific
+  stageBadgeText?: string;             // e.g. "PMNC KENYA GROUP STAGE - DAY 2"
+  showSideRibbon?: boolean;            // toggle decorative side sash/ribbon
+  sponsorFooterText?: string;          // custom sponsor / partner brand text (e.g. "KRAFTON · LEVEL INFINITE · LIGHTSPEED · INFINIX")
+  page?: number;                       // pagination page index (1, 2, etc.)
+  rankOffset?: number;                 // optional rank start offset (e.g. 17 for page 2)
 }
 
 export interface OverlayTemplate {
@@ -279,7 +287,7 @@ export async function getTemplates(): Promise<OverlayTemplate[]> {
       list = freshSnap.docs.map((d) => ({ id: d.id, ...d.data() } as OverlayTemplate));
     }
 
-    // Auto-seed default team_roster_kills, flexible_top5, and match_summary templates if missing
+    // Auto-seed default team_roster_kills, flexible_top5, match_summary, and pmnc_top15_standings templates if missing
     let seededNewGraphics = false;
     if (list.filter((t) => t.templateType === 'team_roster_kills').length === 0) {
       await seedSingleTemplate('Team Roster Kill Cards', 'team_roster_kills', '#FFD700', 'ROSTER KILL CARDS');
@@ -291,6 +299,10 @@ export async function getTemplates(): Promise<OverlayTemplate[]> {
     }
     if (list.filter((t) => t.templateType === 'match_summary').length === 0) {
       await seedSingleTemplate('Match Summary', 'match_summary', '#FFD700', 'MATCH SUMMARY');
+      seededNewGraphics = true;
+    }
+    if (list.filter((t) => t.templateType === 'pmnc_top15_standings').length === 0) {
+      await seedSingleTemplate('PMNC Top 15 Standings', 'pmnc_top15_standings', '#E5A93C', 'OVERALL STANDINGS');
       seededNewGraphics = true;
     }
     if (seededNewGraphics) {
@@ -307,6 +319,32 @@ export async function getTemplates(): Promise<OverlayTemplate[]> {
 
 export function getBuiltInTemplate(id?: string | null): OverlayTemplate | null {
   if (!id) return null;
+  if (id.includes('pmnc_top15_standings')) {
+    return {
+      id: 'built-in:pmnc_top15_standings',
+      name: 'PMNC Top 15 Standings',
+      templateType: 'pmnc_top15_standings',
+      styleConfig: {
+        colorTheme: 'dark',
+        accentColor: '#E5A93C',
+        headingFont: 'Inter',
+        bodyFont: 'Inter',
+        brandingLogoUrl: '',
+        brandingName: 'PUBG MOBILE\nESPORTS',
+        showStatsStamp: true,
+        tournamentLogoCount: 1,
+        tournamentLogos: [],
+        topN: 15,
+        showColumns: ['wins', 'placePts', 'kills', 'totalPts'],
+        graphicTitle: 'OVERALL STANDINGS',
+        graphicSubtitle: 'PMNC GROUP STAGE',
+        stageBadgeText: 'PMNC KENYA GROUP STAGE - DAY 2',
+        showSideRibbon: true,
+        sponsorFooterText: 'KRAFTON · LEVEL INFINITE · LIGHTSPEED STUDIOS · INFINIX',
+        page: 1,
+      },
+    } as OverlayTemplate;
+  }
   if (id.includes('team_roster_kills')) {
     return {
       id: 'built-in:team_roster_kills',

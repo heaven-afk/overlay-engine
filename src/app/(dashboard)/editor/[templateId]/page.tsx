@@ -29,6 +29,7 @@ import { Top5Graphic } from '@/components/templates/Top5Graphic';
 import { TeamRosterKillsGraphic } from '@/components/templates/TeamRosterKillsGraphic';
 import { FlexibleTop5Graphic } from '@/components/templates/FlexibleTop5Graphic';
 import { MatchSummary } from '@/components/templates/MatchSummary';
+import { PmncTop15Standings } from '@/components/templates/PmncTop15Standings';
 
 // Columns definitions
 const ALL_COLUMNS = [
@@ -63,6 +64,26 @@ const MOCK_OVERALL_RANKINGS = {
     kills: 80 - i * 3,
     totalPoints: 200 - i * 8,
   }))
+};
+
+const MOCK_PMNC_STANDINGS = {
+  rows: [
+    { rank: 1, teamId: 't1', teamName: 'REVAN BLOOD', logoUrl: '', wins: 1, placementPts: 32, kills: 74, totalPts: 106 },
+    { rank: 2, teamId: 't2', teamName: 'NO PRESSURE', logoUrl: '', wins: 2, placementPts: 34, kills: 63, totalPts: 97 },
+    { rank: 3, teamId: 't3', teamName: 'FALLEN RUTHLESS', logoUrl: '', wins: 0, placementPts: 28, kills: 57, totalPts: 95 },
+    { rank: 4, teamId: 't4', teamName: 'FURIOUS 9', logoUrl: '', wins: 3, placementPts: 31, kills: 47, totalPts: 78 },
+    { rank: 5, teamId: 't5', teamName: 'PUZE ESPORTS', logoUrl: '', wins: 1, placementPts: 21, kills: 49, totalPts: 70 },
+    { rank: 6, teamId: 't6', teamName: 'RESCUE ESPORTS', logoUrl: '', wins: 1, placementPts: 18, kills: 48, totalPts: 66 },
+    { rank: 7, teamId: 't7', teamName: '4 TITANS', logoUrl: '', wins: 0, placementPts: 15, kills: 31, totalPts: 46 },
+    { rank: 8, teamId: 't8', teamName: 'EXCESS POWER', logoUrl: '', wins: 0, placementPts: 15, kills: 30, totalPts: 45 },
+    { rank: 9, teamId: 't9', teamName: 'INHAILTEMPO', logoUrl: '', wins: 0, placementPts: 17, kills: 27, totalPts: 44 },
+    { rank: 10, teamId: 't10', teamName: 'RUSH ESPORTS', logoUrl: '', wins: 1, placementPts: 20, kills: 22, totalPts: 42 },
+    { rank: 11, teamId: 't11', teamName: 'AURA ESPORTS', logoUrl: '', wins: 0, placementPts: 19, kills: 16, totalPts: 35 },
+    { rank: 12, teamId: 't12', teamName: 'NULL VANTA ESPORTS', logoUrl: '', wins: 1, placementPts: 15, kills: 20, totalPts: 35 },
+    { rank: 13, teamId: 't13', teamName: 'RELENTLESS7 ESP', logoUrl: '', wins: 0, placementPts: 7, kills: 24, totalPts: 31 },
+    { rank: 14, teamId: 't14', teamName: 'CLUTCH GODS', logoUrl: '', wins: 0, placementPts: 12, kills: 18, totalPts: 30 },
+    { rank: 15, teamId: 't15', teamName: 'RED WOLVES', logoUrl: '', wins: 1, placementPts: 15, kills: 13, totalPts: 28 },
+  ]
 };
 
 const MOCK_HYBRID_ERA_TOP5 = {
@@ -590,6 +611,21 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           }
         }
 
+        else if (templateType === 'pmnc_top15_standings') {
+          if (!selectedTournamentId) {
+            setPreviewData(MOCK_PMNC_STANDINGS);
+            return;
+          }
+          const { results } = await getTopStandings(selectedTournamentId, styleConfig.topN || 32, 'team', styleConfig.selectedGroup);
+          if (active) {
+            if (results && results.length > 0) {
+              setPreviewData({ rows: results, page: styleConfig.page || 1 });
+            } else {
+              setPreviewData(MOCK_PMNC_STANDINGS);
+            }
+          }
+        }
+
         else if (templateType === 'player_profile') {
           if (!previewPlayerId) {
             setPreviewData(MOCK_PLAYER_PROFILE);
@@ -605,6 +641,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
         if (active) {
           // fallback to mock
           if (templateType === 'top_standings') setPreviewData(MOCK_STANDINGS);
+          else if (templateType === 'pmnc_top15_standings') setPreviewData(MOCK_PMNC_STANDINGS);
           else if (templateType === 'overall_rankings_dual_column') setPreviewData(MOCK_OVERALL_RANKINGS);
           else if (templateType === 'top_5_overall') setPreviewData(MOCK_OVERALL_RANKINGS);
           else if (templateType === 'hybrid_era_top5') setPreviewData(MOCK_HYBRID_ERA_TOP5);
@@ -1000,6 +1037,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       case 'custom_media': return CustomMedia;
       case 'team_roster_kills': return TeamRosterKillsGraphic;
       case 'flexible_top5': return FlexibleTop5Graphic;
+      case 'pmnc_top15_standings': return PmncTop15Standings;
       case 'match_summary': return MatchSummary;
       default: return TopStandings;
     }
@@ -1114,6 +1152,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     onChange={(e) => setTemplateType(e.target.value as TemplateType)}
                   >
                     <option value="top_standings">Top Standings Table</option>
+                    <option value="pmnc_top15_standings">Esports Top 15 Standings (PMNC Style)</option>
                     <option value="overall_rankings_dual_column">Overall Rankings (Dual Column)</option>
                     <option value="top_5_overall">Top 5 Overall Table</option>
                     <option value="top5_graphic">Top 5 Graphic (Global)</option>
@@ -1628,6 +1667,110 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     ))}
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section 6-PMNC: Esports Top 15 Standings (PMNC Style) Settings */}
+          {templateType === 'pmnc_top15_standings' && (
+            <div>
+              <div className="sidebar-section-title" style={{ color: '#E5A93C' }}>PMNC Standings Settings</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                
+                {/* Stage Header Badge */}
+                <div className="property-field">
+                  <span className="property-label">Stage Header Badge</span>
+                  <input 
+                    type="text" 
+                    className="text-input" 
+                    value={styleConfig.stageBadgeText || 'PMNC KENYA GROUP STAGE - DAY 2'} 
+                    placeholder="e.g. PMNC KENYA GROUP STAGE - DAY 2"
+                    onChange={(e) => updateStyleConfig({ stageBadgeText: e.target.value })} 
+                  />
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }}>
+                    {['PMNC KENYA GROUP STAGE - DAY 1', 'PMNC KENYA GROUP STAGE - DAY 2', 'FINALS - DAY 1', 'FINALS - DAY 2', 'OVERALL STANDINGS'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => updateStyleConfig({ stageBadgeText: preset })}
+                        style={{
+                          fontSize: '10px',
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          border: '1px solid rgba(229, 169, 60, 0.4)',
+                          background: 'rgba(229, 169, 60, 0.1)',
+                          color: '#E5A93C',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Rows to display */}
+                <div className="property-field">
+                  <span className="property-label">Rows per page (Top N)</span>
+                  <input 
+                    type="number" 
+                    className="text-input" 
+                    min={5} 
+                    max={25}
+                    value={styleConfig.topN || 15} 
+                    onChange={(e) => updateStyleConfig({ topN: Math.max(5, Math.min(25, Number(e.target.value))) })} 
+                  />
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Default is 15 teams per page.</span>
+                </div>
+
+                {/* Page Selection */}
+                <div className="property-field">
+                  <span className="property-label">Active Page</span>
+                  <div className="toggle-group">
+                    <button
+                      className={`toggle-btn ${(!styleConfig.page || styleConfig.page === 1) ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ page: 1 })}
+                    >
+                      Page 1 (#1–#15)
+                    </button>
+                    <button
+                      className={`toggle-btn ${styleConfig.page === 2 ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ page: 2 })}
+                    >
+                      Page 2 (#16–#30)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Side Ribbon Toggle */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input 
+                    type="checkbox" 
+                    id="chk-sash"
+                    checked={styleConfig.showSideRibbon !== false}
+                    onChange={(e) => updateStyleConfig({ showSideRibbon: e.target.checked })} 
+                  />
+                  <label htmlFor="chk-sash" className="property-label" style={{ margin: 0, cursor: 'pointer' }}>
+                    Show Decorative Side Sash / Ribbon
+                  </label>
+                </div>
+
+                {/* Sponsor Footer Text */}
+                <div className="property-field">
+                  <span className="property-label">Sponsor / Partner Footer Text</span>
+                  <input 
+                    type="text" 
+                    className="text-input" 
+                    value={styleConfig.sponsorFooterText || 'KRAFTON · LEVEL INFINITE · LIGHTSPEED STUDIOS · INFINIX'} 
+                    placeholder="e.g. KRAFTON · LEVEL INFINITE · INFINIX"
+                    onChange={(e) => updateStyleConfig({ sponsorFooterText: e.target.value })} 
+                  />
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    Displayed in the bottom sponsor bar on broadcast.
+                  </span>
+                </div>
+
               </div>
             </div>
           )}
