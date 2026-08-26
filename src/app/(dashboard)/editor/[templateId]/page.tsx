@@ -283,6 +283,28 @@ export default function TemplateBuilderPage({ params }: PageProps) {
   const [uploadingHybridLogo, setUploadingHybridLogo] = useState(false);
   const [uploadHybridLogoProgress, setUploadHybridLogoProgress] = useState<number>(0);
 
+  // Template base configurations
+  const [templateId, setTemplateId] = useState<string>('');
+  const [name, setName] = useState('Untitled Template');
+  const [templateType, setTemplateType] = useState<TemplateType>('top_standings');
+  
+  const [styleConfig, setStyleConfig] = useState<TemplateStyleConfig>({
+    colorTheme: 'dark',
+    accentColor: '#C9A84C',
+    customBackgroundUrl: '',
+    headingFont: 'Inter',
+    bodyFont: 'Inter',
+    brandingLogoUrl: '',
+    brandingName: 'HEAVEN STAT ENGINE\nAfrican CODM BR Coverage',
+    showStatsStamp: true,
+    tournamentLogoCount: 1,
+    tournamentLogos: [],
+    topN: 10,
+    showColumns: DEFAULT_COLUMNS,
+    graphicTitle: 'TOP STANDINGS',
+    graphicSubtitle: 'Full Standings — Top 10',
+  });
+
   // Responsive preview box scaling
   const previewPanelRef = useRef<HTMLDivElement>(null);
   const [previewScale, setPreviewScale] = useState<number>(0.45);
@@ -312,32 +334,6 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       window.removeEventListener('resize', updateScale);
     };
   }, [templateType]);
-
-  // Template base configurations
-  const [templateId, setTemplateId] = useState<string>('');
-  const [name, setName] = useState('Untitled Template');
-  const [templateType, setTemplateType] = useState<TemplateType>('top_standings');
-  
-  const [styleConfig, setStyleConfig] = useState<TemplateStyleConfig>({
-    colorTheme: 'dark',
-    accentColor: '#C9A84C',
-    customBackgroundUrl: '',
-    headingFont: 'Inter',
-    bodyFont: 'Inter',
-    brandingLogoUrl: '',
-    brandingName: 'HEAVEN STAT ENGINE\nAfrican CODM BR Coverage',
-    showStatsStamp: true,
-    tournamentLogoCount: 1,
-    tournamentLogos: [
-      { logoUrl: '', tournamentName: '' },
-      { logoUrl: '', tournamentName: '' },
-      { logoUrl: '', tournamentName: '' },
-    ],
-    topN: 10,
-    showColumns: DEFAULT_COLUMNS,
-    graphicTitle: 'OGR T1 COLLATION',
-    graphicSubtitle: 'Full standings — Top 10 · 2 Events Played',
-  });
 
   // Preview Data Source Selectors
   const [tournaments, setTournaments] = useState<any[]>([]);
