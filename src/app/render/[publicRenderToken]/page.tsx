@@ -21,6 +21,7 @@ import { TeamRosterKillsGraphic } from '@/components/templates/TeamRosterKillsGr
 import { FlexibleTop5Graphic } from '@/components/templates/FlexibleTop5Graphic';
 import { MatchSummary } from '@/components/templates/MatchSummary';
 import { PmncTop15Standings } from '@/components/templates/PmncTop15Standings';
+import { MglYtLivestanding } from '@/components/templates/MglYtLivestanding';
 
 const templateMap = {
   top_standings: TopStandings,
@@ -36,6 +37,7 @@ const templateMap = {
   team_roster_kills: TeamRosterKillsGraphic,
   flexible_top5: FlexibleTop5Graphic,
   pmnc_top15_standings: PmncTop15Standings,
+  mgl_yt_livestanding: MglYtLivestanding,
   match_summary: MatchSummary,
 };
 
@@ -54,13 +56,16 @@ export default function PublicRenderPage({ params }: PageProps) {
   // ─── Scale listener for OBS scaling ──────────────────────────────────────
   useEffect(() => {
     function handleResize() {
-      const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+      const isMgl = template?.templateType === 'mgl_yt_livestanding';
+      const targetW = isMgl ? 713 : 1920;
+      const targetH = isMgl ? 2048 : 1080;
+      const s = Math.min(window.innerWidth / targetW, window.innerHeight / targetH);
       setScale(s);
     }
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [template?.templateType]);
 
   // ─── Real-time Firestore listener ─────────────────────────────────────────
   useEffect(() => {
@@ -158,6 +163,10 @@ export default function PublicRenderPage({ params }: PageProps) {
   const publishedFields = slot.published?.fields || slot.currentData || {};
   const isVisible = template.templateType === 'custom_media' || (publishedFields && Object.keys(publishedFields).length > 0);
 
+  const isMgl = template.templateType === 'mgl_yt_livestanding';
+  const targetW = isMgl ? 713 : 1920;
+  const targetH = isMgl ? 2048 : 1080;
+
   return (
     <div className="broadcast-stage-wrapper" style={{
       width: '100vw',
@@ -168,8 +177,8 @@ export default function PublicRenderPage({ params }: PageProps) {
     }}>
       <div
         style={{
-          width: '1920px',
-          height: '1080px',
+          width: `${targetW}px`,
+          height: `${targetH}px`,
           transform: `scale(${scale})`,
           transformOrigin: 'top left',
           backgroundColor: 'transparent', // preserves OBS transparent capture

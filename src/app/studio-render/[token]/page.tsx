@@ -22,6 +22,7 @@ import { TeamRosterKillsGraphic } from '@/components/templates/TeamRosterKillsGr
 import { FlexibleTop5Graphic } from '@/components/templates/FlexibleTop5Graphic';
 import { MatchSummary } from '@/components/templates/MatchSummary';
 import { PmncTop15Standings } from '@/components/templates/PmncTop15Standings';
+import { MglYtLivestanding } from '@/components/templates/MglYtLivestanding';
 
 const templateMap: Record<string, React.ComponentType<any>> = {
   top_standings: TopStandings,
@@ -37,6 +38,7 @@ const templateMap: Record<string, React.ComponentType<any>> = {
   team_roster_kills: TeamRosterKillsGraphic,
   flexible_top5: FlexibleTop5Graphic,
   pmnc_top15_standings: PmncTop15Standings,
+  mgl_yt_livestanding: MglYtLivestanding,
   match_summary: MatchSummary,
 };
 
@@ -56,13 +58,16 @@ export default function StudioRenderPage({ params }: PageProps) {
   // ── Scale to window (OBS Browser Source) ──────────────────────────────────
   useEffect(() => {
     function handleResize() {
-      const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+      const isMgl = template?.templateType === 'mgl_yt_livestanding';
+      const targetW = isMgl ? 713 : 1920;
+      const targetH = isMgl ? 2048 : 1080;
+      const s = Math.min(window.innerWidth / targetW, window.innerHeight / targetH);
       setScale(s);
     }
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [template?.templateType]);
 
   // ── Bootstrap: look up project & live state ───────────────────────────────
   useEffect(() => {
@@ -167,6 +172,10 @@ export default function StudioRenderPage({ params }: PageProps) {
   const fields = liveState?.fields || {};
   const isVisible = Boolean(template && TemplateComponent);
 
+  const isMgl = template?.templateType === 'mgl_yt_livestanding';
+  const targetW = isMgl ? 713 : 1920;
+  const targetH = isMgl ? 2048 : 1080;
+
   return (
     <div
       className="broadcast-stage-wrapper"
@@ -174,8 +183,8 @@ export default function StudioRenderPage({ params }: PageProps) {
     >
       <div
         style={{
-          width: '1920px',
-          height: '1080px',
+          width: `${targetW}px`,
+          height: `${targetH}px`,
           transform: `scale(${scale})`,
           transformOrigin: 'top left',
           backgroundColor: 'transparent',

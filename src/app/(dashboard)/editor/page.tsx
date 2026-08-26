@@ -88,6 +88,8 @@ export default function TemplateLibrary() {
         return <Trophy style={{ width: '20px', height: '20px', color: '#A855F7' }} />;
       case 'pmnc_top15_standings':
         return <Trophy style={{ width: '20px', height: '20px', color: '#E5A93C' }} />;
+      case 'mgl_yt_livestanding':
+        return <Trophy style={{ width: '20px', height: '20px', color: '#FF9900' }} />;
       case 'match_summary':
         return <Award style={{ width: '20px', height: '20px', color: '#FFD700' }} />;
       case 'daily_standings':
@@ -108,6 +110,7 @@ export default function TemplateLibrary() {
   const getTemplateTypeName = (type?: string) => {
     switch (type) {
       case 'top_standings': return 'Top Standings';
+      case 'mgl_yt_livestanding': return 'MGL YT Livestanding (713x2048 Banner)';
       case 'pmnc_top15_standings': return 'Esports Top 15 Standings (PMNC Style)';
       case 'overall_rankings_dual_column': return 'Overall Rankings (Dual Column)';
       case 'top_5_overall': return 'Top 5 Overall Table';

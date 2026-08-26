@@ -30,6 +30,7 @@ import { TeamRosterKillsGraphic } from '@/components/templates/TeamRosterKillsGr
 import { FlexibleTop5Graphic } from '@/components/templates/FlexibleTop5Graphic';
 import { MatchSummary } from '@/components/templates/MatchSummary';
 import { PmncTop15Standings } from '@/components/templates/PmncTop15Standings';
+import { MglYtLivestanding } from '@/components/templates/MglYtLivestanding';
 
 // Columns definitions
 const ALL_COLUMNS = [
@@ -83,6 +84,21 @@ const MOCK_PMNC_STANDINGS = {
     { rank: 13, teamId: 't13', teamName: 'RELENTLESS7 ESP', logoUrl: '', wins: 0, placementPts: 7, kills: 24, totalPts: 31 },
     { rank: 14, teamId: 't14', teamName: 'CLUTCH GODS', logoUrl: '', wins: 0, placementPts: 12, kills: 18, totalPts: 30 },
     { rank: 15, teamId: 't15', teamName: 'RED WOLVES', logoUrl: '', wins: 1, placementPts: 15, kills: 13, totalPts: 28 },
+  ]
+};
+
+const MOCK_MGL_LIVESTANDING = {
+  rows: [
+    { rank: 1, teamId: 'faze', teamName: 'FAZE RAIDERS', logoUrl: '', totalPts: 200, kills: 48, placementPts: 152 },
+    { rank: 2, teamId: 'century', teamName: '21ST CENTURY', logoUrl: '', totalPts: 200, kills: 45, placementPts: 155 },
+    { rank: 3, teamId: 'dfl', teamName: 'DFL', logoUrl: '', totalPts: 200, kills: 42, placementPts: 158 },
+    { rank: 4, teamId: 'paris', teamName: 'PARIS CHITAURI', logoUrl: '', totalPts: 200, kills: 38, placementPts: 162 },
+    { rank: 5, teamId: 'vortex', teamName: 'VORTEX ONE', logoUrl: '', totalPts: 200, kills: 35, placementPts: 165 },
+    { rank: 6, teamId: 'remedium', teamName: 'REMEDIUM INVICTUS', logoUrl: '', totalPts: 200, kills: 32, placementPts: 168 },
+    { rank: 7, teamId: 'onyx', teamName: 'ONYX ESPORTS', logoUrl: '', totalPts: 200, kills: 30, placementPts: 170 },
+    { rank: 8, teamId: 'horizon', teamName: 'HORIZON ONE', logoUrl: '', totalPts: 200, kills: 28, placementPts: 172 },
+    { rank: 9, teamId: 'bombana', teamName: 'BOMBANA', logoUrl: '', totalPts: 200, kills: 25, placementPts: 175 },
+    { rank: 10, teamId: 'hyperion', teamName: 'HYPERION SQUAD', logoUrl: '', totalPts: 195, kills: 22, placementPts: 173 },
   ]
 };
 
@@ -276,12 +292,15 @@ export default function TemplateBuilderPage({ params }: PageProps) {
     if (!el) return;
 
     const updateScale = () => {
-      const availW = Math.max(300, el.clientWidth - 40);
+      const isMgl = templateType === 'mgl_yt_livestanding';
+      const targetW = isMgl ? 713 : 1920;
+      const targetH = isMgl ? 2048 : 1080;
+      const availW = Math.max(200, el.clientWidth - 40);
       const availH = Math.max(200, el.clientHeight - 100);
-      const scaleX = availW / 1920;
-      const scaleY = availH / 1080;
+      const scaleX = availW / targetW;
+      const scaleY = availH / targetH;
       const fitScale = Math.min(scaleX, scaleY);
-      setPreviewScale(Math.max(0.2, Math.min(0.65, fitScale)));
+      setPreviewScale(Math.max(0.15, Math.min(isMgl ? 0.45 : 0.65, fitScale)));
     };
 
     updateScale();
@@ -292,7 +311,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       observer.disconnect();
       window.removeEventListener('resize', updateScale);
     };
-  }, []);
+  }, [templateType]);
 
   // Template base configurations
   const [templateId, setTemplateId] = useState<string>('');
@@ -626,6 +645,27 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           }
         }
 
+        else if (templateType === 'mgl_yt_livestanding') {
+          if (!selectedTournamentId) {
+            setPreviewData(MOCK_MGL_LIVESTANDING);
+            return;
+          }
+          if (styleConfig.hybridEraMode === 'daily') {
+            const day = styleConfig.day || 1;
+            const lobby = styleConfig.lobby;
+            const data = await getDailyStandings(selectedTournamentId, day, { lobby, n: 10, groupId: styleConfig.selectedGroup }).catch(() => ({}));
+            if (active) {
+              const results = data?.results || (Array.isArray(data) ? data : []);
+              setPreviewData(results.length > 0 ? { ...data, results, rows: results } : MOCK_MGL_LIVESTANDING);
+            }
+          } else {
+            const { results } = await getTopStandings(selectedTournamentId, 10, 'team', styleConfig.selectedGroup).catch(() => ({ results: [] }));
+            if (active) {
+              setPreviewData(results && results.length > 0 ? { rows: results } : MOCK_MGL_LIVESTANDING);
+            }
+          }
+        }
+
         else if (templateType === 'player_profile') {
           if (!previewPlayerId) {
             setPreviewData(MOCK_PLAYER_PROFILE);
@@ -642,6 +682,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           // fallback to mock
           if (templateType === 'top_standings') setPreviewData(MOCK_STANDINGS);
           else if (templateType === 'pmnc_top15_standings') setPreviewData(MOCK_PMNC_STANDINGS);
+          else if (templateType === 'mgl_yt_livestanding') setPreviewData(MOCK_MGL_LIVESTANDING);
           else if (templateType === 'overall_rankings_dual_column') setPreviewData(MOCK_OVERALL_RANKINGS);
           else if (templateType === 'top_5_overall') setPreviewData(MOCK_OVERALL_RANKINGS);
           else if (templateType === 'hybrid_era_top5') setPreviewData(MOCK_HYBRID_ERA_TOP5);
@@ -953,7 +994,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
     }
   };
 
-  // Export 1920x1080 PNG using html2canvas
+  // Export PNG using html2canvas
   const handleDownload = async () => {
     const canvasEl = document.getElementById('broadcast-graphic-preview');
     if (!canvasEl) return;
@@ -963,13 +1004,17 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       const originalTransform = canvasEl.style.transform;
       canvasEl.style.transform = 'scale(1)';
       
+      const isMgl = templateType === 'mgl_yt_livestanding';
+      const targetW = isMgl ? 713 : 1920;
+      const targetH = isMgl ? 2048 : 1080;
+
       const screenshot = await html2canvas(canvasEl, {
         backgroundColor: null, // transparent
-        scale: 2,              // 2x for full 1920x1080 crisp render
+        scale: 2,              // 2x for full crisp render
         useCORS: true,
         allowTaint: false,
-        width: 1920,
-        height: 1080,
+        width: targetW,
+        height: targetH,
       });
 
       canvasEl.style.transform = originalTransform;
@@ -1038,6 +1083,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       case 'team_roster_kills': return TeamRosterKillsGraphic;
       case 'flexible_top5': return FlexibleTop5Graphic;
       case 'pmnc_top15_standings': return PmncTop15Standings;
+      case 'mgl_yt_livestanding': return MglYtLivestanding;
       case 'match_summary': return MatchSummary;
       default: return TopStandings;
     }
@@ -1152,6 +1198,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     onChange={(e) => setTemplateType(e.target.value as TemplateType)}
                   >
                     <option value="top_standings">Top Standings Table</option>
+                    <option value="mgl_yt_livestanding">MGL YT Livestanding (713x2048 Banner)</option>
                     <option value="pmnc_top15_standings">Esports Top 15 Standings (PMNC Style)</option>
                     <option value="overall_rankings_dual_column">Overall Rankings (Dual Column)</option>
                     <option value="top_5_overall">Top 5 Overall Table</option>
@@ -1667,6 +1714,94 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     ))}
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section 6-MGL: MGL YT Livestanding Settings */}
+          {templateType === 'mgl_yt_livestanding' && (
+            <div>
+              <div className="sidebar-section-title" style={{ color: '#FF9900' }}>MGL YT Livestanding Settings</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                
+                {/* Data Type: Collation vs Daily */}
+                <div className="property-field">
+                  <span className="property-label">Data Mode</span>
+                  <div className="toggle-group">
+                    <button
+                      className={`toggle-btn ${(!styleConfig.hybridEraMode || styleConfig.hybridEraMode === 'collation') ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ hybridEraMode: 'collation' })}
+                    >
+                      Collation (Overall)
+                    </button>
+                    <button
+                      className={`toggle-btn ${styleConfig.hybridEraMode === 'daily' ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ hybridEraMode: 'daily' })}
+                    >
+                      Daily Results
+                    </button>
+                  </div>
+                </div>
+
+                {/* Points Column */}
+                <div className="property-field">
+                  <span className="property-label">Score / Points Metric</span>
+                  <select
+                    className="select-input"
+                    value={styleConfig.dailyPointsColumn || 'totalPts'}
+                    onChange={(e) => updateStyleConfig({ dailyPointsColumn: e.target.value as any })}
+                  >
+                    <option value="totalPts">Total Points</option>
+                    <option value="kills">Total Kills</option>
+                    <option value="placementPts">Placement Points</option>
+                  </select>
+                </div>
+
+                {/* Subtitle / Stage Badge */}
+                <div className="property-field">
+                  <span className="property-label">Custom Subtitle / Badge Text</span>
+                  <input 
+                    type="text" 
+                    className="text-input" 
+                    value={styleConfig.graphicSubtitle || ''} 
+                    placeholder="e.g. DAY 2 · LOBBY 3 or OVERALL COLLATION"
+                    onChange={(e) => updateStyleConfig({ graphicSubtitle: e.target.value })} 
+                  />
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }}>
+                    {['LIVE STANDINGS', 'OVERALL COLLATION', 'DAY 1 · FINALS', 'DAY 2 · FINALS', 'QUALIFIERS'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => updateStyleConfig({ graphicSubtitle: preset })}
+                        style={{
+                          fontSize: '10px',
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          border: '1px solid rgba(255, 153, 0, 0.4)',
+                          background: 'rgba(255, 153, 0, 0.1)',
+                          color: '#FFB833',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Sponsor Footer Text */}
+                <div className="property-field">
+                  <span className="property-label">Sponsor Text / Partner</span>
+                  <input 
+                    type="text" 
+                    className="text-input" 
+                    value={styleConfig.sponsorFooterText || 'Powered by Carry1st'} 
+                    placeholder="e.g. Powered by Carry1st"
+                    onChange={(e) => updateStyleConfig({ sponsorFooterText: e.target.value })} 
+                  />
+                </div>
+
               </div>
             </div>
           )}
@@ -2813,37 +2948,44 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             )}
           </div>
 
-          {/* 1920x1080 graphic scaled dynamically to fit 100% of container */}
-          <div style={{
-            width: `${Math.round(1920 * previewScale)}px`,
-            height: `${Math.round(1080 * previewScale)}px`,
-            position: 'relative',
-            border: '2px dashed rgba(255, 255, 255, 0.15)',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7)',
-            backgroundColor: '#000',
-            overflow: 'hidden',
-            borderRadius: '8px',
-            flexShrink: 0,
-          }}>
-            <div 
-              id="broadcast-graphic-preview"
-              style={{
-                width: '1920px',
-                height: '1080px',
-                transform: `scale(${previewScale})`,
-                transformOrigin: 'top left',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-              }}
-            >
-              <style dangerouslySetInnerHTML={{ __html: `${googleFontsLink(styleConfig)}\n${cssVarsForTheme(styleConfig)}` }} />
-              <TemplateComponent data={previewData} styleConfig={styleConfig} />
-            </div>
-          </div>
+          {/* Graphic scaled dynamically to fit 100% of container */}
+          {(() => {
+            const isMgl = templateType === 'mgl_yt_livestanding';
+            const targetW = isMgl ? 713 : 1920;
+            const targetH = isMgl ? 2048 : 1080;
+            return (
+              <div style={{
+                width: `${Math.round(targetW * previewScale)}px`,
+                height: `${Math.round(targetH * previewScale)}px`,
+                position: 'relative',
+                border: '2px dashed rgba(255, 255, 255, 0.15)',
+                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7)',
+                backgroundColor: '#000',
+                overflow: 'hidden',
+                borderRadius: '8px',
+                flexShrink: 0,
+              }}>
+                <div 
+                  id="broadcast-graphic-preview"
+                  style={{
+                    width: `${targetW}px`,
+                    height: `${targetH}px`,
+                    transform: `scale(${previewScale})`,
+                    transformOrigin: 'top left',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                  }}
+                >
+                  <style dangerouslySetInnerHTML={{ __html: `${googleFontsLink(styleConfig)}\n${cssVarsForTheme(styleConfig)}` }} />
+                  <TemplateComponent data={previewData} styleConfig={styleConfig} />
+                </div>
+              </div>
+            );
+          })()}
 
           <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-            Live preview fitted automatically ({Math.round(previewScale * 100)}%). Exported image or OBS renders at full 1920x1080.
+            Live preview fitted automatically ({Math.round(previewScale * 100)}%). Exported image or OBS renders at full {templateType === 'mgl_yt_livestanding' ? '713x2048' : '1920x1080'}.
           </div>
 
         </div>

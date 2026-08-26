@@ -32,6 +32,7 @@ export type TemplateType =
   | 'team_roster_kills'// NEW: Team Roster Kill Cards Graphic
   | 'flexible_top5'    // NEW: Flexible Top 5 Graphic (Paginated Standings)
   | 'pmnc_top15_standings' // NEW: Esports Top 15 Standings (PMNC Style)
+  | 'mgl_yt_livestanding'  // NEW: MGL YouTube Live Standings (713x2048 Vertical Banner)
   | 'match_summary';   // NEW: Match Summary Graphic (Lobby / Match Scope)
 
 export type ColorTheme = 'dark' | 'light' | 'custom';
@@ -287,7 +288,7 @@ export async function getTemplates(): Promise<OverlayTemplate[]> {
       list = freshSnap.docs.map((d) => ({ id: d.id, ...d.data() } as OverlayTemplate));
     }
 
-    // Auto-seed default team_roster_kills, flexible_top5, match_summary, and pmnc_top15_standings templates if missing
+    // Auto-seed default team_roster_kills, flexible_top5, match_summary, pmnc_top15_standings, and mgl_yt_livestanding templates if missing
     let seededNewGraphics = false;
     if (list.filter((t) => t.templateType === 'team_roster_kills').length === 0) {
       await seedSingleTemplate('Team Roster Kill Cards', 'team_roster_kills', '#FFD700', 'ROSTER KILL CARDS');
@@ -305,6 +306,10 @@ export async function getTemplates(): Promise<OverlayTemplate[]> {
       await seedSingleTemplate('PMNC Top 15 Standings', 'pmnc_top15_standings', '#E5A93C', 'OVERALL STANDINGS');
       seededNewGraphics = true;
     }
+    if (list.filter((t) => t.templateType === 'mgl_yt_livestanding').length === 0) {
+      await seedSingleTemplate('MGL YT Livestanding', 'mgl_yt_livestanding', '#FF9900', 'TOP 10 TEAMS');
+      seededNewGraphics = true;
+    }
     if (seededNewGraphics) {
       const freshSnap = await getDocs(collection(db, 'overlayTemplates'));
       list = freshSnap.docs.map((d) => ({ id: d.id, ...d.data() } as OverlayTemplate));
@@ -319,6 +324,31 @@ export async function getTemplates(): Promise<OverlayTemplate[]> {
 
 export function getBuiltInTemplate(id?: string | null): OverlayTemplate | null {
   if (!id) return null;
+  if (id.includes('mgl_yt_livestanding')) {
+    return {
+      id: 'built-in:mgl_yt_livestanding',
+      name: 'MGL YT Livestanding',
+      templateType: 'mgl_yt_livestanding',
+      styleConfig: {
+        colorTheme: 'dark',
+        accentColor: '#FF9900',
+        headingFont: 'Rajdhani',
+        bodyFont: 'Inter',
+        brandingLogoUrl: '',
+        brandingName: 'MGL ESPORTS\nLIVE BROADCAST',
+        showStatsStamp: false,
+        tournamentLogoCount: 1,
+        tournamentLogos: [],
+        topN: 10,
+        showColumns: ['totalPts'],
+        graphicTitle: 'TOP 10 TEAMS',
+        graphicSubtitle: 'LIVE STANDINGS',
+        sponsorFooterText: 'Powered by Carry1st',
+        hybridEraMode: 'collation',
+        dailyPointsColumn: 'totalPts',
+      },
+    } as OverlayTemplate;
+  }
   if (id.includes('pmnc_top15_standings')) {
     return {
       id: 'built-in:pmnc_top15_standings',

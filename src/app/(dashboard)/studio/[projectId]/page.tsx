@@ -34,6 +34,7 @@ import { TeamRosterKillsGraphic } from '@/components/templates/TeamRosterKillsGr
 import { FlexibleTop5Graphic } from '@/components/templates/FlexibleTop5Graphic';
 import { MatchSummary } from '@/components/templates/MatchSummary';
 import { PmncTop15Standings } from '@/components/templates/PmncTop15Standings';
+import { MglYtLivestanding } from '@/components/templates/MglYtLivestanding';
 
 import {
   ArrowLeft, Clapperboard, Send, Save, History, Copy,
@@ -57,6 +58,7 @@ const templateComponentMap: Record<string, React.ComponentType<any>> = {
   team_roster_kills: TeamRosterKillsGraphic,
   flexible_top5: FlexibleTop5Graphic,
   pmnc_top15_standings: PmncTop15Standings,
+  mgl_yt_livestanding: MglYtLivestanding,
   match_summary: MatchSummary,
 };
 
@@ -91,6 +93,11 @@ function InlineRender({
 }) {
   const Component = template ? templateComponentMap[template.templateType] : null;
   const isEmpty = !template;
+  const isMgl = template?.templateType === 'mgl_yt_livestanding';
+  const targetW = isMgl ? 713 : 1920;
+  const targetH = isMgl ? 2048 : 1080;
+  const fitScale = isMgl ? Math.min(width / targetW, height / targetH) : scale;
+  const offsetX = isMgl ? Math.max(0, Math.round((width - targetW * fitScale) / 2)) : 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -141,13 +148,13 @@ function InlineRender({
           </div>
         ) : (
           <div style={{
-            width: '1920px',
-            height: '1080px',
-            transform: `scale(${scale})`,
+            width: `${targetW}px`,
+            height: `${targetH}px`,
+            transform: `scale(${fitScale})`,
             transformOrigin: 'top left',
             position: 'absolute',
             top: 0,
-            left: 0,
+            left: `${offsetX}px`,
           }}>
             {template && (
               <style

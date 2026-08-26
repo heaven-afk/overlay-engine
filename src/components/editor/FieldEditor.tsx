@@ -1323,6 +1323,9 @@ export function FieldEditor({
       case 'pmnc_top15_standings':
         return <HybridEraFetchEditor label="Fetch PMNC Standings Data (Workspace)" tournaments={tournaments} defaultN={32} onFetched={onFetched} />;
 
+      case 'mgl_yt_livestanding':
+        return <HybridEraFetchEditor label="Fetch MGL Standings Data (Daily / Collation)" tournaments={tournaments} defaultN={10} onFetched={onFetched} />;
+
       case 'match_summary':
         return <HybridEraFetchEditor label="Fetch Match Summary Data" tournaments={tournaments} defaultN={100} onFetched={onFetched} />;
 
