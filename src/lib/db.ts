@@ -255,35 +255,10 @@ export async function getTemplates(): Promise<OverlayTemplate[]> {
   try {
     const snap = await getDocs(collection(db, 'overlayTemplates'));
     let list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as OverlayTemplate));
-    
-    // Auto-clean excess unconfigured custom_media duplicates if more than 2 exist
-    const customMediaTemplates = list.filter((t) => t.templateType === 'custom_media');
-    if (customMediaTemplates.length > 2) {
-      // Retain the first 2 or configured ones, delete blank excess duplicates
-      const unconfigured = customMediaTemplates.filter(
-        (t) => !t.styleConfig?.customMediaUrl && !t.name.includes('(Configured)')
-      );
-      const toDeleteCount = customMediaTemplates.length - 2;
-      const toDelete = unconfigured.slice(0, toDeleteCount);
-
-      for (const t of toDelete) {
-        if (t.id) {
-          try {
-            await deleteDoc(doc(db, 'overlayTemplates', t.id));
-          } catch (e) {
-            console.error('Error auto-cleaning duplicate custom media:', e);
-          }
-        }
-      }
-
-      // Re-fetch cleaned list
-      const freshSnap = await getDocs(collection(db, 'overlayTemplates'));
-      list = freshSnap.docs.map((d) => ({ id: d.id, ...d.data() } as OverlayTemplate));
-    }
 
     // Only seed default custom media templates if ZERO exist
     if (list.filter((t) => t.templateType === 'custom_media').length === 0) {
-      await seedCustomMediaTemplates(2);
+      await seedCustomMediaTemplates(1);
       const freshSnap = await getDocs(collection(db, 'overlayTemplates'));
       list = freshSnap.docs.map((d) => ({ id: d.id, ...d.data() } as OverlayTemplate));
     }

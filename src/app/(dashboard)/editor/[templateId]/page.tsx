@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, use, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
   getTemplate, saveTemplate, getTournaments,
@@ -268,6 +268,7 @@ interface PageProps {
 
 export default function TemplateBuilderPage({ params }: PageProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { templateId: rawTemplateId } = use(params);
   const isNew = rawTemplateId === 'new';
 
@@ -409,6 +410,25 @@ export default function TemplateBuilderPage({ params }: PageProps) {
         } else {
           const newId = doc(collection(db, 'overlayTemplates')).id;
           setTemplateId(newId);
+          const typeParam = searchParams.get('type') as TemplateType | null;
+          if (typeParam === 'custom_media') {
+            setName('Untitled Custom Media');
+            setTemplateType('custom_media');
+            setStyleConfig((prev) => ({
+              ...prev,
+              colorTheme: 'custom',
+              accentColor: '#d946ef',
+              headingFont: 'Outfit',
+              bodyFont: 'Outfit',
+              brandingName: 'CUSTOM MEDIA\nOVERLAY',
+              showStatsStamp: false,
+              graphicTitle: 'LIVE MEDIA BROADCAST',
+              graphicSubtitle: 'Custom Graphics Slot',
+              customMediaType: 'auto',
+              customMediaFit: 'cover',
+              customMediaUrl: '',
+            }));
+          }
         }
       } catch (err) {
         console.error('Error initializing editor:', err);
@@ -418,7 +438,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
     }
 
     loadInitialData();
-  }, [rawTemplateId, isNew, router]);
+  }, [rawTemplateId, isNew, router, searchParams]);
 
   // Update filtered selection lists when selectedTournamentId changes.
   // IMPORTANT: We also reset team/player selection IDs here (synchronously within the same
@@ -1173,26 +1193,24 @@ export default function TemplateBuilderPage({ params }: PageProps) {
 
               <div className="property-field">
                 <span className="property-label">Template Type</span>
-                {templateType === 'custom_media' ? (
-                  <div style={{
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    backgroundColor: 'rgba(217, 70, 239, 0.1)',
-                    border: '1px solid rgba(217, 70, 239, 0.3)',
-                    color: '#d946ef',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                  }}>
-                    Custom Media Slot (Fixed)
-                  </div>
-                ) : (
-                  <select 
-                    className="select-input"
-                    value={templateType}
-                    onChange={(e) => setTemplateType(e.target.value as TemplateType)}
-                  >
+                <select 
+                  className="select-input"
+                  value={templateType}
+                  onChange={(e) => {
+                    const newType = e.target.value as TemplateType;
+                    setTemplateType(newType);
+                    if (newType === 'custom_media' && !styleConfig.customMediaType) {
+                      setStyleConfig((prev) => ({
+                        ...prev,
+                        colorTheme: 'custom',
+                        accentColor: '#d946ef',
+                        customMediaType: 'auto',
+                        customMediaFit: 'cover',
+                      }));
+                    }
+                  }}
+                >
+                  <optgroup label="Broadcast Data Templates">
                     <option value="top_standings">Top Standings Table</option>
                     <option value="mgl_yt_livestanding">MGL YT Livestanding (713x2048 Banner)</option>
                     <option value="pmnc_top15_standings">Esports Top 15 Standings (PMNC Style)</option>
@@ -1207,8 +1225,11 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     <option value="head_to_head">Head to Head Comparison</option>
                     <option value="team_profile">Team Profile</option>
                     <option value="player_profile">Player Profile</option>
-                  </select>
-                )}
+                  </optgroup>
+                  <optgroup label="Media & Video Overlays">
+                    <option value="custom_media">Custom Media Overlay (Video / GIF / Image / Canva)</option>
+                  </optgroup>
+                </select>
               </div>
 
               {templateType !== 'custom_media' && (
