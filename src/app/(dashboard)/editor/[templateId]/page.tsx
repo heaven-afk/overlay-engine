@@ -1212,7 +1212,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                 >
                   <optgroup label="Broadcast Data Templates">
                     <option value="top_standings">Top Standings Table</option>
-                    <option value="mgl_yt_livestanding">MGL YT Livestanding (713x2048 Banner)</option>
+                    <option value="mgl_yt_livestanding">Vertical YT Standing (713x2048 Banner)</option>
                     <option value="pmnc_top15_standings">Esports Top 15 Standings (PMNC Style)</option>
                     <option value="overall_rankings_dual_column">Overall Rankings (Dual Column)</option>
                     <option value="top_5_overall">Top 5 Overall Table</option>
@@ -1738,9 +1738,48 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           {/* Section 6-MGL: MGL YT Livestanding Settings */}
           {templateType === 'mgl_yt_livestanding' && (
             <div>
-              <div className="sidebar-section-title" style={{ color: '#FF9900' }}>MGL YT Livestanding Settings</div>
+              <div className="sidebar-section-title" style={{ color: '#C0C0C0' }}>Vertical YT Standing Settings</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                
+
+                {/* Theme Mode */}
+                <div className="property-field">
+                  <span className="property-label">Theme Mode</span>
+                  <div className="toggle-group">
+                    <button
+                      className={`toggle-btn ${(!styleConfig.colorTheme || styleConfig.colorTheme === 'dark') ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ colorTheme: 'dark' })}
+                    >
+                      Dark
+                    </button>
+                    <button
+                      className={`toggle-btn ${styleConfig.colorTheme === 'light' ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ colorTheme: 'light' })}
+                    >
+                      Light
+                    </button>
+                    <button
+                      className={`toggle-btn ${styleConfig.colorTheme === 'custom' ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ colorTheme: 'custom' })}
+                    >
+                      Custom BG
+                    </button>
+                  </div>
+                </div>
+
+                {/* Custom Background URL — shown only in Custom mode */}
+                {styleConfig.colorTheme === 'custom' && (
+                  <div className="property-field">
+                    <span className="property-label">Custom Background URL</span>
+                    <input
+                      type="url"
+                      className="text-input"
+                      value={styleConfig.customBackgroundUrl || ''}
+                      placeholder="https://… or Canva share link"
+                      onChange={(e) => updateStyleConfig({ customBackgroundUrl: e.target.value })}
+                    />
+                  </div>
+                )}
+
                 {/* Data Type: Collation vs Daily */}
                 <div className="property-field">
                   <span className="property-label">Data Mode</span>
@@ -1794,9 +1833,9 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                           fontSize: '10px',
                           padding: '3px 8px',
                           borderRadius: '4px',
-                          border: '1px solid rgba(255, 153, 0, 0.4)',
-                          background: 'rgba(255, 153, 0, 0.1)',
-                          color: '#FFB833',
+                          border: '1px solid rgba(192, 192, 192, 0.4)',
+                          background: 'rgba(192, 192, 192, 0.1)',
+                          color: '#C0C0C0',
                           cursor: 'pointer',
                           fontWeight: 700,
                         }}
@@ -1807,16 +1846,10 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                   </div>
                 </div>
 
-                {/* Sponsor Footer Text */}
-                <div className="property-field">
-                  <span className="property-label">Sponsor Text / Partner</span>
-                  <input 
-                    type="text" 
-                    className="text-input" 
-                    value={styleConfig.sponsorFooterText || 'Powered by Carry1st'} 
-                    placeholder="e.g. Powered by Carry1st"
-                    onChange={(e) => updateStyleConfig({ sponsorFooterText: e.target.value })} 
-                  />
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.5, padding: '6px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <strong style={{ color: 'var(--text-secondary)' }}>Footer logos</strong> are set via the global <strong style={{ color: 'var(--text-secondary)' }}>Branding section</strong> above:
+                  <br />• <em>Main Logo</em> → brandingLogoUrl (large, primary)
+                  <br />• <em>Tournament Logos</em> slots 1 &amp; 2 → secondary partner logos
                 </div>
 
               </div>

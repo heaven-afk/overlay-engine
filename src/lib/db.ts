@@ -32,7 +32,7 @@ export type TemplateType =
   | 'team_roster_kills'// NEW: Team Roster Kill Cards Graphic
   | 'flexible_top5'    // NEW: Flexible Top 5 Graphic (Paginated Standings)
   | 'pmnc_top15_standings' // NEW: Esports Top 15 Standings (PMNC Style)
-  | 'mgl_yt_livestanding'  // NEW: MGL YouTube Live Standings (713x2048 Vertical Banner)
+  | 'mgl_yt_livestanding'  // Vertical YT Standing (713x2048 Vertical Banner — global, event-agnostic)
   | 'match_summary';   // NEW: Match Summary Graphic (Lobby / Match Scope)
 
 export type ColorTheme = 'dark' | 'light' | 'custom';
@@ -282,7 +282,7 @@ export async function getTemplates(): Promise<OverlayTemplate[]> {
       seededNewGraphics = true;
     }
     if (list.filter((t) => t.templateType === 'mgl_yt_livestanding').length === 0) {
-      await seedSingleTemplate('MGL YT Livestanding', 'mgl_yt_livestanding', '#FF9900', 'TOP 10 TEAMS');
+      await seedSingleTemplate('Vertical YT Standing', 'mgl_yt_livestanding', '#C0C0C0', 'TOP 8 TEAMS');
       seededNewGraphics = true;
     }
     if (seededNewGraphics) {
@@ -302,23 +302,22 @@ export function getBuiltInTemplate(id?: string | null): OverlayTemplate | null {
   if (id.includes('mgl_yt_livestanding')) {
     return {
       id: 'built-in:mgl_yt_livestanding',
-      name: 'MGL YT Livestanding',
+      name: 'Vertical YT Standing',
       templateType: 'mgl_yt_livestanding',
       styleConfig: {
         colorTheme: 'dark',
-        accentColor: '#FF9900',
-        headingFont: 'Rajdhani',
+        accentColor: '#C0C0C0',
+        headingFont: 'Orbitron',
         bodyFont: 'Inter',
         brandingLogoUrl: '',
-        brandingName: 'MGL ESPORTS\nLIVE BROADCAST',
+        brandingName: 'LIVE BROADCAST',
         showStatsStamp: false,
-        tournamentLogoCount: 1,
+        tournamentLogoCount: 2,
         tournamentLogos: [],
-        topN: 10,
+        topN: 8,
         showColumns: ['totalPts'],
-        graphicTitle: 'TOP 10 TEAMS',
+        graphicTitle: 'TOP 8 TEAMS',
         graphicSubtitle: 'LIVE STANDINGS',
-        sponsorFooterText: 'Powered by Carry1st',
         hybridEraMode: 'collation',
         dailyPointsColumn: 'totalPts',
       },

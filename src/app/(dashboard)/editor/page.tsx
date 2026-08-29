@@ -109,7 +109,7 @@ export default function TemplateLibrary() {
   const getTemplateTypeName = (type?: string) => {
     switch (type) {
       case 'top_standings': return 'Top Standings';
-      case 'mgl_yt_livestanding': return 'MGL YT Livestanding (713x2048)';
+      case 'mgl_yt_livestanding': return 'Vertical YT Standing (713x2048)';
       case 'pmnc_top15_standings': return 'Esports Top 15 Standings (PMNC)';
       case 'overall_rankings_dual_column': return 'Overall Rankings (Dual Column)';
       case 'top_5_overall': return 'Top 5 Overall Table';

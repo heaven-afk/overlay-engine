@@ -10,12 +10,39 @@ interface MglYtLivestandingProps {
   isPreview?: boolean;
 }
 
-// Inline Team Logo with fallback initials
-function TeamLogo({ logoUrl, name, size = 52 }: { logoUrl?: string | null; name?: string; size?: number }) {
+// ── Utility: hex → rgba ────────────────────────────────────────────────────────
+function hexToRgba(hex: string, alpha: number): string {
+  if (!hex) return `rgba(192, 192, 192, ${alpha})`;
+  const clean = hex.replace('#', '');
+  let r = 192, g = 192, b = 192;
+  if (clean.length === 3) {
+    r = parseInt(clean[0] + clean[0], 16);
+    g = parseInt(clean[1] + clean[1], 16);
+    b = parseInt(clean[2] + clean[2], 16);
+  } else if (clean.length === 6) {
+    r = parseInt(clean.substring(0, 2), 16);
+    g = parseInt(clean.substring(2, 4), 16);
+    b = parseInt(clean.substring(4, 6), 16);
+  }
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// ── Inline Team Logo with fallback initials ────────────────────────────────────
+function TeamLogo({
+  logoUrl,
+  name,
+  size = 84,
+  accent,
+}: {
+  logoUrl?: string | null;
+  name?: string;
+  size?: number;
+  accent: string;
+}) {
   const isHttp = logoUrl && (logoUrl.startsWith('http://') || logoUrl.startsWith('https://'));
   const initials = (name || '??').replace(/[^a-zA-Z0-9]/g, '').substring(0, 2).toUpperCase() || 'TM';
-  const fontSize = Math.round(size * 0.38);
-  const radius = '8px';
+  const fontSize = Math.round(size * 0.36);
+  const radius = '10px';
 
   if (isHttp) {
     const canvaUrl = getCanvaEmbedUrl(logoUrl);
@@ -30,7 +57,7 @@ function TeamLogo({ logoUrl, name, size = 52 }: { logoUrl?: string | null; name?
             border: 'none',
             borderRadius: radius,
             overflow: 'hidden',
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            backgroundColor: 'rgba(255, 255, 255, 0.04)',
             pointerEvents: 'none',
             flexShrink: 0,
           }}
@@ -48,8 +75,7 @@ function TeamLogo({ logoUrl, name, size = 52 }: { logoUrl?: string | null; name?
           height: `${size}px`,
           objectFit: 'contain',
           borderRadius: radius,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          padding: '3px',
+          padding: '4px',
           boxSizing: 'border-box',
           flexShrink: 0,
           display: 'block',
@@ -64,18 +90,18 @@ function TeamLogo({ logoUrl, name, size = 52 }: { logoUrl?: string | null; name?
         width: `${size}px`,
         height: `${size}px`,
         borderRadius: radius,
-        background: 'linear-gradient(135deg, rgba(229, 169, 60, 0.25) 0%, rgba(20, 24, 36, 0.8) 100%)',
-        border: '1px solid rgba(229, 169, 60, 0.5)',
+        background: hexToRgba(accent, 0.12),
+        border: `1px solid ${hexToRgba(accent, 0.45)}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         fontWeight: 800,
         fontSize: `${fontSize}px`,
-        color: '#E5A93C',
-        fontFamily: 'var(--heading-font, sans-serif)',
+        color: accent,
+        fontFamily: 'var(--heading-font, "Orbitron", sans-serif)',
         flexShrink: 0,
         letterSpacing: '0.02em',
-        textShadow: '0 0 10px rgba(229, 169, 60, 0.6)',
+        textShadow: `0 0 10px ${hexToRgba(accent, 0.5)}`,
       }}
     >
       {initials}
@@ -83,272 +109,84 @@ function TeamLogo({ logoUrl, name, size = 52 }: { logoUrl?: string | null; name?
   );
 }
 
-// Carry1st Vector Logo Component
-function Carry1stLogo({ size = 26 }: { size?: number }) {
+// ── Rank Badge ─────────────────────────────────────────────────────────────────
+function RankBadge({
+  rank,
+  accent,
+  isLight,
+}: {
+  rank: number;
+  accent: string;
+  isLight: boolean;
+}) {
+  const isTop3 = rank <= 3;
+  const medalColors: Record<number, string> = { 1: '#FFD700', 2: '#C0C0C0', 3: '#CD7F32' };
+  const rankColor = isTop3 ? medalColors[rank] : (isLight ? '#555577' : 'rgba(255,255,255,0.6)');
+
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-      {/* Cyan/Blue Circular Mark */}
-      <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="carry1stGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#00E5FF" />
-            <stop offset="100%" stopColor="#0091FF" />
-          </linearGradient>
-          <filter id="cyanGlow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
-        </defs>
-        {/* Outer Glowing Arc */}
-        <circle cx="50" cy="50" r="44" stroke="url(#carry1stGrad)" strokeWidth="11" strokeLinecap="round" strokeDasharray="210 60" transform="rotate(-30 50 50)" filter="url(#cyanGlow)" />
-        {/* Inner stylized C mark */}
-        <path
-          d="M 58 32 C 43 32 34 40 34 50 C 34 60 43 68 58 68"
-          stroke="#00E5FF"
-          strokeWidth="9"
-          strokeLinecap="round"
-          fill="none"
-        />
-        <circle cx="58" cy="50" r="5" fill="#00E5FF" />
-      </svg>
+    <div
+      style={{
+        width: '44px',
+        height: '108px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
       <span
         style={{
-          color: '#FFFFFF',
-          fontFamily: 'var(--heading-font, "Inter", sans-serif)',
-          fontWeight: 800,
-          fontSize: `${Math.round(size * 0.95)}px`,
+          fontFamily: 'var(--heading-font, "Orbitron", sans-serif)',
+          fontSize: isTop3 ? '28px' : '22px',
+          fontWeight: 900,
+          color: rankColor,
           letterSpacing: '-0.02em',
-          display: 'flex',
-          alignItems: 'baseline',
+          textShadow: isTop3 ? `0 0 12px ${rankColor}99` : 'none',
         }}
       >
-        <span style={{ color: '#00E5FF' }}>Carry</span>1st
+        {rank}
       </span>
     </div>
   );
 }
 
-// 3D Metallic MGL Circuit Emblem
-function MglEmblem({ customLogoUrl, size = 310 }: { customLogoUrl?: string | null; size?: number }) {
-  const isCustom = customLogoUrl && (customLogoUrl.startsWith('http://') || customLogoUrl.startsWith('https://'));
-
-  return (
-    <div
-      style={{
-        position: 'relative',
-        width: `${size}px`,
-        height: `${size}px`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        margin: '0 auto',
-      }}
-    >
-      {/* Outer ambient glow */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: '10px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(255, 120, 0, 0.35) 0%, rgba(229, 169, 60, 0.15) 50%, transparent 75%)',
-          filter: 'blur(20px)',
-          zIndex: 1,
-        }}
-      />
-
-      {/* Embedded Custom Logo or Default High-Fidelity 3D MGL Circuit Vector */}
-      {isCustom ? (
-        <div
-          style={{
-            position: 'relative',
-            zIndex: 2,
-            width: `${size}px`,
-            height: `${size}px`,
-            borderRadius: '50%',
-            padding: '16px',
-            boxSizing: 'border-box',
-            background: 'radial-gradient(circle at 35% 35%, #2A1D13 0%, #120D08 60%, #060504 100%)',
-            border: '6px solid #B87B31',
-            boxShadow: '0 0 25px rgba(255, 140, 0, 0.6), inset 0 0 20px rgba(255, 140, 0, 0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <img
-            src={customLogoUrl}
-            alt="MGL Emblem"
-            referrerPolicy="no-referrer"
-            crossOrigin="anonymous"
-            style={{
-              width: '82%',
-              height: '82%',
-              objectFit: 'contain',
-              filter: 'drop-shadow(0 0 12px rgba(255, 160, 0, 0.7))',
-            }}
-          />
-        </div>
-      ) : (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 320 320"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          style={{ position: 'relative', zIndex: 2, filter: 'drop-shadow(0 8px 30px rgba(255, 120, 0, 0.45))' }}
-        >
-          <defs>
-            {/* Metallic Gold/Bronze Ring Gradients */}
-            <radialGradient id="metalBevel" cx="40%" cy="30%" r="70%">
-              <stop offset="0%" stopColor="#F5D089" />
-              <stop offset="25%" stopColor="#B3782E" />
-              <stop offset="55%" stopColor="#5E3710" />
-              <stop offset="80%" stopColor="#9C6524" />
-              <stop offset="100%" stopColor="#2D1908" />
-            </radialGradient>
-            <linearGradient id="innerBronzeGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#301E11" />
-              <stop offset="50%" stopColor="#170F09" />
-              <stop offset="100%" stopColor="#080503" />
-            </linearGradient>
-            <linearGradient id="neonOrangeGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#FFAE33" />
-              <stop offset="50%" stopColor="#FF6B00" />
-              <stop offset="100%" stopColor="#D93800" />
-            </linearGradient>
-            <filter id="circuitGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3.5" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-            <filter id="deepBevel">
-              <feDropShadow dx="2" dy="4" stdDeviation="3" floodColor="#000000" floodOpacity="0.8" />
-            </filter>
-          </defs>
-
-          {/* Outer Heavy Metallic Beveled Ring */}
-          <circle cx="160" cy="160" r="148" stroke="url(#metalBevel)" strokeWidth="14" fill="url(#innerBronzeGrad)" />
-          <circle cx="160" cy="160" r="139" stroke="#FFA32B" strokeWidth="2.5" strokeDasharray="18 8 6 8" opacity="0.85" filter="url(#circuitGlow)" />
-          <circle cx="160" cy="160" r="132" stroke="#4A2B0E" strokeWidth="3" />
-
-          {/* Inner Dark Textured Core */}
-          <circle cx="160" cy="160" r="128" fill="#120D08" />
-
-          {/* Background Circuit Grid Lines */}
-          <g opacity="0.35" stroke="#FF7700" strokeWidth="1.2">
-            <path d="M 70 160 H 120 L 140 140" />
-            <path d="M 250 160 H 200 L 180 180" />
-            <path d="M 160 70 V 110 L 140 130" />
-            <path d="M 160 250 V 210 L 180 190" />
-            <circle cx="70" cy="160" r="3" fill="#FF8800" />
-            <circle cx="250" cy="160" r="3" fill="#FF8800" />
-            <circle cx="160" cy="70" r="3" fill="#FF8800" />
-            <circle cx="160" cy="250" r="3" fill="#FF8800" />
-          </g>
-
-          {/* Stylized MGL Monogram / Metallic Circuit 3D Letters */}
-          <g filter="url(#deepBevel)">
-            {/* Letter 'M' (Left) */}
-            <path
-              d="M 88 215 V 105 L 128 165 L 148 135 L 148 215"
-              stroke="#543010"
-              strokeWidth="20"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M 88 215 V 105 L 128 165 L 148 135 L 148 215"
-              stroke="url(#metalBevel)"
-              strokeWidth="16"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            {/* 'M' Neon Circuit Trace */}
-            <path
-              d="M 88 215 V 105 L 128 165 L 148 135 L 148 215"
-              stroke="url(#neonOrangeGrad)"
-              strokeWidth="5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              filter="url(#circuitGlow)"
-            />
-
-            {/* Letter 'G' (Right) */}
-            <path
-              d="M 232 125 C 218 100 185 98 165 118 C 145 138 145 182 165 202 C 185 222 222 220 232 195 V 162 H 195"
-              stroke="#543010"
-              strokeWidth="20"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M 232 125 C 218 100 185 98 165 118 C 145 138 145 182 165 202 C 185 222 222 220 232 195 V 162 H 195"
-              stroke="url(#metalBevel)"
-              strokeWidth="16"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            {/* 'G' Neon Circuit Trace */}
-            <path
-              d="M 232 125 C 218 100 185 98 165 118 C 145 138 145 182 165 202 C 185 222 222 220 232 195 V 162 H 195"
-              stroke="url(#neonOrangeGrad)"
-              strokeWidth="5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              filter="url(#circuitGlow)"
-            />
-
-            {/* Center Nexus Connector */}
-            <path
-              d="M 148 185 L 172 205 L 195 190"
-              stroke="url(#neonOrangeGrad)"
-              strokeWidth="4"
-              strokeLinecap="round"
-              filter="url(#circuitGlow)"
-            />
-          </g>
-
-          {/* Circuit nodes / accent glowing dots */}
-          <circle cx="88" cy="105" r="4.5" fill="#FFE299" filter="url(#circuitGlow)" />
-          <circle cx="128" cy="165" r="4.5" fill="#FFE299" filter="url(#circuitGlow)" />
-          <circle cx="232" cy="162" r="4.5" fill="#FFE299" filter="url(#circuitGlow)" />
-          <circle cx="195" cy="162" r="4.5" fill="#FFE299" filter="url(#circuitGlow)" />
-        </svg>
-      )}
-    </div>
-  );
-}
-
-// Fallback Default Mock Teams (Matching image names & layout)
+// ── Fallback mock teams ────────────────────────────────────────────────────────
 const DEFAULT_MOCK_TEAMS = [
-  { rank: 1, teamName: 'FAZE RAIDERS', logoUrl: '', totalPts: 200, kills: 48, placementPts: 152 },
-  { rank: 2, teamName: '21ST CENTURY', logoUrl: '', totalPts: 200, kills: 45, placementPts: 155 },
-  { rank: 3, teamName: 'DFL', logoUrl: '', totalPts: 200, kills: 42, placementPts: 158 },
-  { rank: 4, teamName: 'PARIS CHITAURI', logoUrl: '', totalPts: 200, kills: 38, placementPts: 162 },
-  { rank: 5, teamName: 'VORTEX ONE', logoUrl: '', totalPts: 200, kills: 35, placementPts: 165 },
-  { rank: 6, teamName: 'REMEDIUM INVICTUS', logoUrl: '', totalPts: 200, kills: 32, placementPts: 168 },
-  { rank: 7, teamName: 'ONYX ESPORTS', logoUrl: '', totalPts: 200, kills: 30, placementPts: 170 },
-  { rank: 8, teamName: 'HORIZON ONE', logoUrl: '', totalPts: 200, kills: 28, placementPts: 172 },
-  { rank: 9, teamName: 'BOMBANA', logoUrl: '', totalPts: 200, kills: 25, placementPts: 175 },
-  { rank: 10, teamName: 'HYPERION SQUAD', logoUrl: '', totalPts: 195, kills: 22, placementPts: 173 },
+  { rank: 1, teamName: 'FAZE RAIDERS',       logoUrl: '', totalPts: 248, kills: 62, placementPts: 186 },
+  { rank: 2, teamName: '21ST CENTURY',        logoUrl: '', totalPts: 231, kills: 58, placementPts: 173 },
+  { rank: 3, teamName: 'DFL ESPORTS',         logoUrl: '', totalPts: 219, kills: 51, placementPts: 168 },
+  { rank: 4, teamName: 'PARIS CHITAURI',      logoUrl: '', totalPts: 207, kills: 46, placementPts: 161 },
+  { rank: 5, teamName: 'VORTEX ONE',          logoUrl: '', totalPts: 195, kills: 42, placementPts: 153 },
+  { rank: 6, teamName: 'REMEDIUM INVICTUS',   logoUrl: '', totalPts: 184, kills: 38, placementPts: 146 },
+  { rank: 7, teamName: 'ONYX ESPORTS',        logoUrl: '', totalPts: 172, kills: 34, placementPts: 138 },
+  { rank: 8, teamName: 'HORIZON ONE',         logoUrl: '', totalPts: 160, kills: 30, placementPts: 130 },
 ];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Template Component
+// ─────────────────────────────────────────────────────────────────────────────
 export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
   data = {},
   styleConfig = {} as TemplateStyleConfig,
   isPreview = false,
 }) => {
   const {
-    graphicTitle = 'TOP 10 TEAMS',
+    graphicTitle = 'TOP 8 TEAMS',
     graphicSubtitle,
-    accentColor = '#E5A93C',
+    accentColor = '#C0C0C0',
+    colorTheme = 'dark',
     customBackgroundUrl,
     dailyPointsColumn = 'totalPts',
     hybridEraMode = 'collation',
-    sponsorFooterText = 'Powered by Carry1st',
     brandingLogoUrl,
+    tournamentLogos = [],
   } = styleConfig;
 
-  // Resolve teams array (from rows, results, teams, or players)
+  const accent = accentColor || '#C0C0C0';
+  const isLight = colorTheme === 'light';
+  const isCustom = colorTheme === 'custom';
+
+  // ── Resolve teams ──────────────────────────────────────────────────────────
   const resolvedTeamsArray: any[] =
     (Array.isArray(data.rows) && data.rows.length > 0)
       ? data.rows
@@ -364,36 +202,27 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
 
   const rawTeams = resolvedTeamsArray.length > 0 ? resolvedTeamsArray : DEFAULT_MOCK_TEAMS;
 
-  // Slice to Top 10 teams
-  const top10 = rawTeams.slice(0, 10).map((t, idx) => {
-    // Resolve Points based on dailyPointsColumn
+  // Slice to Top 8
+  const top8 = rawTeams.slice(0, 8).map((t: any, idx: number) => {
     let pts = t.totalPts ?? t.pts ?? t.totalPoints ?? 0;
-    if (dailyPointsColumn === 'kills') {
-      pts = t.kills ?? 0;
-    } else if (dailyPointsColumn === 'placementPts') {
-      pts = t.placementPts ?? t.placePts ?? 0;
-    }
+    if (dailyPointsColumn === 'kills') pts = t.kills ?? 0;
+    else if (dailyPointsColumn === 'placementPts') pts = t.placementPts ?? t.placePts ?? 0;
 
     return {
       rank: t.rank ?? (idx + 1),
       teamName: (t.teamName || t.name || t.clanName || `TEAM ${idx + 1}`).toUpperCase(),
       logoUrl: t.logoUrl || t.logo || null,
-      pts: pts,
+      pts,
     };
   });
 
-  // Ensure full 10 rows filled
-  while (top10.length < 10) {
-    const idx = top10.length;
-    top10.push({
-      rank: idx + 1,
-      teamName: `TEAM ${idx + 1}`,
-      logoUrl: null,
-      pts: 0,
-    });
+  // Pad to 8 rows
+  while (top8.length < 8) {
+    const idx = top8.length;
+    top8.push({ rank: idx + 1, teamName: `TEAM ${idx + 1}`, logoUrl: null, pts: 0 });
   }
 
-  // Active mode & subheader
+  // ── Subheader ──────────────────────────────────────────────────────────────
   const resolvedMode = data.hybridEraMode || hybridEraMode || 'collation';
   let defaultSubheader = '';
   if (resolvedMode === 'daily') {
@@ -401,13 +230,35 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
     const lobbyStr = data.lobby ? ` · LOBBY ${data.lobby}` : '';
     defaultSubheader = `${dayStr}${lobbyStr}`;
   } else {
-    defaultSubheader = data.selectedGroup && data.selectedGroup !== 'all' ? `${data.selectedGroup.toUpperCase()} COLLATION` : '';
+    defaultSubheader =
+      data.selectedGroup && data.selectedGroup !== 'all'
+        ? `${data.selectedGroup.toUpperCase()} COLLATION`
+        : '';
   }
-
   const subheaderText = graphicSubtitle || data.graphicSubtitle || defaultSubheader;
 
-  const canvaBg = customBackgroundUrl ? getCanvaEmbedUrl(customBackgroundUrl) : null;
-  const borderGold = accentColor || '#E5A93C';
+  // ── Background resolution ──────────────────────────────────────────────────
+  const canvaBg = isCustom && customBackgroundUrl ? getCanvaEmbedUrl(customBackgroundUrl) : null;
+
+  // ── Theme tokens ───────────────────────────────────────────────────────────
+  const textPrimary   = isLight ? '#0F0F1A' : '#FFFFFF';
+  const textMuted     = isLight ? '#55557A' : 'rgba(255,255,255,0.55)';
+  const bgBase        = isLight ? '#F2F4F8' : '#080A0F';
+  const cardBg        = isLight
+    ? 'linear-gradient(90deg, rgba(240,243,250,0.98) 0%, rgba(250,252,255,0.99) 50%, rgba(236,241,250,0.98) 100%)'
+    : 'linear-gradient(90deg, rgba(14,18,27,0.96) 0%, rgba(20,25,38,0.94) 50%, rgba(13,17,26,0.96) 100%)';
+  const cardBorder    = `1.8px solid ${hexToRgba(accent, isLight ? 0.5 : 0.65)}`;
+  const cardShadow    = `0 4px 20px rgba(0,0,0,0.4), 0 0 16px ${hexToRgba(accent, 0.1)}`;
+  const headerAccent  = accent;
+
+  // ── Footer logos ───────────────────────────────────────────────────────────
+  const mainLogoUrl    = brandingLogoUrl || '';
+  const extra1LogoUrl  = tournamentLogos?.[0]?.logoUrl || '';
+  const extra2LogoUrl  = tournamentLogos?.[1]?.logoUrl || '';
+  const hasMainLogo    = Boolean(mainLogoUrl);
+  const hasExtra1      = Boolean(extra1LogoUrl);
+  const hasExtra2      = Boolean(extra2LogoUrl);
+  const hasAnyLogo     = hasMainLogo || hasExtra1 || hasExtra2;
 
   return (
     <div
@@ -417,111 +268,111 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
         position: 'relative',
         overflow: 'hidden',
         boxSizing: 'border-box',
-        backgroundColor: '#07090E',
+        backgroundColor: bgBase,
         fontFamily: 'var(--body-font, "Inter", sans-serif)',
-        color: '#FFFFFF',
+        color: textPrimary,
         display: 'flex',
         flexDirection: 'column',
       }}
     >
-      {/* ─── BACKGROUND LAYER: Sci-Fi Atmosphere + Orange Laser Beams ─── */}
-      {customBackgroundUrl && !canvaBg ? (
+      {/* Google Fonts */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Rajdhani:wght@700;800&display=swap');`,
+        }}
+      />
+
+      {/* ─── BACKGROUND LAYER ───────────────────────────────────────────────── */}
+      {isCustom && customBackgroundUrl && !canvaBg ? (
         <img
           src={customBackgroundUrl}
           alt="Custom Background"
           referrerPolicy="no-referrer"
           crossOrigin="anonymous"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            zIndex: 0,
-          }}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
         />
-      ) : canvaBg ? (
+      ) : isCustom && canvaBg ? (
         <iframe
           src={canvaBg}
           scrolling="no"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            border: 'none',
-            zIndex: 0,
-            pointerEvents: 'none',
-          }}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', zIndex: 0, pointerEvents: 'none' }}
         />
-      ) : (
+      ) : isLight ? (
+        /* Light theme background */
         <div
           style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 0,
-            background: 'radial-gradient(ellipse at 50% 25%, #141724 0%, #0B0E17 55%, #05060A 100%)',
+            position: 'absolute', inset: 0, zIndex: 0,
+            background: 'radial-gradient(ellipse at 50% 0%, #EAECF5 0%, #F4F6FA 55%, #FAFBFD 100%)',
           }}
         >
-          {/* Subtle Technical Grid / Circuit Lines */}
+          {/* Subtle halftone dot grid */}
           <div
             style={{
-              position: 'absolute',
-              inset: 0,
-              opacity: 0.08,
-              backgroundImage: 'radial-gradient(#E5A93C 1px, transparent 1px), radial-gradient(#E5A93C 1px, #07090E 1px)',
-              backgroundSize: '40px 40px',
-              backgroundPosition: '0 0, 20px 20px',
+              position: 'absolute', inset: 0, opacity: 0.06,
+              backgroundImage: `radial-gradient(${hexToRgba(accent, 1)} 1px, transparent 1px)`,
+              backgroundSize: '28px 28px',
             }}
           />
-
-          {/* Sci-Fi Diagonal Light Streaks / Orange Laser */}
+          {/* Top accent glow */}
           <div
             style={{
-              position: 'absolute',
-              top: '-10%',
-              right: '-40%',
-              width: '180%',
-              height: '140%',
-              background: 'linear-gradient(135deg, transparent 46%, rgba(255, 110, 0, 0.18) 49%, rgba(255, 170, 40, 0.45) 50%, rgba(255, 90, 0, 0.15) 51%, transparent 54%)',
-              transform: 'rotate(-12deg)',
+              position: 'absolute', top: 0, left: 0, right: 0, height: '420px',
+              background: `radial-gradient(ellipse at 50% 0%, ${hexToRgba(accent, 0.12)} 0%, transparent 70%)`,
               pointerEvents: 'none',
-              filter: 'blur(3px)',
             }}
           />
-
-          {/* Ambient Warm Smoke / Nebula Glow */}
+        </div>
+      ) : (
+        /* Dark / metallic black theme background */
+        <div
+          style={{
+            position: 'absolute', inset: 0, zIndex: 0,
+            background: 'radial-gradient(ellipse at 50% 20%, #101420 0%, #080A0F 55%, #030407 100%)',
+          }}
+        >
+          {/* Micro dot grid */}
           <div
             style={{
-              position: 'absolute',
-              top: '65%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '600px',
-              height: '600px',
+              position: 'absolute', inset: 0, opacity: 0.055,
+              backgroundImage: `radial-gradient(${hexToRgba(accent, 1)} 1px, transparent 1px), radial-gradient(${hexToRgba(accent, 1)} 1px, #040408 1px)`,
+              backgroundSize: '36px 36px',
+              backgroundPosition: '0 0, 18px 18px',
+            }}
+          />
+          {/* Diagonal chrome streak */}
+          <div
+            style={{
+              position: 'absolute', top: '-10%', right: '-45%',
+              width: '180%', height: '130%',
+              background: `linear-gradient(135deg, transparent 46%, ${hexToRgba(accent, 0.08)} 49%, ${hexToRgba(accent, 0.22)} 50%, ${hexToRgba(accent, 0.07)} 51%, transparent 54%)`,
+              transform: 'rotate(-14deg)',
+              pointerEvents: 'none',
+              filter: 'blur(4px)',
+            }}
+          />
+          {/* Top ambient glow */}
+          <div
+            style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: '420px',
+              background: `radial-gradient(ellipse at 50% 0%, ${hexToRgba(accent, 0.14)} 0%, transparent 70%)`,
+              pointerEvents: 'none',
+            }}
+          />
+          {/* Bottom ambient glow */}
+          <div
+            style={{
+              position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+              width: '600px', height: '500px',
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(255, 120, 0, 0.14) 0%, rgba(229, 169, 60, 0.05) 50%, transparent 70%)',
+              background: `radial-gradient(circle, ${hexToRgba(accent, 0.08)} 0%, transparent 70%)`,
               filter: 'blur(40px)',
-              pointerEvents: 'none',
-            }}
-          />
-
-          {/* Top Atmospheric Glow */}
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: '350px',
-              background: 'radial-gradient(ellipse at 50% 0%, rgba(255, 140, 0, 0.18) 0%, transparent 70%)',
               pointerEvents: 'none',
             }}
           />
         </div>
       )}
 
-      {/* ─── FOREGROUND CONTENT WRAPPER ─── */}
+      {/* ─── FOREGROUND CONTENT WRAPPER ──────────────────────────────────────── */}
       <div
         style={{
           position: 'relative',
@@ -531,82 +382,159 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
           display: 'flex',
           flexDirection: 'column',
           boxSizing: 'border-box',
-          padding: '0 40px',
-          justifyContent: 'space-between',
+          padding: '0 38px',
         }}
       >
-        {/* TOP SPACER / ARENA CEILING */}
-        <div style={{ height: '360px', flexShrink: 0 }} />
+        {/* TOP SPACER */}
+        <div style={{ height: '310px', flexShrink: 0 }} />
 
-        {/* ─── SECTION 1: HEADER TITLE ─── */}
+        {/* ─── HEADER ──────────────────────────────────────────────────────── */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'flex-start',
-            marginBottom: '26px',
+            marginBottom: '30px',
             width: '100%',
           }}
         >
-          {/* Subheader / Stage Badge if present */}
+          {/* Subheader badge */}
           {subheaderText && (
             <div
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                padding: '4px 14px',
-                borderRadius: '20px',
-                backgroundColor: 'rgba(229, 169, 60, 0.15)',
-                border: '1px solid rgba(229, 169, 60, 0.4)',
-                marginBottom: '10px',
-                fontSize: '13px',
+                padding: '5px 16px',
+                borderRadius: '24px',
+                backgroundColor: hexToRgba(accent, 0.12),
+                border: `1px solid ${hexToRgba(accent, 0.4)}`,
+                marginBottom: '12px',
+                fontSize: '14px',
                 fontWeight: 700,
                 letterSpacing: '0.12em',
-                color: '#FFB833',
+                color: isLight ? accent : headerAccent,
                 textTransform: 'uppercase',
                 fontFamily: 'var(--heading-font, "Orbitron", sans-serif)',
-                boxShadow: '0 0 12px rgba(229, 169, 60, 0.25)',
+                boxShadow: `0 0 14px ${hexToRgba(accent, 0.2)}`,
               }}
             >
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#FF9900', boxShadow: '0 0 8px #FF9900' }} />
+              <span
+                style={{
+                  width: '7px',
+                  height: '7px',
+                  borderRadius: '50%',
+                  backgroundColor: accent,
+                  boxShadow: `0 0 8px ${accent}`,
+                }}
+              />
               {subheaderText}
             </div>
           )}
 
-          {/* Main Title: TOP 10 TEAMS */}
+          {/* Main title */}
           <h1
             style={{
               margin: 0,
-              fontSize: '44px',
-              fontWeight: 800,
+              fontSize: '52px',
+              fontWeight: 900,
               fontFamily: 'var(--heading-font, "Orbitron", "Rajdhani", sans-serif)',
-              letterSpacing: '0.08em',
+              letterSpacing: '0.1em',
               textTransform: 'uppercase',
-              color: '#FFA826',
-              textShadow: '0 0 18px rgba(255, 150, 0, 0.65), 0 0 35px rgba(255, 100, 0, 0.35)',
+              color: isLight ? '#111122' : '#FFFFFF',
+              textShadow: isLight
+                ? 'none'
+                : `0 0 20px ${hexToRgba(accent, 0.4)}, 0 4px 12px rgba(0,0,0,0.9)`,
               lineHeight: 1.1,
             }}
           >
             {graphicTitle}
           </h1>
+
+          {/* Accent underline bar */}
+          <div
+            style={{
+              marginTop: '10px',
+              width: '80px',
+              height: '4px',
+              borderRadius: '2px',
+              background: `linear-gradient(90deg, ${accent}, ${hexToRgba(accent, 0.2)})`,
+              boxShadow: `0 0 10px ${hexToRgba(accent, 0.5)}`,
+            }}
+          />
         </div>
 
-        {/* ─── SECTION 2: STANDINGS TABLE (TOP 10 ROWS) ─── */}
+        {/* Column header labels */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            paddingLeft: '52px',
+            paddingRight: '8px',
+            marginBottom: '10px',
+            width: '100%',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div style={{ width: '108px', flexShrink: 0 }} />
+          <div
+            style={{
+              flex: 1,
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: textMuted,
+              fontFamily: 'var(--heading-font, "Orbitron", sans-serif)',
+              paddingLeft: '20px',
+            }}
+          >
+            TEAM
+          </div>
+          <div
+            style={{
+              width: '96px',
+              flexShrink: 0,
+              textAlign: 'center',
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: textMuted,
+              fontFamily: 'var(--heading-font, "Orbitron", sans-serif)',
+            }}
+          >
+            PTS
+          </div>
+        </div>
+
+        {/* ─── STANDINGS TABLE (TOP 8 ROWS) ────────────────────────────────── */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '10px',
+            gap: '12px',
             width: '100%',
           }}
         >
-          {top10.map((team, index) => {
-            const isFirst = index === 0;
-            const rowBorderColor = isFirst ? 'rgba(255, 190, 60, 0.95)' : 'rgba(229, 169, 60, 0.75)';
-            const rowShadow = isFirst
-              ? '0 0 15px rgba(255, 180, 40, 0.35), inset 0 0 10px rgba(255, 180, 40, 0.15)'
-              : '0 0 10px rgba(229, 169, 60, 0.15), inset 0 0 8px rgba(229, 169, 60, 0.08)';
+          {top8.map((team, index) => {
+            const isFirst  = index === 0;
+            const isTop3   = index < 3;
+
+            // First row: stronger accent glow. Others: subtle.
+            const rowCardBorder = isFirst
+              ? `2px solid ${hexToRgba(accent, 0.95)}`
+              : `1.8px solid ${hexToRgba(accent, isLight ? 0.45 : 0.6)}`;
+            const rowCardShadow = isFirst
+              ? `${cardShadow}, inset 0 0 14px ${hexToRgba(accent, 0.12)}`
+              : cardShadow;
+
+            // First-row special card background with subtle accent tint
+            const rowCardBg = isFirst
+              ? isLight
+                ? `linear-gradient(90deg, ${hexToRgba(accent, 0.08)} 0%, rgba(255,255,255,0.98) 50%, ${hexToRgba(accent, 0.06)} 100%)`
+                : `linear-gradient(90deg, ${hexToRgba(accent, 0.14)} 0%, rgba(20,26,40,0.97) 45%, ${hexToRgba(accent, 0.10)} 100%)`
+              : cardBg;
 
             return (
               <div
@@ -614,22 +542,30 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
+                  gap: '0px',
                   width: '100%',
-                  height: '74px',
+                  height: '108px',
                   boxSizing: 'border-box',
                 }}
               >
-                {/* ── BOX 1: TEAM LOGO ── */}
+                {/* ── Rank Badge ── */}
+                <RankBadge rank={team.rank} accent={accent} isLight={isLight} />
+
+                {/* ── Logo Box ── */}
                 <div
                   style={{
-                    width: '74px',
-                    height: '74px',
-                    borderRadius: '14px',
-                    border: `1.8px solid ${rowBorderColor}`,
-                    boxShadow: rowShadow,
-                    backgroundColor: isFirst ? 'rgba(26, 22, 16, 0.88)' : 'rgba(12, 15, 24, 0.85)',
-                    backdropFilter: 'blur(10px)',
+                    width: '108px',
+                    height: '108px',
+                    borderRadius: '16px 0 0 16px',
+                    border: rowCardBorder,
+                    borderRight: 'none',
+                    boxShadow: rowCardShadow,
+                    background: isLight
+                      ? 'rgba(255,255,255,0.95)'
+                      : isFirst
+                        ? `linear-gradient(135deg, ${hexToRgba(accent, 0.15)} 0%, rgba(16,20,32,0.97) 100%)`
+                        : 'rgba(14,18,28,0.96)',
+                    backdropFilter: 'blur(12px)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -638,75 +574,90 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
                     overflow: 'hidden',
                   }}
                 >
-                  <TeamLogo logoUrl={team.logoUrl} name={team.teamName} size={54} />
+                  <TeamLogo logoUrl={team.logoUrl} name={team.teamName} size={84} accent={accent} />
                 </div>
 
-                {/* ── BOX 2: TEAM NAME ── */}
+                {/* ── Team Name Box ── */}
                 <div
                   style={{
                     flex: 1,
-                    height: '74px',
-                    borderRadius: '14px',
-                    border: `1.8px solid ${rowBorderColor}`,
-                    boxShadow: rowShadow,
-                    background: isFirst
-                      ? 'linear-gradient(90deg, rgba(34, 26, 16, 0.92) 0%, rgba(45, 34, 20, 0.85) 50%, rgba(30, 22, 14, 0.92) 100%)'
-                      : 'linear-gradient(90deg, rgba(14, 18, 28, 0.92) 0%, rgba(22, 28, 44, 0.82) 50%, rgba(14, 18, 28, 0.92) 100%)',
-                    backdropFilter: 'blur(10px)',
+                    height: '108px',
+                    border: rowCardBorder,
+                    borderLeft: 'none',
+                    borderRight: 'none',
+                    boxShadow: rowCardShadow,
+                    background: rowCardBg,
+                    backdropFilter: 'blur(12px)',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '0 20px',
+                    padding: '0 24px',
                     boxSizing: 'border-box',
                     overflow: 'hidden',
                     position: 'relative',
                   }}
                 >
-                  {/* Subtle Sci-Fi Gloss Highlight on top edge */}
+                  {/* Top-edge glass highlight */}
                   <div
                     style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: '10%',
-                      right: '10%',
-                      height: '1px',
-                      background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent)',
+                      position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px',
+                      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+                      pointerEvents: 'none',
                     }}
                   />
+                  {/* First-row left accent bar */}
+                  {isFirst && (
+                    <div
+                      style={{
+                        position: 'absolute', left: 0, top: '16px', bottom: '16px',
+                        width: '3px',
+                        borderRadius: '0 2px 2px 0',
+                        background: accent,
+                        boxShadow: `0 0 8px ${hexToRgba(accent, 0.7)}`,
+                      }}
+                    />
+                  )}
 
                   <span
                     style={{
                       fontFamily: 'var(--heading-font, "Orbitron", "Rajdhani", sans-serif)',
-                      fontSize: '23px',
-                      fontWeight: 800,
-                      color: isFirst ? '#FFF4E0' : '#FFFFFF',
-                      letterSpacing: '0.06em',
+                      fontSize: '28px',
+                      fontWeight: 900,
+                      color: isFirst
+                        ? isLight ? '#0F0F22' : '#FFFFFF'
+                        : textPrimary,
+                      letterSpacing: '0.05em',
                       textTransform: 'uppercase',
-                      textAlign: 'center',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      textShadow: isFirst
-                        ? '0 0 14px rgba(255, 180, 40, 0.65)'
-                        : '0 0 10px rgba(0, 0, 0, 0.8)',
+                      textShadow: isLight
+                        ? 'none'
+                        : isFirst
+                          ? `0 0 16px ${hexToRgba(accent, 0.4)}`
+                          : '0 2px 8px rgba(0,0,0,0.8)',
                     }}
                   >
                     {team.teamName}
                   </span>
                 </div>
 
-                {/* ── BOX 3: POINTS VALUE ── */}
+                {/* ── Points Box ── */}
                 <div
                   style={{
-                    width: '84px',
-                    height: '74px',
-                    borderRadius: '14px',
-                    border: `1.8px solid ${rowBorderColor}`,
-                    boxShadow: rowShadow,
+                    width: '96px',
+                    height: '108px',
+                    borderRadius: '0 16px 16px 0',
+                    border: rowCardBorder,
+                    borderLeft: 'none',
+                    boxShadow: rowCardShadow,
                     background: isFirst
-                      ? 'linear-gradient(135deg, rgba(38, 28, 16, 0.94) 0%, rgba(24, 18, 10, 0.94) 100%)'
-                      : 'linear-gradient(135deg, rgba(16, 20, 32, 0.92) 0%, rgba(10, 13, 22, 0.92) 100%)',
-                    backdropFilter: 'blur(10px)',
+                      ? isLight
+                        ? `linear-gradient(135deg, ${hexToRgba(accent, 0.15)} 0%, rgba(248,250,255,0.98) 100%)`
+                        : `linear-gradient(135deg, ${hexToRgba(accent, 0.22)} 0%, rgba(14,18,30,0.97) 100%)`
+                      : isLight
+                        ? 'rgba(240,243,252,0.98)'
+                        : 'rgba(14,18,30,0.96)',
+                    backdropFilter: 'blur(12px)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -717,13 +668,17 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
                   <span
                     style={{
                       fontFamily: 'var(--heading-font, "Orbitron", "Rajdhani", sans-serif)',
-                      fontSize: '28px',
-                      fontWeight: 800,
-                      color: isFirst ? '#FFCC4D' : '#FFFFFF',
-                      letterSpacing: '0.04em',
-                      textShadow: isFirst
-                        ? '0 0 14px rgba(255, 200, 50, 0.7)'
-                        : '0 0 10px rgba(229, 169, 60, 0.4)',
+                      fontSize: '38px',
+                      fontWeight: 900,
+                      color: isTop3
+                        ? accent
+                        : isLight ? '#111122' : '#FFFFFF',
+                      letterSpacing: '0.02em',
+                      textShadow: isTop3
+                        ? `0 0 16px ${hexToRgba(accent, 0.6)}`
+                        : isLight
+                          ? 'none'
+                          : '0 2px 10px rgba(0,0,0,0.8)',
                     }}
                   >
                     {team.pts}
@@ -734,15 +689,15 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
           })}
         </div>
 
-        {/* ─── SECTION 3: CENTER GLOWING DIVIDER LINE ─── */}
+        {/* ─── GLOWING DIVIDER ─────────────────────────────────────────────── */}
         <div
           style={{
             position: 'relative',
             width: '100%',
             height: '2px',
-            margin: '24px 0 18px 0',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(229, 169, 60, 0.4) 20%, rgba(255, 170, 40, 0.95) 50%, rgba(229, 169, 60, 0.4) 80%, transparent 100%)',
-            boxShadow: '0 0 12px rgba(255, 160, 0, 0.65)',
+            margin: '36px 0 32px 0',
+            background: `linear-gradient(90deg, transparent 0%, ${hexToRgba(accent, 0.35)} 15%, ${hexToRgba(accent, 0.85)} 50%, ${hexToRgba(accent, 0.35)} 85%, transparent 100%)`,
+            boxShadow: `0 0 14px ${hexToRgba(accent, 0.5)}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -750,52 +705,130 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
         >
           <div
             style={{
-              width: '8px',
-              height: '8px',
-              backgroundColor: '#FFAE33',
+              width: '10px',
+              height: '10px',
+              backgroundColor: accent,
               transform: 'rotate(45deg)',
-              boxShadow: '0 0 10px #FF9900',
+              boxShadow: `0 0 12px ${accent}`,
             }}
           />
         </div>
 
-        {/* ─── SECTION 4: 3D METALLIC MGL CIRCUIT EMBLEM ─── */}
+        {/* ─── FOOTER LOGO ZONE ────────────────────────────────────────────── */}
+        {/*
+          Bottom zone: blank when no logos set.
+          Shows: [Main Logo] × [Extra Logo 1] × [Extra Logo 2]
+          Logos sourced from brandingLogoUrl and tournamentLogos[0..1].
+        */}
         <div
           style={{
+            flex: 1,
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '10px 0 20px 0',
+            paddingBottom: '48px',
           }}
         >
-          <MglEmblem customLogoUrl={brandingLogoUrl} size={305} />
-        </div>
+          {hasAnyLogo && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '28px',
+                flexWrap: 'nowrap',
+              }}
+            >
+              {/* Main Logo */}
+              {hasMainLogo && (
+                <img
+                  src={mainLogoUrl}
+                  alt="Main Logo"
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
+                  style={{
+                    maxHeight: '130px',
+                    maxWidth: '220px',
+                    objectFit: 'contain',
+                    display: 'block',
+                    filter: isLight
+                      ? 'drop-shadow(0 2px 12px rgba(0,0,0,0.2))'
+                      : 'drop-shadow(0 4px 16px rgba(0,0,0,0.7))',
+                  }}
+                />
+              )}
 
-        {/* ─── SECTION 5: FOOTER (POWERED BY CARRY1ST) ─── */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
-            paddingBottom: '46px',
-            flexShrink: 0,
-          }}
-        >
-          <span
-            style={{
-              fontSize: '22px',
-              fontStyle: 'italic',
-              fontWeight: 400,
-              color: 'rgba(255, 255, 255, 0.85)',
-              fontFamily: 'var(--body-font, "Inter", sans-serif)',
-              letterSpacing: '0.02em',
-            }}
-          >
-            Powered by
-          </span>
-          <Carry1stLogo size={32} />
+              {/* Separator 1 */}
+              {hasMainLogo && hasExtra1 && (
+                <span
+                  style={{
+                    fontSize: '22px',
+                    fontWeight: 300,
+                    color: hexToRgba(accent, 0.6),
+                    fontFamily: 'sans-serif',
+                    lineHeight: 1,
+                    userSelect: 'none',
+                  }}
+                >
+                  ×
+                </span>
+              )}
+
+              {/* Extra Logo 1 */}
+              {hasExtra1 && (
+                <img
+                  src={extra1LogoUrl}
+                  alt="Partner Logo 1"
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
+                  style={{
+                    maxHeight: '100px',
+                    maxWidth: '180px',
+                    objectFit: 'contain',
+                    display: 'block',
+                    filter: isLight
+                      ? 'drop-shadow(0 2px 10px rgba(0,0,0,0.15))'
+                      : 'drop-shadow(0 4px 14px rgba(0,0,0,0.6))',
+                  }}
+                />
+              )}
+
+              {/* Separator 2 */}
+              {hasExtra1 && hasExtra2 && (
+                <span
+                  style={{
+                    fontSize: '22px',
+                    fontWeight: 300,
+                    color: hexToRgba(accent, 0.6),
+                    fontFamily: 'sans-serif',
+                    lineHeight: 1,
+                    userSelect: 'none',
+                  }}
+                >
+                  ×
+                </span>
+              )}
+
+              {/* Extra Logo 2 */}
+              {hasExtra2 && (
+                <img
+                  src={extra2LogoUrl}
+                  alt="Partner Logo 2"
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
+                  style={{
+                    maxHeight: '100px',
+                    maxWidth: '180px',
+                    objectFit: 'contain',
+                    display: 'block',
+                    filter: isLight
+                      ? 'drop-shadow(0 2px 10px rgba(0,0,0,0.15))'
+                      : 'drop-shadow(0 4px 14px rgba(0,0,0,0.6))',
+                  }}
+                />
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
