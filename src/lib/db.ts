@@ -988,7 +988,7 @@ export interface StudioPushHistoryEntry {
 
 // ─── STUDIO ROOM CRUD ─────────────────────────────────────────────────────────
 
-function generateStudioToken(): string {
+export function generateStudioToken(): string {
   return Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
 
@@ -1224,3 +1224,181 @@ export async function getStudioProjectPushHistory(projectId: string): Promise<St
 export function getStudioLiveDocRef(projectId: string) {
   return doc(db, 'studioProjects', projectId, 'live', 'current');
 }
+
+// ─── CONTROL ROOM CRUD & BROADCAST ALL ──────────────────────────────────────
+
+export interface ControlRoomMainDoc {
+  broadcastAllEnabled: boolean;
+  broadcastTemplateId: string | null;
+  broadcastFields: Record<string, any>;
+  updatedBy: string;
+  updatedAt: any;
+}
+
+export interface ControlRoomSource {
+  id?: string;
+  name: string;
+  renderToken: string;
+  liveState: StudioLiveState;
+  createdAt?: any;
+  createdBy: string;
+}
+
+export function getControlRoomMainRef() {
+  return doc(db, 'controlRoom', 'main');
+}
+
+export function getControlRoomSourcesRef() {
+  return collection(db, 'controlRoom', 'main', 'sources');
+}
+
+export function getControlRoomSourceRef(sourceId: string) {
+  return doc(db, 'controlRoom', 'main', 'sources', sourceId);
+}
+
+export async function getControlRoomMain(): Promise<ControlRoomMainDoc | null> {
+  const snap = await getDoc(getControlRoomMainRef());
+  if (snap.exists()) {
+    return snap.data() as ControlRoomMainDoc;
+  }
+  return null;
+}
+
+export async function initControlRoomMainIfNotExists(userEmail: string): Promise<void> {
+  const ref = getControlRoomMainRef();
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    await setDoc(ref, {
+      broadcastAllEnabled: false,
+      broadcastTemplateId: null,
+      broadcastFields: {},
+      updatedBy: userEmail,
+      updatedAt: Timestamp.now(),
+    });
+  }
+}
+
+export async function getControlRoomSourceByToken(token: string): Promise<ControlRoomSource | null> {
+  try {
+    const q = query(getControlRoomSourcesRef(), where('renderToken', '==', token));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      const d = snap.docs[0];
+      return { id: d.id, ...d.data() } as ControlRoomSource;
+    }
+    // Fallback: check if doc ID is directly token
+    const directSnap = await getDoc(getControlRoomSourceRef(token));
+    if (directSnap.exists()) {
+      return { id: directSnap.id, ...directSnap.data() } as ControlRoomSource;
+    }
+    return null;
+  } catch (err) {
+    console.error('getControlRoomSourceByToken error:', err);
+    return null;
+  }
+}
+
+export async function addControlRoomSource(
+  name: string,
+  userEmail: string,
+  initialTemplateId: string | null = null,
+  initialFields: Record<string, any> = {}
+): Promise<string> {
+  const token = generateStudioToken();
+  const cleanFields = sanitizeForFirestore(initialFields || {});
+
+  const newSourceData: Omit<ControlRoomSource, 'id'> = {
+    name: name.trim() || 'Feed Source',
+    renderToken: token,
+    liveState: {
+      templateId: initialTemplateId,
+      fields: cleanFields,
+      pushedBy: userEmail,
+      pushedAt: Timestamp.now(),
+    },
+    createdAt: Timestamp.now(),
+    createdBy: userEmail,
+  };
+
+  const ref = await addDoc(getControlRoomSourcesRef(), newSourceData);
+  return ref.id;
+}
+
+export async function deleteControlRoomSource(sourceId: string): Promise<void> {
+  await deleteDoc(getControlRoomSourceRef(sourceId));
+}
+
+export async function updateControlRoomSourceName(sourceId: string, name: string): Promise<void> {
+  await updateDoc(getControlRoomSourceRef(sourceId), {
+    name: name.trim() || 'Feed Source',
+  });
+}
+
+export async function pushControlRoomSourceLive(
+  sourceId: string,
+  templateId: string | null,
+  fields: Record<string, any>,
+  userEmail: string
+): Promise<void> {
+  const cleanFields = sanitizeForFirestore(fields || {});
+  const liveState: StudioLiveState = {
+    templateId,
+    fields: cleanFields,
+    pushedBy: userEmail,
+    pushedAt: Timestamp.now(),
+  };
+
+  await updateDoc(getControlRoomSourceRef(sourceId), {
+    liveState,
+  });
+}
+
+export async function updateControlRoomBroadcastAll(
+  enabled: boolean,
+  templateId: string | null,
+  fields: Record<string, any>,
+  userEmail: string
+): Promise<void> {
+  const cleanFields = sanitizeForFirestore(fields || {});
+  await setDoc(
+    getControlRoomMainRef(),
+    {
+      broadcastAllEnabled: enabled,
+      broadcastTemplateId: templateId,
+      broadcastFields: cleanFields,
+      updatedBy: userEmail,
+      updatedAt: Timestamp.now(),
+    },
+    { merge: true }
+  );
+
+  // If enabled, fan out immediately to all sources
+  if (enabled) {
+    await fanOutBroadcastAllToSources(templateId, cleanFields, userEmail);
+  }
+}
+
+export async function fanOutBroadcastAllToSources(
+  templateId: string | null,
+  fields: Record<string, any>,
+  userEmail: string
+): Promise<void> {
+  const cleanFields = sanitizeForFirestore(fields || {});
+  const snap = await getDocs(getControlRoomSourcesRef());
+  if (snap.empty) return;
+
+  const now = Timestamp.now();
+  const promises = snap.docs.map((docSnap) => {
+    return updateDoc(docSnap.ref, {
+      liveState: {
+        templateId,
+        fields: cleanFields,
+        pushedBy: `Broadcast All by ${userEmail}`,
+        pushedAt: now,
+      },
+    });
+  });
+
+  await Promise.all(promises);
+}
+
