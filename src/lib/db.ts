@@ -101,6 +101,29 @@ export interface TemplateStyleConfig {
   sponsorFooterText?: string;          // custom sponsor / partner brand text (e.g. "KRAFTON · LEVEL INFINITE · LIGHTSPEED · INFINIX")
   page?: number;                       // pagination page index (1, 2, etc.)
   rankOffset?: number;                 // optional rank start offset (e.g. 17 for page 2)
+  pmncBackgroundMode?: 'dark' | 'white' | 'custom'; // PMNC background theme mode
+  pmncTopLeftLogoUrl?: string;         // Top left brand/org logo
+  pmncTopLeftTitle?: string;           // Top left text title e.g. "PUBG MOBILE"
+  pmncTopLeftSubtitle?: string;        // Top left text subtitle e.g. "ESPORTS"
+  pmncTopLeftFont?: string;            // Top left text font family
+  pmncTopLeftTitleSize?: number;       // Top left title font size in px
+  pmncTopLeftSubtitleSize?: number;    // Top left subtitle font size in px
+  pmncTopLeftShowLogo?: boolean;       // Toggle top left logo display
+  pmncTopLeftShowText?: boolean;       // Toggle top left text display
+  pmncTopRightLogoUrl?: string;        // Top right tournament logo
+  pmncTopRightTitle?: string;          // Top right text title e.g. "PMNC 2024"
+  pmncTopRightSubtitle?: string;       // Top right text subtitle e.g. "KENYA FINALS"
+  pmncTopRightFont?: string;           // Top right text font family
+  pmncTopRightTitleSize?: number;      // Top right title font size in px
+  pmncTopRightSubtitleSize?: number;   // Top right subtitle font size in px
+  pmncTopRightShowLogo?: boolean;      // Toggle top right logo display
+  pmncTopRightShowText?: boolean;      // Toggle top right text display
+  pmncTitleFont?: string;              // Center title font family
+  pmncTitleFontSize?: number;          // Center title font size in px
+  pmncStageBadgeFont?: string;         // Stage badge font family
+  pmncStageBadgeFontSize?: number;     // Stage badge font size in px
+  pmncTableFont?: string;              // Leaderboard table font family
+  pmncTableFontSize?: number;          // Leaderboard table base font size in px
 }
 
 export interface OverlayTemplate {

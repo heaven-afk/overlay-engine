@@ -11,7 +11,17 @@ interface PmncTop15StandingsProps {
 }
 
 // Inline Team Logo with fallback initials
-function TeamLogo({ logoUrl, name, size = 38 }: { logoUrl?: string | null; name?: string; size?: number }) {
+function TeamLogo({
+  logoUrl,
+  name,
+  size = 38,
+  isLight = false,
+}: {
+  logoUrl?: string | null;
+  name?: string;
+  size?: number;
+  isLight?: boolean;
+}) {
   const isHttp = logoUrl && (logoUrl.startsWith('http://') || logoUrl.startsWith('https://'));
   const initials = (name || '??').replace(/[^a-zA-Z0-9]/g, '').substring(0, 2).toUpperCase() || 'TM';
   const fontSize = Math.round(size * 0.38);
@@ -48,12 +58,13 @@ function TeamLogo({ logoUrl, name, size = 38 }: { logoUrl?: string | null; name?
           height: `${size}px`,
           objectFit: 'contain',
           borderRadius: radius,
-          backgroundColor: 'rgba(0, 0, 0, 0.4)',
-          border: '1px solid rgba(229, 169, 60, 0.35)',
+          backgroundColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(0, 0, 0, 0.5)',
+          border: isLight ? '1px solid rgba(229, 169, 60, 0.5)' : '1px solid rgba(229, 169, 60, 0.4)',
           padding: '2px',
           boxSizing: 'border-box',
           flexShrink: 0,
           display: 'block',
+          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.3)',
         }}
       />
     );
@@ -65,17 +76,18 @@ function TeamLogo({ logoUrl, name, size = 38 }: { logoUrl?: string | null; name?
         width: `${size}px`,
         height: `${size}px`,
         borderRadius: radius,
-        backgroundColor: 'rgba(229, 169, 60, 0.18)',
-        border: '1px solid rgba(229, 169, 60, 0.5)',
+        backgroundColor: isLight ? 'rgba(229, 169, 60, 0.15)' : 'rgba(229, 169, 60, 0.2)',
+        border: '1px solid rgba(229, 169, 60, 0.6)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontWeight: 800,
+        fontWeight: 900,
         fontSize: `${fontSize}px`,
-        color: '#E5A93C',
-        fontFamily: 'var(--heading-font, sans-serif)',
+        color: isLight ? '#9A6208' : '#F5D07E',
+        fontFamily: "var(--heading-font, 'Outfit', sans-serif)",
         flexShrink: 0,
         letterSpacing: '0.02em',
+        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)',
       }}
     >
       {initials}
@@ -89,49 +101,48 @@ function SideRibbon() {
     <div
       style={{
         position: 'absolute',
-        top: '110px',
-        left: '28px',
-        width: '44px',
-        height: '780px',
+        top: '100px',
+        left: '24px',
+        width: '46px',
+        height: '800px',
         zIndex: 5,
         pointerEvents: 'none',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        filter: 'drop-shadow(0 4px 14px rgba(0, 0, 0, 0.7))',
       }}
     >
-      {/* Flowing woven motif */}
-      <svg width="44" height="780" viewBox="0 0 44 780" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width="46" height="800" viewBox="0 0 46 800" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="ribbonGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#801B14" />
-            <stop offset="40%" stopColor="#C43825" />
-            <stop offset="70%" stopColor="#E5A93C" />
-            <stop offset="100%" stopColor="#1B1713" />
+          <linearGradient id="pmncRibbonGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#7A1510" />
+            <stop offset="35%" stopColor="#C43825" />
+            <stop offset="65%" stopColor="#F5B338" />
+            <stop offset="100%" stopColor="#1E120A" />
           </linearGradient>
-          <pattern id="tribalPattern" width="20" height="20" patternUnits="userSpaceOnUse">
-            <path d="M0 10 L10 0 L20 10 L10 20 Z" fill="#E5A93C" opacity="0.35" />
-            <circle cx="10" cy="10" r="3" fill="#FFFFFF" opacity="0.5" />
+          <pattern id="pmncTribalPattern" width="22" height="22" patternUnits="userSpaceOnUse">
+            <path d="M0 11 L11 0 L22 11 L11 22 Z" fill="#F5B338" opacity="0.4" />
+            <circle cx="11" cy="11" r="3.5" fill="#FFFFFF" opacity="0.6" />
           </pattern>
         </defs>
-        {/* Woven flowing path */}
         <path
-          d="M22 10 C38 60 4 120 22 180 C40 240 4 300 22 360 C40 420 4 480 22 540 C40 600 4 660 22 720 C32 750 22 770 22 770"
-          stroke="url(#ribbonGrad)"
-          strokeWidth="24"
+          d="M23 10 C40 60 6 120 23 180 C40 240 6 300 23 360 C40 420 6 480 23 540 C40 600 6 660 23 720 C34 755 23 785 23 785"
+          stroke="url(#pmncRibbonGrad)"
+          strokeWidth="26"
           strokeLinecap="round"
         />
         <path
-          d="M22 10 C38 60 4 120 22 180 C40 240 4 300 22 360 C40 420 4 480 22 540 C40 600 4 660 22 720 C32 750 22 770 22 770"
-          stroke="url(#tribalPattern)"
-          strokeWidth="18"
+          d="M23 10 C40 60 6 120 23 180 C40 240 6 300 23 360 C40 420 6 480 23 540 C40 600 6 660 23 720 C34 755 23 785 23 785"
+          stroke="url(#pmncTribalPattern)"
+          strokeWidth="20"
           strokeLinecap="round"
         />
         <path
-          d="M22 10 C38 60 4 120 22 180 C40 240 4 300 22 360 C40 420 4 480 22 540 C40 600 4 660 22 720 C32 750 22 770 22 770"
-          stroke="#E5A93C"
-          strokeWidth="2"
-          strokeDasharray="4 4"
+          d="M23 10 C40 60 6 120 23 180 C40 240 6 300 23 360 C40 420 6 480 23 540 C40 600 6 660 23 720 C34 755 23 785 23 785"
+          stroke="#F5B338"
+          strokeWidth="2.5"
+          strokeDasharray="5 5"
         />
       </svg>
     </div>
@@ -157,9 +168,48 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
     topN = 15,
     showSideRibbon = true,
     sponsorFooterText = 'KRAFTON · LEVEL INFINITE · LIGHTSPEED STUDIOS · INFINIX',
+    headingFont = 'Outfit',
+    bodyFont = 'Inter',
+
+    // PMNC Specific Additions
+    pmncBackgroundMode,
+    pmncTopLeftLogoUrl,
+    pmncTopLeftTitle,
+    pmncTopLeftSubtitle,
+    pmncTopLeftFont,
+    pmncTopLeftTitleSize = 20,
+    pmncTopLeftSubtitleSize = 12,
+    pmncTopLeftShowLogo = true,
+    pmncTopLeftShowText = true,
+
+    pmncTopRightLogoUrl,
+    pmncTopRightTitle,
+    pmncTopRightSubtitle,
+    pmncTopRightFont,
+    pmncTopRightTitleSize = 18,
+    pmncTopRightSubtitleSize = 11,
+    pmncTopRightShowLogo = true,
+    pmncTopRightShowText = true,
+
+    pmncTitleFont,
+    pmncTitleFontSize = 48,
+    pmncStageBadgeFont,
+    pmncStageBadgeFontSize = 14,
+    pmncTableFont,
+    pmncTableFontSize,
   } = styleConfig;
 
-  // Resolve team dataset
+  // Resolve Background Mode: 'dark' | 'white' | 'custom'
+  const resolvedBgMode: 'dark' | 'white' | 'custom' =
+    pmncBackgroundMode || (colorTheme === 'light' ? 'white' : colorTheme === 'custom' ? 'custom' : 'dark');
+
+  const isDark = resolvedBgMode === 'dark';
+  const isWhite = resolvedBgMode === 'white';
+  const isCustom = resolvedBgMode === 'custom';
+
+  const canvaBgUrl = isCustom && customBackgroundUrl ? getCanvaEmbedUrl(customBackgroundUrl) : null;
+
+  // Resolve Team Dataset
   const resolvedTeamsArray =
     (Array.isArray(data?.rows) && data.rows.length > 0)
       ? data.rows
@@ -206,7 +256,7 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
 
   const rawTeams: any[] = resolvedTeamsArray || mockTeams;
 
-  // Flexibility: Team count & Pagination support
+  // Pagination & Team Count
   const pageSize = Number(topN) || 15;
   const activePage = Number(data?.page || styleConfig.page || 1);
   const rankOffset = styleConfig.rankOffset !== undefined
@@ -237,26 +287,59 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
     };
   });
 
-  // Dynamic row sizing for seamless fit in 1080p
+  // Dynamic row sizing for 1080p fit
   const rowCount = Math.max(rows.length, 1);
-  // Total container available height ≈ 730px
-  const rowHeight = Math.min(50, Math.max(38, Math.floor(700 / rowCount)));
-  const logoSize = Math.max(28, Math.min(36, rowHeight - 6));
-  const fontSize = Math.min(18, Math.max(14, Math.floor(rowHeight * 0.42)));
-  const rankFontSize = Math.min(20, Math.max(15, Math.floor(rowHeight * 0.45)));
+  const rowHeight = Math.min(48, Math.max(36, Math.floor(690 / rowCount)));
+  const logoSize = Math.max(26, Math.min(34, rowHeight - 6));
+  const autoFontSize = Math.min(18, Math.max(13, Math.floor(rowHeight * 0.42)));
+  const rankFontSize = Math.min(20, Math.max(14, Math.floor(rowHeight * 0.45)));
+  const teamFontSize = pmncTableFontSize ? Number(pmncTableFontSize) : autoFontSize;
 
-  // Theme styling
-  const isCustom = colorTheme === 'custom';
-  const isLight = colorTheme === 'light';
-  const canvaBgUrl = isCustom && customBackgroundUrl ? getCanvaEmbedUrl(customBackgroundUrl) : null;
+  const resolvedStageBadge =
+    stageBadgeText ||
+    graphicSubtitle ||
+    (data?.day ? `PMNC GROUP STAGE - DAY ${data.day}` : 'PMNC KENYA GROUP STAGE - DAY 2');
 
-  const resolvedStageBadge = stageBadgeText || graphicSubtitle || (data?.day ? `PMNC GROUP STAGE - DAY ${data.day}` : 'PMNC KENYA GROUP STAGE - DAY 2');
-
+  // Parse Branding default parts
   const brandingParts = brandingName
     ? (brandingName.includes('\n') ? brandingName.split('\n') : brandingName.split('/'))
     : ['PUBG MOBILE', 'ESPORTS'];
-  const brandOrg = (brandingParts[0] || 'PUBG MOBILE').trim();
-  const brandSub = (brandingParts[1] || 'ESPORTS').trim();
+  const defaultBrandOrg = (brandingParts[0] || 'PUBG MOBILE').trim();
+  const defaultBrandSub = (brandingParts[1] || 'ESPORTS').trim();
+
+  // Top Left values
+  const leftLogo = pmncTopLeftLogoUrl !== undefined ? pmncTopLeftLogoUrl : brandingLogoUrl;
+  const leftTitle = pmncTopLeftTitle !== undefined ? pmncTopLeftTitle : defaultBrandOrg;
+  const leftSubtitle = pmncTopLeftSubtitle !== undefined ? pmncTopLeftSubtitle : defaultBrandSub;
+  const leftFont = pmncTopLeftFont || headingFont || 'Outfit';
+
+  // Top Right values
+  const rightLogo = pmncTopRightLogoUrl !== undefined ? pmncTopRightLogoUrl : (tournamentLogos?.[0]?.logoUrl || '');
+  const rightTitle = pmncTopRightTitle !== undefined ? pmncTopRightTitle : 'PMNC 2024';
+  const rightSubtitle = pmncTopRightSubtitle !== undefined ? pmncTopRightSubtitle : 'CHAMPIONSHIP';
+  const rightFont = pmncTopRightFont || headingFont || 'Outfit';
+
+  // Center Title & Stage Font
+  const centerTitleFont = pmncTitleFont || headingFont || 'Impact';
+  const stageBadgeFont = pmncStageBadgeFont || headingFont || 'Outfit';
+  const tableFont = pmncTableFont || headingFont || 'Impact';
+
+  // Collect Google Fonts to dynamically inject
+  const fontsToLoad = [
+    headingFont,
+    bodyFont,
+    pmncTopLeftFont,
+    pmncTopRightFont,
+    pmncTitleFont,
+    pmncStageBadgeFont,
+    pmncTableFont,
+  ]
+    .filter(Boolean)
+    .map((f) => f!.trim().replace(/ /g, '+'));
+  const uniqueFonts = [...new Set(fontsToLoad)];
+  const fontsImportUrl = uniqueFonts.length > 0
+    ? `https://fonts.googleapis.com/css2?${uniqueFonts.map((f) => `family=${f}:wght@400;600;700;800;900`).join('&')}&display=swap`
+    : null;
 
   return (
     <div
@@ -266,17 +349,24 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
         position: 'relative',
         overflow: 'hidden',
         boxSizing: 'border-box',
-        fontFamily: "var(--body-font, 'Inter', sans-serif)",
-        color: '#FFFFFF',
-        backgroundColor: '#0F0B08',
+        fontFamily: `var(--body-font, '${bodyFont || 'Inter'}', sans-serif)`,
+        color: isWhite ? '#18120C' : '#FFFFFF',
+        backgroundColor: isWhite ? '#F8F6F2' : '#0B0704',
         backgroundImage: isCustom && customBackgroundUrl && !canvaBgUrl
           ? `url(${customBackgroundUrl})`
-          : 'radial-gradient(ellipse at 50% 15%, #502A10 0%, #2A1608 45%, #120A04 85%, #080402 100%)',
+          : isWhite
+            ? 'radial-gradient(ellipse at 50% 0%, #FFFFFF 0%, #F5EFE6 45%, #EBE2D3 80%, #DFD4C2 100%)'
+            : 'radial-gradient(ellipse at 50% 12%, #381C0A 0%, #1E1006 40%, #0D0703 75%, #050302 100%)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}
     >
-      {/* Canva iframe embed */}
+      {/* Dynamic Google Fonts loader */}
+      {fontsImportUrl && (
+        <style>{`@import url('${fontsImportUrl}');`}</style>
+      )}
+
+      {/* Canva Background Iframe */}
       {canvaBgUrl && (
         <iframe
           src={canvaBgUrl}
@@ -294,30 +384,69 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
         />
       )}
 
-      {/* Atmospheric lighting layers */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'radial-gradient(circle at 50% -10%, rgba(229, 169, 60, 0.28) 0%, transparent 60%)',
-          pointerEvents: 'none',
-          zIndex: 1,
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.45) 70%, rgba(0,0,0,0.85) 100%)',
-          pointerEvents: 'none',
-          zIndex: 1,
-        }}
-      />
+      {/* Atmospheric Broadcast Lighting */}
+      {isDark && (
+        <>
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'radial-gradient(ellipse at 50% -10%, rgba(229, 169, 60, 0.32) 0%, transparent 65%)',
+              pointerEvents: 'none',
+              zIndex: 1,
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.85) 100%)',
+              pointerEvents: 'none',
+              zIndex: 1,
+            }}
+          />
+        </>
+      )}
 
-      {/* Optional Side Decorative Sash / Tribal Ribbon */}
+      {isWhite && (
+        <>
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'radial-gradient(ellipse at 50% -10%, rgba(229, 169, 60, 0.18) 0%, transparent 60%)',
+              pointerEvents: 'none',
+              zIndex: 1,
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(to bottom, rgba(255,255,255,0.2) 0%, rgba(235,226,211,0.5) 70%, rgba(215,200,180,0.75) 100%)',
+              pointerEvents: 'none',
+              zIndex: 1,
+            }}
+          />
+        </>
+      )}
+
+      {isCustom && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(to bottom, rgba(10,6,3,0.3) 0%, rgba(10,6,3,0.7) 60%, rgba(5,3,1,0.92) 100%)',
+            pointerEvents: 'none',
+            zIndex: 1,
+          }}
+        />
+      )}
+
+      {/* Decorative Ribbon Sash */}
       {showSideRibbon && <SideRibbon />}
 
-      {/* Main Content Layout */}
+      {/* Main Broadcast Layout */}
       <div
         style={{
           position: 'relative',
@@ -327,7 +456,7 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          padding: '24px 70px 20px',
+          padding: '22px 65px 18px',
           boxSizing: 'border-box',
         }}
       >
@@ -335,64 +464,95 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
         <div
           style={{
             width: '100%',
+            maxWidth: '1480px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: '10px',
+            marginBottom: '12px',
+            gap: '20px',
           }}
         >
-          {/* Top Left: Organizer / Brand Badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '220px' }}>
-            {brandingLogoUrl ? (
-              <img
-                src={brandingLogoUrl}
-                alt="Brand"
-                referrerPolicy="no-referrer"
-                crossOrigin="anonymous"
-                style={{
-                  height: '70px',
-                  maxWidth: '140px',
-                  objectFit: 'contain',
-                  filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.6))',
-                }}
-              />
-            ) : (
+          {/* Top Left: Premium HUD Card (Logo + Text Box) */}
+          <div
+            style={{
+              minWidth: '280px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-start',
+            }}
+          >
+            {(pmncTopLeftShowLogo && leftLogo) || (pmncTopLeftShowText && (leftTitle || leftSubtitle)) ? (
               <div
                 style={{
                   display: 'flex',
-                  flexDirection: 'column',
-                  padding: '8px 14px',
-                  background: 'rgba(0,0,0,0.5)',
-                  border: '2px solid rgba(229, 169, 60, 0.7)',
-                  borderRadius: '6px',
-                  boxShadow: '0 0 16px rgba(229, 169, 60, 0.25)',
+                  alignItems: 'center',
+                  gap: '14px',
+                  padding: '8px 16px',
+                  background: isWhite
+                    ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(246, 240, 230, 0.92) 100%)'
+                    : 'linear-gradient(135deg, rgba(24, 15, 9, 0.88) 0%, rgba(12, 8, 4, 0.92) 100%)',
+                  border: '1.5px solid rgba(229, 169, 60, 0.6)',
+                  borderLeft: '4px solid #E5A93C',
+                  borderRadius: '8px',
+                  boxShadow: isWhite
+                    ? '0 6px 20px rgba(0, 0, 0, 0.08), inset 0 0 12px rgba(229, 169, 60, 0.12)'
+                    : '0 8px 24px rgba(0, 0, 0, 0.6), inset 0 0 16px rgba(229, 169, 60, 0.18)',
+                  backdropFilter: 'blur(10px)',
                 }}
               >
-                <span
-                  style={{
-                    fontSize: '20px',
-                    fontWeight: 900,
-                    letterSpacing: '0.08em',
-                    color: '#FFFFFF',
-                    lineHeight: '1.1',
-                    fontFamily: "var(--heading-font, 'Impact', sans-serif)",
-                  }}
-                >
-                  {brandOrg}
-                </span>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    letterSpacing: '0.2em',
-                    color: '#E5A93C',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  {brandSub}
-                </span>
+                {/* Top Left Logo */}
+                {pmncTopLeftShowLogo && leftLogo && (
+                  <img
+                    src={leftLogo}
+                    alt="Brand Logo"
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
+                    style={{
+                      height: '48px',
+                      maxWidth: '110px',
+                      objectFit: 'contain',
+                      filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.5))',
+                    }}
+                  />
+                )}
+
+                {/* Top Left Text Box */}
+                {pmncTopLeftShowText && (leftTitle || leftSubtitle) && (
+                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    {leftTitle && (
+                      <span
+                        style={{
+                          fontSize: `${pmncTopLeftTitleSize}px`,
+                          fontWeight: 900,
+                          letterSpacing: '0.06em',
+                          color: isWhite ? '#1F140A' : '#FFFFFF',
+                          lineHeight: '1.15',
+                          fontFamily: `'${leftFont}', sans-serif`,
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {leftTitle}
+                      </span>
+                    )}
+                    {leftSubtitle && (
+                      <span
+                        style={{
+                          fontSize: `${pmncTopLeftSubtitleSize}px`,
+                          fontWeight: 800,
+                          letterSpacing: '0.18em',
+                          color: '#E5A93C',
+                          textTransform: 'uppercase',
+                          fontFamily: `'${leftFont}', sans-serif`,
+                          marginTop: '2px',
+                        }}
+                      >
+                        {leftSubtitle}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
+            ) : null}
           </div>
 
           {/* Top Center: Stage Pill & Main Title */}
@@ -403,6 +563,7 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
               textAlign: 'center',
+              flex: 1,
             }}
           >
             {/* Stage Badge Pill */}
@@ -411,22 +572,22 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  padding: '5px 22px',
-                  backgroundColor: 'rgba(18, 12, 8, 0.88)',
-                  border: '1.5px solid rgba(229, 169, 60, 0.65)',
-                  borderRadius: '4px',
+                  padding: '4px 22px',
+                  backgroundColor: isWhite ? 'rgba(35, 22, 12, 0.95)' : 'rgba(20, 12, 6, 0.92)',
+                  border: '1.5px solid rgba(229, 169, 60, 0.75)',
+                  borderRadius: '6px',
                   marginBottom: '4px',
-                  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.6)',
+                  boxShadow: '0 4px 14px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(229, 169, 60, 0.25)',
                 }}
               >
                 <span
                   style={{
-                    fontSize: '14px',
-                    fontWeight: 800,
+                    fontSize: `${pmncStageBadgeFontSize}px`,
+                    fontWeight: 900,
                     color: '#F4DEB3',
-                    letterSpacing: '0.12em',
+                    letterSpacing: '0.14em',
                     textTransform: 'uppercase',
-                    fontFamily: "var(--heading-font, 'Inter', sans-serif)",
+                    fontFamily: `'${stageBadgeFont}', sans-serif`,
                   }}
                 >
                   {resolvedStageBadge}
@@ -434,63 +595,109 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
               </div>
             )}
 
-            {/* Huge Hero Title */}
+            {/* Hero Title */}
             <h1
               style={{
-                fontSize: '52px',
+                fontSize: `${pmncTitleFontSize}px`,
                 fontWeight: 900,
-                lineHeight: '1',
+                lineHeight: '1.05',
                 margin: 0,
                 letterSpacing: '0.06em',
                 textTransform: 'uppercase',
-                fontFamily: "var(--heading-font, 'Impact', 'Arial Black', sans-serif)",
-                background: 'linear-gradient(180deg, #FFFFFF 0%, #F5E5C9 45%, #E5A93C 100%)',
+                fontFamily: `'${centerTitleFont}', sans-serif`,
+                background: isWhite
+                  ? 'linear-gradient(180deg, #381C0A 0%, #1A0D04 55%, #E5A93C 100%)'
+                  : 'linear-gradient(180deg, #FFFFFF 0%, #F8E7C8 40%, #E5A93C 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                filter: 'drop-shadow(0 4px 10px rgba(0, 0, 0, 0.8))',
+                filter: isWhite ? 'none' : 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.85))',
               }}
             >
               {graphicTitle}
             </h1>
           </div>
 
-          {/* Top Right: Tournament Championship Crest / Logo Slot */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', minWidth: '220px' }}>
-            {tournamentLogos && tournamentLogos[0]?.logoUrl ? (
-              <img
-                src={tournamentLogos[0].logoUrl}
-                alt="Tournament"
-                referrerPolicy="no-referrer"
-                crossOrigin="anonymous"
-                style={{
-                  height: '76px',
-                  maxWidth: '140px',
-                  objectFit: 'contain',
-                  filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.6))',
-                }}
-              />
-            ) : (
+          {/* Top Right: Premium HUD Card (Text Box + Logo) */}
+          <div
+            style={{
+              minWidth: '280px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+            }}
+          >
+            {(pmncTopRightShowLogo && rightLogo) || (pmncTopRightShowText && (rightTitle || rightSubtitle)) ? (
               <div
                 style={{
                   display: 'flex',
-                  flexDirection: 'column',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '6px 14px',
-                  background: 'radial-gradient(circle, rgba(229,169,60,0.2) 0%, rgba(20,12,6,0.85) 100%)',
-                  border: '1.5px solid rgba(229, 169, 60, 0.5)',
+                  gap: '14px',
+                  padding: '8px 16px',
+                  background: isWhite
+                    ? 'linear-gradient(135deg, rgba(246, 240, 230, 0.92) 0%, rgba(255, 255, 255, 0.95) 100%)'
+                    : 'linear-gradient(135deg, rgba(12, 8, 4, 0.92) 0%, rgba(24, 15, 9, 0.88) 100%)',
+                  border: '1.5px solid rgba(229, 169, 60, 0.6)',
+                  borderRight: '4px solid #E5A93C',
                   borderRadius: '8px',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
+                  boxShadow: isWhite
+                    ? '0 6px 20px rgba(0, 0, 0, 0.08), inset 0 0 12px rgba(229, 169, 60, 0.12)'
+                    : '0 8px 24px rgba(0, 0, 0, 0.6), inset 0 0 16px rgba(229, 169, 60, 0.18)',
+                  backdropFilter: 'blur(10px)',
                 }}
               >
-                <span style={{ fontSize: '11px', fontWeight: 800, color: '#E5A93C', letterSpacing: '0.15em' }}>
-                  NATIONAL
-                </span>
-                <span style={{ fontSize: '13px', fontWeight: 900, color: '#FFFFFF', letterSpacing: '0.08em' }}>
-                  CHAMPIONSHIP
-                </span>
+                {/* Top Right Text Box */}
+                {pmncTopRightShowText && (rightTitle || rightSubtitle) && (
+                  <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'right', minWidth: 0 }}>
+                    {rightTitle && (
+                      <span
+                        style={{
+                          fontSize: `${pmncTopRightTitleSize}px`,
+                          fontWeight: 900,
+                          letterSpacing: '0.08em',
+                          color: isWhite ? '#1F140A' : '#FFFFFF',
+                          lineHeight: '1.15',
+                          fontFamily: `'${rightFont}', sans-serif`,
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {rightTitle}
+                      </span>
+                    )}
+                    {rightSubtitle && (
+                      <span
+                        style={{
+                          fontSize: `${pmncTopRightSubtitleSize}px`,
+                          fontWeight: 800,
+                          letterSpacing: '0.16em',
+                          color: '#E5A93C',
+                          textTransform: 'uppercase',
+                          fontFamily: `'${rightFont}', sans-serif`,
+                          marginTop: '2px',
+                        }}
+                      >
+                        {rightSubtitle}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Top Right Logo */}
+                {pmncTopRightShowLogo && rightLogo && (
+                  <img
+                    src={rightLogo}
+                    alt="Tournament Crest"
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
+                    style={{
+                      height: '48px',
+                      maxWidth: '110px',
+                      objectFit: 'contain',
+                      filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.5))',
+                    }}
+                  />
+                )}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -498,35 +705,40 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
         <div
           style={{
             width: '100%',
-            maxWidth: '1460px',
+            maxWidth: '1480px',
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.92)' : 'rgba(240, 222, 185, 0.88)',
-            border: '2px solid rgba(229, 169, 60, 0.75)',
+            backgroundColor: isWhite
+              ? 'rgba(255, 255, 255, 0.94)'
+              : 'rgba(244, 226, 192, 0.92)',
+            border: '2px solid rgba(229, 169, 60, 0.85)',
             borderRadius: '12px',
             overflow: 'hidden',
-            boxShadow: '0 12px 40px rgba(0, 0, 0, 0.75), inset 0 0 30px rgba(229, 169, 60, 0.15)',
+            boxShadow: isWhite
+              ? '0 12px 35px rgba(0, 0, 0, 0.15), inset 0 0 24px rgba(229, 169, 60, 0.12)'
+              : '0 14px 44px rgba(0, 0, 0, 0.8), inset 0 0 32px rgba(229, 169, 60, 0.2)',
             position: 'relative',
           }}
         >
-          {/* Table Header Bar (Dark Umber) */}
+          {/* Table Header Bar (Dark Umber / Espresso with Metallic Trim) */}
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: '120px 1fr 140px 140px 140px 170px',
               alignItems: 'center',
-              backgroundColor: '#26160A',
-              borderBottom: '2px solid #E5A93C',
-              padding: '10px 24px',
+              backgroundColor: '#201208',
+              borderBottom: '2.5px solid #E5A93C',
+              padding: '9px 24px',
               boxSizing: 'border-box',
               color: '#F4DEB3',
-              fontFamily: "var(--heading-font, 'Inter', sans-serif)",
+              fontFamily: `'${tableFont}', sans-serif`,
               fontWeight: 900,
               fontSize: '15px',
-              letterSpacing: '0.1em',
+              letterSpacing: '0.12em',
               textTransform: 'uppercase',
               flexShrink: 0,
+              boxShadow: '0 3px 10px rgba(0, 0, 0, 0.4)',
             }}
           >
             <div style={{ textAlign: 'center' }}>RANK</div>
@@ -534,7 +746,7 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
             <div style={{ textAlign: 'center' }}>WINS</div>
             <div style={{ textAlign: 'center' }}>PLC.PTS</div>
             <div style={{ textAlign: 'center' }}>KILLS</div>
-            <div style={{ textAlign: 'center', color: '#E5A93C' }}>TOT.PTS</div>
+            <div style={{ textAlign: 'center', color: '#F5B338' }}>TOT.PTS</div>
           </div>
 
           {/* Table Rows Container */}
@@ -544,12 +756,16 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              padding: '4px 0',
+              padding: '2px 0',
               boxSizing: 'border-box',
             }}
           >
             {rows.map((row, idx) => {
               const isEven = idx % 2 === 0;
+              const isTop1 = row.rank === 1;
+              const isTop2 = row.rank === 2;
+              const isTop3 = row.rank === 3;
+
               return (
                 <div
                   key={`${row.rank}-${idx}`}
@@ -560,24 +776,85 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
                     height: `${rowHeight}px`,
                     padding: '0 24px',
                     boxSizing: 'border-box',
-                    backgroundColor: isEven ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                    backgroundColor: isTop1
+                      ? 'rgba(229, 169, 60, 0.18)'
+                      : isEven
+                        ? 'rgba(0, 0, 0, 0.035)'
+                        : 'transparent',
                     borderBottom: idx === rows.length - 1 ? 'none' : '1px solid rgba(80, 45, 18, 0.12)',
-                    color: '#1F140A',
+                    color: '#1A1108',
                     transition: 'background-color 0.15s ease',
                   }}
                 >
-                  {/* Rank */}
+                  {/* Rank Badge */}
                   <div
                     style={{
-                      textAlign: 'center',
-                      fontSize: `${rankFontSize}px`,
-                      fontWeight: 900,
-                      fontFamily: "var(--heading-font, 'Impact', 'Arial Black', sans-serif)",
-                      letterSpacing: '0.04em',
-                      color: row.rank <= 3 ? '#9A2E12' : '#331F10',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
                   >
-                    #{row.rank}
+                    {isTop1 ? (
+                      <div
+                        style={{
+                          padding: '2px 14px',
+                          borderRadius: '4px',
+                          background: 'linear-gradient(135deg, #FFE89E 0%, #D89828 50%, #9A6208 100%)',
+                          color: '#2A1700',
+                          fontSize: `${rankFontSize}px`,
+                          fontWeight: 900,
+                          fontFamily: `'${tableFont}', sans-serif`,
+                          letterSpacing: '0.04em',
+                          boxShadow: '0 2px 8px rgba(216, 152, 40, 0.5)',
+                        }}
+                      >
+                        #1
+                      </div>
+                    ) : isTop2 ? (
+                      <div
+                        style={{
+                          padding: '2px 14px',
+                          borderRadius: '4px',
+                          background: 'linear-gradient(135deg, #FFFFFF 0%, #CBD5E1 55%, #64748B 100%)',
+                          color: '#1E293B',
+                          fontSize: `${rankFontSize}px`,
+                          fontWeight: 900,
+                          fontFamily: `'${tableFont}', sans-serif`,
+                          letterSpacing: '0.04em',
+                          boxShadow: '0 2px 8px rgba(100, 116, 139, 0.3)',
+                        }}
+                      >
+                        #2
+                      </div>
+                    ) : isTop3 ? (
+                      <div
+                        style={{
+                          padding: '2px 14px',
+                          borderRadius: '4px',
+                          background: 'linear-gradient(135deg, #FDBA74 0%, #C2410C 55%, #7C2D12 100%)',
+                          color: '#FFFFFF',
+                          fontSize: `${rankFontSize}px`,
+                          fontWeight: 900,
+                          fontFamily: `'${tableFont}', sans-serif`,
+                          letterSpacing: '0.04em',
+                          boxShadow: '0 2px 8px rgba(194, 65, 12, 0.35)',
+                        }}
+                      >
+                        #3
+                      </div>
+                    ) : (
+                      <span
+                        style={{
+                          fontSize: `${rankFontSize}px`,
+                          fontWeight: 900,
+                          fontFamily: `'${tableFont}', sans-serif`,
+                          letterSpacing: '0.04em',
+                          color: '#422814',
+                        }}
+                      >
+                        #{row.rank}
+                      </span>
+                    )}
                   </div>
 
                   {/* Team Logo & Name */}
@@ -590,14 +867,14 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
                       minWidth: 0,
                     }}
                   >
-                    <TeamLogo logoUrl={row.logoUrl} name={row.teamName} size={logoSize} />
+                    <TeamLogo logoUrl={row.logoUrl} name={row.teamName} size={logoSize} isLight={isWhite} />
                     <span
                       style={{
-                        fontSize: `${fontSize}px`,
+                        fontSize: `${teamFontSize}px`,
                         fontWeight: 900,
-                        fontFamily: "var(--heading-font, 'Impact', 'Arial Black', sans-serif)",
+                        fontFamily: `'${tableFont}', sans-serif`,
                         letterSpacing: '0.04em',
-                        color: '#1B1108',
+                        color: '#180E06',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -611,9 +888,9 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
                   <div
                     style={{
                       textAlign: 'center',
-                      fontSize: `${fontSize}px`,
+                      fontSize: `${autoFontSize}px`,
                       fontWeight: 800,
-                      color: row.wins > 0 ? '#1B1108' : '#7D6A56',
+                      color: row.wins > 0 ? '#180E06' : '#8A7561',
                     }}
                   >
                     {row.wins > 0 ? row.wins : '-'}
@@ -623,9 +900,9 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
                   <div
                     style={{
                       textAlign: 'center',
-                      fontSize: `${fontSize}px`,
+                      fontSize: `${autoFontSize}px`,
                       fontWeight: 800,
-                      color: row.placementPts > 0 ? '#1B1108' : '#7D6A56',
+                      color: row.placementPts > 0 ? '#180E06' : '#8A7561',
                     }}
                   >
                     {row.placementPts > 0 ? row.placementPts : '-'}
@@ -635,23 +912,24 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
                   <div
                     style={{
                       textAlign: 'center',
-                      fontSize: `${fontSize}px`,
+                      fontSize: `${autoFontSize}px`,
                       fontWeight: 800,
-                      color: row.kills > 0 ? '#1B1108' : '#7D6A56',
+                      color: row.kills > 0 ? '#180E06' : '#8A7561',
                     }}
                   >
                     {row.kills > 0 ? row.kills : '-'}
                   </div>
 
-                  {/* Total Points (Bold & Highlighted) */}
+                  {/* Total Points (Prominently Highlighted) */}
                   <div
                     style={{
                       textAlign: 'center',
-                      fontSize: `${fontSize + 3}px`,
+                      fontSize: `${autoFontSize + 3}px`,
                       fontWeight: 900,
-                      fontFamily: "var(--heading-font, 'Impact', 'Arial Black', sans-serif)",
+                      fontFamily: `'${tableFont}', sans-serif`,
                       letterSpacing: '0.02em',
-                      color: '#9A2E12',
+                      color: '#A3290D',
+                      textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
                     }}
                   >
                     {row.totalPts > 0 ? row.totalPts : '-'}
@@ -666,11 +944,11 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
         <div
           style={{
             width: '100%',
-            maxWidth: '1460px',
+            maxWidth: '1480px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginTop: '12px',
+            marginTop: '10px',
             padding: '0 8px',
             boxSizing: 'border-box',
           }}
@@ -679,13 +957,13 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <span
               style={{
-                fontSize: '13px',
+                fontSize: '12.5px',
                 fontWeight: 900,
                 letterSpacing: '0.18em',
-                color: '#F4DEB3',
+                color: isWhite ? '#4D3622' : '#F4DEB3',
                 textTransform: 'uppercase',
-                fontFamily: "var(--heading-font, 'Inter', sans-serif)",
-                textShadow: '0 2px 6px rgba(0,0,0,0.8)',
+                fontFamily: `'${headingFont || 'Outfit'}', sans-serif`,
+                textShadow: isWhite ? 'none' : '0 2px 6px rgba(0,0,0,0.8)',
               }}
             >
               {sponsorFooterText}
@@ -698,8 +976,8 @@ export const PmncTop15Standings: React.FC<PmncTop15StandingsProps> = ({
               style={{
                 fontSize: '11px',
                 fontWeight: 800,
-                letterSpacing: '0.15em',
-                color: 'rgba(244, 222, 179, 0.75)',
+                letterSpacing: '0.16em',
+                color: isWhite ? 'rgba(77, 54, 34, 0.85)' : 'rgba(244, 222, 179, 0.85)',
                 textTransform: 'uppercase',
                 display: 'flex',
                 alignItems: 'center',

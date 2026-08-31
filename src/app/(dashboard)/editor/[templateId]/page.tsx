@@ -1859,101 +1859,572 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           {/* Section 6-PMNC: Esports Top 15 Standings (PMNC Style) Settings */}
           {templateType === 'pmnc_top15_standings' && (
             <div>
-              <div className="sidebar-section-title" style={{ color: '#E5A93C' }}>PMNC Standings Settings</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="sidebar-section-title" style={{ color: '#E5A93C' }}>PMNC Standings Retouch & Customization</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 
-                {/* Stage Header Badge */}
-                <div className="property-field">
-                  <span className="property-label">Stage Header Badge</span>
-                  <input 
-                    type="text" 
-                    className="text-input" 
-                    value={styleConfig.stageBadgeText || 'PMNC KENYA GROUP STAGE - DAY 2'} 
-                    placeholder="e.g. PMNC KENYA GROUP STAGE - DAY 2"
-                    onChange={(e) => updateStyleConfig({ stageBadgeText: e.target.value })} 
-                  />
-                  <div style={{ display: 'flex', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }}>
-                    {['PMNC KENYA GROUP STAGE - DAY 1', 'PMNC KENYA GROUP STAGE - DAY 2', 'FINALS - DAY 1', 'FINALS - DAY 2', 'OVERALL STANDINGS'].map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => updateStyleConfig({ stageBadgeText: preset })}
-                        style={{
-                          fontSize: '10px',
-                          padding: '3px 8px',
-                          borderRadius: '4px',
-                          border: '1px solid rgba(229, 169, 60, 0.4)',
-                          background: 'rgba(229, 169, 60, 0.1)',
-                          color: '#E5A93C',
-                          cursor: 'pointer',
-                          fontWeight: 700,
+                {/* 1. PMNC Background Mode */}
+                <div style={{
+                  border: '1px solid rgba(229, 169, 60, 0.4)',
+                  borderRadius: '10px',
+                  padding: '0.85rem',
+                  background: 'rgba(229, 169, 60, 0.04)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#E5A93C', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                      🎨 Background Theme
+                    </span>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                      {(styleConfig.pmncBackgroundMode || styleConfig.colorTheme) === 'white' ? 'Classic White' : (styleConfig.pmncBackgroundMode || styleConfig.colorTheme) === 'custom' ? 'Custom Media' : 'Classic Dark'}
+                    </span>
+                  </div>
+
+                  <div className="toggle-group" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                    <button
+                      type="button"
+                      className={`toggle-btn ${(!styleConfig.pmncBackgroundMode || styleConfig.pmncBackgroundMode === 'dark' || styleConfig.colorTheme === 'dark') && styleConfig.pmncBackgroundMode !== 'white' && styleConfig.pmncBackgroundMode !== 'custom' ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ pmncBackgroundMode: 'dark', colorTheme: 'dark' })}
+                    >
+                      Classic Dark
+                    </button>
+                    <button
+                      type="button"
+                      className={`toggle-btn ${(styleConfig.pmncBackgroundMode === 'white' || styleConfig.colorTheme === 'light') ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ pmncBackgroundMode: 'white', colorTheme: 'light' })}
+                    >
+                      Classic White
+                    </button>
+                    <button
+                      type="button"
+                      className={`toggle-btn ${(styleConfig.pmncBackgroundMode === 'custom' || styleConfig.colorTheme === 'custom') ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ pmncBackgroundMode: 'custom', colorTheme: 'custom' })}
+                    >
+                      Custom Bg
+                    </button>
+                  </div>
+
+                  {/* Custom Background Sub-panel */}
+                  {(styleConfig.pmncBackgroundMode === 'custom' || styleConfig.colorTheme === 'custom') && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '4px' }}>
+                      {styleConfig.customBackgroundUrl && (
+                        <img
+                          src={styleConfig.customBackgroundUrl}
+                          alt="bg preview"
+                          style={{ width: '100%', height: '70px', objectFit: 'cover', borderRadius: '6px', border: '1px solid rgba(229,169,60,0.4)' }}
+                        />
+                      )}
+                      <input
+                        type="text"
+                        className="text-input"
+                        placeholder="Paste image or Canva URL (https://...)"
+                        value={styleConfig.customBackgroundUrl || ''}
+                        onChange={(e) => updateStyleConfig({ customBackgroundUrl: e.target.value })}
+                        onBlur={(e) => {
+                          resolveShortCanvaUrl('bg', e.target.value, (resolved) => {
+                            updateStyleConfig({ customBackgroundUrl: resolved });
+                          });
                         }}
-                      >
-                        {preset}
-                      </button>
-                    ))}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Top Left Section: Logo & Text Box */}
+                <div style={{
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '10px',
+                  padding: '0.85rem',
+                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#E5A93C', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                      🏷️ Top Left Section (Logo &amp; Text)
+                    </span>
                   </div>
-                </div>
 
-                {/* Rows to display */}
-                <div className="property-field">
-                  <span className="property-label">Rows per page (Top N)</span>
-                  <input 
-                    type="number" 
-                    className="text-input" 
-                    min={5} 
-                    max={25}
-                    value={styleConfig.topN || 15} 
-                    onChange={(e) => updateStyleConfig({ topN: Math.max(5, Math.min(25, Number(e.target.value))) })} 
-                  />
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Default is 15 teams per page.</span>
-                </div>
-
-                {/* Page Selection */}
-                <div className="property-field">
-                  <span className="property-label">Active Page</span>
-                  <div className="toggle-group">
-                    <button
-                      className={`toggle-btn ${(!styleConfig.page || styleConfig.page === 1) ? 'active' : ''}`}
-                      onClick={() => updateStyleConfig({ page: 1 })}
-                    >
-                      Page 1 (#1–#15)
-                    </button>
-                    <button
-                      className={`toggle-btn ${styleConfig.page === 2 ? 'active' : ''}`}
-                      onClick={() => updateStyleConfig({ page: 2 })}
-                    >
-                      Page 2 (#16–#30)
-                    </button>
+                  {/* Toggles for Top Left */}
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.78rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={styleConfig.pmncTopLeftShowLogo !== false}
+                        onChange={(e) => updateStyleConfig({ pmncTopLeftShowLogo: e.target.checked })}
+                      />
+                      <span>Show Logo</span>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.78rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={styleConfig.pmncTopLeftShowText !== false}
+                        onChange={(e) => updateStyleConfig({ pmncTopLeftShowText: e.target.checked })}
+                      />
+                      <span>Show Text Box</span>
+                    </label>
                   </div>
+
+                  {/* Top Left Logo URL */}
+                  {styleConfig.pmncTopLeftShowLogo !== false && (
+                    <div className="property-field">
+                      <span className="property-label">Top Left Logo URL</span>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          className="text-input"
+                          placeholder="Paste Logo URL or Canva image"
+                          value={styleConfig.pmncTopLeftLogoUrl !== undefined ? styleConfig.pmncTopLeftLogoUrl : (styleConfig.brandingLogoUrl || '')}
+                          onChange={(e) => updateStyleConfig({ pmncTopLeftLogoUrl: e.target.value })}
+                        />
+                        {(styleConfig.pmncTopLeftLogoUrl || styleConfig.brandingLogoUrl) && (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => updateStyleConfig({ pmncTopLeftLogoUrl: '' })}
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Top Left Text Box Inputs */}
+                  {styleConfig.pmncTopLeftShowText !== false && (
+                    <>
+                      <div className="property-field">
+                        <span className="property-label">Top Left Title (Line 1)</span>
+                        <input
+                          type="text"
+                          className="text-input"
+                          placeholder="e.g. PUBG MOBILE"
+                          value={styleConfig.pmncTopLeftTitle !== undefined ? styleConfig.pmncTopLeftTitle : (brandingOrg || 'PUBG MOBILE')}
+                          onChange={(e) => updateStyleConfig({ pmncTopLeftTitle: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="property-field">
+                        <span className="property-label">Top Left Subtitle (Line 2)</span>
+                        <input
+                          type="text"
+                          className="text-input"
+                          placeholder="e.g. ESPORTS"
+                          value={styleConfig.pmncTopLeftSubtitle !== undefined ? styleConfig.pmncTopLeftSubtitle : (brandingMain || 'ESPORTS')}
+                          onChange={(e) => updateStyleConfig({ pmncTopLeftSubtitle: e.target.value })}
+                        />
+                      </div>
+
+                      {/* Top Left Typography */}
+                      <div className="property-field">
+                        <span className="property-label">Font Family</span>
+                        <input
+                          type="text"
+                          className="text-input"
+                          placeholder="Outfit, Impact, Orbitron..."
+                          value={styleConfig.pmncTopLeftFont || 'Outfit'}
+                          onChange={(e) => updateStyleConfig({ pmncTopLeftFont: e.target.value })}
+                        />
+                        <div style={{ display: 'flex', gap: '4px', marginTop: '5px', flexWrap: 'wrap' }}>
+                          {['Outfit', 'Impact', 'Rajdhani', 'Orbitron', 'Inter', 'Montserrat', 'Bebas Neue'].map((font) => (
+                            <button
+                              key={font}
+                              type="button"
+                              onClick={() => updateStyleConfig({ pmncTopLeftFont: font })}
+                              style={{
+                                fontSize: '9px',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                border: (styleConfig.pmncTopLeftFont || 'Outfit') === font ? '1px solid #E5A93C' : '1px solid rgba(255,255,255,0.1)',
+                                background: (styleConfig.pmncTopLeftFont || 'Outfit') === font ? 'rgba(229,169,60,0.2)' : 'rgba(255,255,255,0.03)',
+                                color: (styleConfig.pmncTopLeftFont || 'Outfit') === font ? '#E5A93C' : 'var(--text-secondary)',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {font}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                        <div className="property-field">
+                          <span className="property-label">Title Size (px)</span>
+                          <input
+                            type="number"
+                            className="text-input"
+                            min={12}
+                            max={36}
+                            value={styleConfig.pmncTopLeftTitleSize || 20}
+                            onChange={(e) => updateStyleConfig({ pmncTopLeftTitleSize: Number(e.target.value) })}
+                          />
+                        </div>
+                        <div className="property-field">
+                          <span className="property-label">Subtitle Size (px)</span>
+                          <input
+                            type="number"
+                            className="text-input"
+                            min={8}
+                            max={24}
+                            value={styleConfig.pmncTopLeftSubtitleSize || 12}
+                            onChange={(e) => updateStyleConfig({ pmncTopLeftSubtitleSize: Number(e.target.value) })}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
 
-                {/* Side Ribbon Toggle */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <input 
-                    type="checkbox" 
-                    id="chk-sash"
-                    checked={styleConfig.showSideRibbon !== false}
-                    onChange={(e) => updateStyleConfig({ showSideRibbon: e.target.checked })} 
-                  />
-                  <label htmlFor="chk-sash" className="property-label" style={{ margin: 0, cursor: 'pointer' }}>
-                    Show Decorative Side Sash / Ribbon
-                  </label>
+                {/* 3. Top Right Section: Text Box & Tournament Logo */}
+                <div style={{
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '10px',
+                  padding: '0.85rem',
+                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#E5A93C', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                      🏆 Top Right Section (Text &amp; Logo)
+                    </span>
+                  </div>
+
+                  {/* Toggles for Top Right */}
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.78rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={styleConfig.pmncTopRightShowText !== false}
+                        onChange={(e) => updateStyleConfig({ pmncTopRightShowText: e.target.checked })}
+                      />
+                      <span>Show Text Box</span>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.78rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={styleConfig.pmncTopRightShowLogo !== false}
+                        onChange={(e) => updateStyleConfig({ pmncTopRightShowLogo: e.target.checked })}
+                      />
+                      <span>Show Logo</span>
+                    </label>
+                  </div>
+
+                  {/* Top Right Text Box Inputs */}
+                  {styleConfig.pmncTopRightShowText !== false && (
+                    <>
+                      <div className="property-field">
+                        <span className="property-label">Top Right Title (Line 1)</span>
+                        <input
+                          type="text"
+                          className="text-input"
+                          placeholder="e.g. PMNC 2024"
+                          value={styleConfig.pmncTopRightTitle !== undefined ? styleConfig.pmncTopRightTitle : 'PMNC 2024'}
+                          onChange={(e) => updateStyleConfig({ pmncTopRightTitle: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="property-field">
+                        <span className="property-label">Top Right Subtitle (Line 2)</span>
+                        <input
+                          type="text"
+                          className="text-input"
+                          placeholder="e.g. CHAMPIONSHIP"
+                          value={styleConfig.pmncTopRightSubtitle !== undefined ? styleConfig.pmncTopRightSubtitle : 'CHAMPIONSHIP'}
+                          onChange={(e) => updateStyleConfig({ pmncTopRightSubtitle: e.target.value })}
+                        />
+                      </div>
+
+                      {/* Top Right Typography */}
+                      <div className="property-field">
+                        <span className="property-label">Font Family</span>
+                        <input
+                          type="text"
+                          className="text-input"
+                          placeholder="Outfit, Impact, Orbitron..."
+                          value={styleConfig.pmncTopRightFont || 'Outfit'}
+                          onChange={(e) => updateStyleConfig({ pmncTopRightFont: e.target.value })}
+                        />
+                        <div style={{ display: 'flex', gap: '4px', marginTop: '5px', flexWrap: 'wrap' }}>
+                          {['Outfit', 'Impact', 'Rajdhani', 'Orbitron', 'Inter', 'Montserrat', 'Bebas Neue'].map((font) => (
+                            <button
+                              key={font}
+                              type="button"
+                              onClick={() => updateStyleConfig({ pmncTopRightFont: font })}
+                              style={{
+                                fontSize: '9px',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                border: (styleConfig.pmncTopRightFont || 'Outfit') === font ? '1px solid #E5A93C' : '1px solid rgba(255,255,255,0.1)',
+                                background: (styleConfig.pmncTopRightFont || 'Outfit') === font ? 'rgba(229,169,60,0.2)' : 'rgba(255,255,255,0.03)',
+                                color: (styleConfig.pmncTopRightFont || 'Outfit') === font ? '#E5A93C' : 'var(--text-secondary)',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {font}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                        <div className="property-field">
+                          <span className="property-label">Title Size (px)</span>
+                          <input
+                            type="number"
+                            className="text-input"
+                            min={12}
+                            max={36}
+                            value={styleConfig.pmncTopRightTitleSize || 18}
+                            onChange={(e) => updateStyleConfig({ pmncTopRightTitleSize: Number(e.target.value) })}
+                          />
+                        </div>
+                        <div className="property-field">
+                          <span className="property-label">Subtitle Size (px)</span>
+                          <input
+                            type="number"
+                            className="text-input"
+                            min={8}
+                            max={24}
+                            value={styleConfig.pmncTopRightSubtitleSize || 11}
+                            onChange={(e) => updateStyleConfig({ pmncTopRightSubtitleSize: Number(e.target.value) })}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Top Right Logo URL */}
+                  {styleConfig.pmncTopRightShowLogo !== false && (
+                    <div className="property-field">
+                      <span className="property-label">Top Right Tournament Logo URL</span>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          className="text-input"
+                          placeholder="Paste Logo URL or Canva image"
+                          value={styleConfig.pmncTopRightLogoUrl !== undefined ? styleConfig.pmncTopRightLogoUrl : (styleConfig.tournamentLogos?.[0]?.logoUrl || '')}
+                          onChange={(e) => updateStyleConfig({ pmncTopRightLogoUrl: e.target.value })}
+                        />
+                        {(styleConfig.pmncTopRightLogoUrl || styleConfig.tournamentLogos?.[0]?.logoUrl) && (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => updateStyleConfig({ pmncTopRightLogoUrl: '' })}
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Sponsor Footer Text */}
-                <div className="property-field">
-                  <span className="property-label">Sponsor / Partner Footer Text</span>
-                  <input 
-                    type="text" 
-                    className="text-input" 
-                    value={styleConfig.sponsorFooterText || 'KRAFTON · LEVEL INFINITE · LIGHTSPEED STUDIOS · INFINIX'} 
-                    placeholder="e.g. KRAFTON · LEVEL INFINITE · INFINIX"
-                    onChange={(e) => updateStyleConfig({ sponsorFooterText: e.target.value })} 
-                  />
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                    Displayed in the bottom sponsor bar on broadcast.
+                {/* 4. Center Stage Badge & Title Typography */}
+                <div style={{
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '10px',
+                  padding: '0.85rem',
+                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#E5A93C', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    ⚡ Center Header &amp; Stage Badge
                   </span>
+
+                  {/* Stage Header Badge */}
+                  <div className="property-field">
+                    <span className="property-label">Stage Header Badge Text</span>
+                    <input 
+                      type="text" 
+                      className="text-input" 
+                      value={styleConfig.stageBadgeText || 'PMNC KENYA GROUP STAGE - DAY 2'} 
+                      placeholder="e.g. PMNC KENYA GROUP STAGE - DAY 2"
+                      onChange={(e) => updateStyleConfig({ stageBadgeText: e.target.value })} 
+                    />
+                    <div style={{ display: 'flex', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }}>
+                      {['PMNC KENYA GROUP STAGE - DAY 1', 'PMNC KENYA GROUP STAGE - DAY 2', 'FINALS - DAY 1', 'FINALS - DAY 2', 'OVERALL STANDINGS'].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => updateStyleConfig({ stageBadgeText: preset })}
+                          style={{
+                            fontSize: '9px',
+                            padding: '3px 7px',
+                            borderRadius: '4px',
+                            border: '1px solid rgba(229, 169, 60, 0.4)',
+                            background: 'rgba(229, 169, 60, 0.1)',
+                            color: '#E5A93C',
+                            cursor: 'pointer',
+                            fontWeight: 700,
+                          }}
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '0.5rem' }}>
+                    <div className="property-field">
+                      <span className="property-label">Stage Badge Font</span>
+                      <input
+                        type="text"
+                        className="text-input"
+                        placeholder="Outfit"
+                        value={styleConfig.pmncStageBadgeFont || 'Outfit'}
+                        onChange={(e) => updateStyleConfig({ pmncStageBadgeFont: e.target.value })}
+                      />
+                    </div>
+                    <div className="property-field">
+                      <span className="property-label">Badge Size (px)</span>
+                      <input
+                        type="number"
+                        className="text-input"
+                        min={10}
+                        max={24}
+                        value={styleConfig.pmncStageBadgeFontSize || 14}
+                        onChange={(e) => updateStyleConfig({ pmncStageBadgeFontSize: Number(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '0.5rem' }}>
+                    <div className="property-field">
+                      <span className="property-label">Graphic Title Font</span>
+                      <input
+                        type="text"
+                        className="text-input"
+                        placeholder="Impact, Outfit..."
+                        value={styleConfig.pmncTitleFont || 'Impact'}
+                        onChange={(e) => updateStyleConfig({ pmncTitleFont: e.target.value })}
+                      />
+                    </div>
+                    <div className="property-field">
+                      <span className="property-label">Title Size (px)</span>
+                      <input
+                        type="number"
+                        className="text-input"
+                        min={30}
+                        max={72}
+                        value={styleConfig.pmncTitleFontSize || 48}
+                        onChange={(e) => updateStyleConfig({ pmncTitleFontSize: Number(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. Leaderboard Table & Pagination */}
+                <div style={{
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '10px',
+                  padding: '0.85rem',
+                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#E5A93C', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    📊 Leaderboard Table &amp; Rows
+                  </span>
+
+                  {/* Table Font Family */}
+                  <div className="property-field">
+                    <span className="property-label">Team Names &amp; Table Font</span>
+                    <input
+                      type="text"
+                      className="text-input"
+                      placeholder="Impact, Outfit, Rajdhani..."
+                      value={styleConfig.pmncTableFont || 'Impact'}
+                      onChange={(e) => updateStyleConfig({ pmncTableFont: e.target.value })}
+                    />
+                    <div style={{ display: 'flex', gap: '4px', marginTop: '5px', flexWrap: 'wrap' }}>
+                      {['Impact', 'Outfit', 'Rajdhani', 'Inter', 'Orbitron', 'Space Grotesk'].map((font) => (
+                        <button
+                          key={font}
+                          type="button"
+                          onClick={() => updateStyleConfig({ pmncTableFont: font })}
+                          style={{
+                            fontSize: '9px',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            border: (styleConfig.pmncTableFont || 'Impact') === font ? '1px solid #E5A93C' : '1px solid rgba(255,255,255,0.1)',
+                            background: (styleConfig.pmncTableFont || 'Impact') === font ? 'rgba(229,169,60,0.2)' : 'rgba(255,255,255,0.03)',
+                            color: (styleConfig.pmncTableFont || 'Impact') === font ? '#E5A93C' : 'var(--text-secondary)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {font}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Rows to display */}
+                  <div className="property-field">
+                    <span className="property-label">Rows per page (Top N)</span>
+                    <input 
+                      type="number" 
+                      className="text-input" 
+                      min={5} 
+                      max={25}
+                      value={styleConfig.topN || 15} 
+                      onChange={(e) => updateStyleConfig({ topN: Math.max(5, Math.min(25, Number(e.target.value))) })} 
+                    />
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Default is 15 teams per page.</span>
+                  </div>
+
+                  {/* Page Selection */}
+                  <div className="property-field">
+                    <span className="property-label">Active Page</span>
+                    <div className="toggle-group">
+                      <button
+                        className={`toggle-btn ${(!styleConfig.page || styleConfig.page === 1) ? 'active' : ''}`}
+                        onClick={() => updateStyleConfig({ page: 1 })}
+                      >
+                        Page 1 (#1–#15)
+                      </button>
+                      <button
+                        className={`toggle-btn ${styleConfig.page === 2 ? 'active' : ''}`}
+                        onClick={() => updateStyleConfig({ page: 2 })}
+                      >
+                        Page 2 (#16–#30)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Side Ribbon Toggle */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input 
+                      type="checkbox" 
+                      id="chk-sash"
+                      checked={styleConfig.showSideRibbon !== false}
+                      onChange={(e) => updateStyleConfig({ showSideRibbon: e.target.checked })} 
+                    />
+                    <label htmlFor="chk-sash" className="property-label" style={{ margin: 0, cursor: 'pointer' }}>
+                      Show Decorative Side Sash / Ribbon
+                    </label>
+                  </div>
+
+                  {/* Sponsor Footer Text */}
+                  <div className="property-field">
+                    <span className="property-label">Sponsor / Partner Footer Text</span>
+                    <input 
+                      type="text" 
+                      className="text-input" 
+                      value={styleConfig.sponsorFooterText || 'KRAFTON · LEVEL INFINITE · LIGHTSPEED STUDIOS · INFINIX'} 
+                      placeholder="e.g. KRAFTON · LEVEL INFINITE · INFINIX"
+                      onChange={(e) => updateStyleConfig({ sponsorFooterText: e.target.value })} 
+                    />
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      Displayed in the bottom sponsor bar on broadcast.
+                    </span>
+                  </div>
                 </div>
 
               </div>

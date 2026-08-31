@@ -2,11 +2,21 @@ import { TemplateStyleConfig } from './db';
 
 export function googleFontsLink(styleConfig: TemplateStyleConfig): string {
   if (!styleConfig) return '';
-  const fonts = [...new Set([styleConfig.headingFont, styleConfig.bodyFont])]
+  const fonts = [
+    ...new Set([
+      styleConfig.headingFont,
+      styleConfig.bodyFont,
+      styleConfig.pmncTopLeftFont,
+      styleConfig.pmncTopRightFont,
+      styleConfig.pmncTitleFont,
+      styleConfig.pmncStageBadgeFont,
+      styleConfig.pmncTableFont,
+    ]),
+  ]
     .filter(Boolean)
-    .map(f => f.trim().replace(/ /g, '+'));
+    .map(f => f!.trim().replace(/ /g, '+'));
   return fonts.length > 0
-    ? `@import url('https://fonts.googleapis.com/css2?${fonts.map(f => `family=${f}:wght@400;500;600;700;800`).join('&')}&display=swap');`
+    ? `@import url('https://fonts.googleapis.com/css2?${fonts.map(f => `family=${f}:wght@400;500;600;700;800;900`).join('&')}&display=swap');`
     : '';
 }
 
