@@ -1859,7 +1859,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           {/* Section 6-PMNC: Esports Top 15 Standings (PMNC Style) Settings */}
           {templateType === 'pmnc_top15_standings' && (
             <div>
-              <div className="sidebar-section-title" style={{ color: '#E5A93C' }}>PMNC Standings Retouch & Customization</div>
+              <div className="sidebar-section-title">Esports Standings Settings</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 
                 {/* 1. PMNC Background Mode */}
@@ -2396,19 +2396,6 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                         Page 2 (#16–#30)
                       </button>
                     </div>
-                  </div>
-
-                  {/* Side Ribbon Toggle */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <input 
-                      type="checkbox" 
-                      id="chk-sash"
-                      checked={styleConfig.showSideRibbon !== false}
-                      onChange={(e) => updateStyleConfig({ showSideRibbon: e.target.checked })} 
-                    />
-                    <label htmlFor="chk-sash" className="property-label" style={{ margin: 0, cursor: 'pointer' }}>
-                      Show Decorative Side Sash / Ribbon
-                    </label>
                   </div>
 
                   {/* Sponsor Footer Text */}
