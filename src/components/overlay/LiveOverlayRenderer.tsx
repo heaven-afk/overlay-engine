@@ -54,8 +54,8 @@ export function LiveOverlayRenderer({ liveState, loading = false }: LiveOverlayR
   useEffect(() => {
     function handleResize() {
       const isMgl = template?.templateType === 'mgl_yt_livestanding';
-      const targetW = isMgl ? 713 : 1920;
-      const targetH = isMgl ? 2048 : 1080;
+      const targetW = isMgl ? 434 : 1920;
+      const targetH = isMgl ? 724 : 1080;
       const s = Math.min(window.innerWidth / targetW, window.innerHeight / targetH);
       setScale(s);
     }
@@ -111,8 +111,8 @@ export function LiveOverlayRenderer({ liveState, loading = false }: LiveOverlayR
   }
 
   const isMgl = template.templateType === 'mgl_yt_livestanding';
-  const width = isMgl ? 713 : 1920;
-  const height = isMgl ? 2048 : 1080;
+  const width = isMgl ? 434 : 1920;
+  const height = isMgl ? 724 : 1080;
 
   return (
     <>

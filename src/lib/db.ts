@@ -32,7 +32,7 @@ export type TemplateType =
   | 'team_roster_kills'// NEW: Team Roster Kill Cards Graphic
   | 'flexible_top5'    // NEW: Flexible Top 5 Graphic (Paginated Standings)
   | 'pmnc_top15_standings' // NEW: Esports Top 15 Standings (PMNC Style)
-  | 'mgl_yt_livestanding'  // Vertical YT Standing (713x2048 Vertical Banner — global, event-agnostic)
+  | 'mgl_yt_livestanding'  // Vertical YT Standing (434x724 Vertical Banner — global, event-agnostic)
   | 'match_summary';   // NEW: Match Summary Graphic (Lobby / Match Scope)
 
 export type ColorTheme = 'dark' | 'light' | 'custom';

@@ -94,8 +94,8 @@ function InlineRender({
   const Component = template ? templateComponentMap[template.templateType] : null;
   const isEmpty = !template;
   const isMgl = template?.templateType === 'mgl_yt_livestanding';
-  const targetW = isMgl ? 713 : 1920;
-  const targetH = isMgl ? 2048 : 1080;
+  const targetW = isMgl ? 434 : 1920;
+  const targetH = isMgl ? 724 : 1080;
   const fitScale = isMgl ? Math.min(width / targetW, height / targetH) : scale;
   const offsetX = isMgl ? Math.max(0, Math.round((width - targetW * fitScale) / 2)) : 0;
 

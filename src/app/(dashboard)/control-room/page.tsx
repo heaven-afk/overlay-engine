@@ -45,6 +45,11 @@ import {
   Sliders,
   Send,
   Sparkles,
+  Eye,
+  Maximize2,
+  X,
+  Layers,
+  MonitorPlay,
 } from 'lucide-react';
 
 // Mini preview dimensions
@@ -52,23 +57,34 @@ const CARD_PREVIEW_W = 340;
 const CARD_PREVIEW_H = Math.round(CARD_PREVIEW_W * (1080 / 1920));
 const CARD_PREVIEW_SCALE = CARD_PREVIEW_W / 1920;
 
-// ── Mini inline template renderer ─────────────────────────────────────────────
+// ── Mini inline template renderer with Preview / Program support ─────────────
 function MiniRender({
   template,
   fields,
   isLive = false,
+  mode = 'preview',
+  onExpand,
+  emptyMessage,
 }: {
   template: OverlayTemplate | null;
   fields: Record<string, any>;
   isLive?: boolean;
+  mode?: 'preview' | 'program';
+  onExpand?: () => void;
+  emptyMessage?: string;
 }) {
   const Component = template ? templateComponentMap[template.templateType] : null;
   const isMgl = template?.templateType === 'mgl_yt_livestanding';
-  const targetW = isMgl ? 713 : 1920;
-  const targetH = isMgl ? 2048 : 1080;
+  const targetW = isMgl ? 434 : 1920;
+  const targetH = isMgl ? 724 : 1080;
   const fitScale = isMgl
     ? Math.min(CARD_PREVIEW_W / targetW, CARD_PREVIEW_H / targetH)
     : CARD_PREVIEW_SCALE;
+
+  const isProgramMode = mode === 'program' || isLive;
+  const borderColor = isProgramMode ? 'rgba(239, 68, 68, 0.6)' : 'rgba(168, 85, 247, 0.5)';
+  const badgeColor = isProgramMode ? '#f87171' : '#c084fc';
+  const badgeBg = isProgramMode ? 'rgba(239, 68, 68, 0.2)' : 'rgba(168, 85, 247, 0.2)';
 
   if (!template || !Component) {
     return (
@@ -86,10 +102,11 @@ function MiniRender({
           gap: '8px',
           color: 'var(--text-muted)',
           fontSize: '0.75rem',
+          position: 'relative',
         }}
       >
         <Tv style={{ width: '20px', height: '20px', opacity: 0.4 }} />
-        <span>Off Air / No Template</span>
+        <span>{emptyMessage || (isProgramMode ? 'Off Air / No Template' : 'Select a template to preview')}</span>
       </div>
     );
   }
@@ -100,17 +117,77 @@ function MiniRender({
         width: `${CARD_PREVIEW_W}px`,
         height: `${CARD_PREVIEW_H}px`,
         backgroundColor: '#000000',
-        border: isLive ? '1.5px solid rgba(239, 68, 68, 0.6)' : '1px solid rgba(255, 255, 255, 0.1)',
+        border: `1.5px solid ${borderColor}`,
         borderRadius: '6px',
         position: 'relative',
         overflow: 'hidden',
-        boxShadow: isLive ? '0 0 12px rgba(239, 68, 68, 0.2)' : 'none',
+        boxShadow: isProgramMode ? '0 0 12px rgba(239, 68, 68, 0.2)' : '0 0 12px rgba(168, 85, 247, 0.15)',
       }}
     >
       <style>{`
         ${googleFontsLink(template.styleConfig)}
         ${cssVarsForTheme(template.styleConfig)}
       `}</style>
+
+      {/* Screen Mode Indicator Badge */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '6px',
+          left: '6px',
+          zIndex: 10,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: '2px 6px',
+          borderRadius: '4px',
+          backgroundColor: badgeBg,
+          backdropFilter: 'blur(4px)',
+          border: `1px solid ${borderColor}`,
+          color: badgeColor,
+          fontSize: '0.62rem',
+          fontWeight: 800,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+          pointerEvents: 'none',
+        }}
+      >
+        <span
+          style={{
+            width: '5px',
+            height: '5px',
+            borderRadius: '50%',
+            backgroundColor: isProgramMode ? '#ef4444' : '#a855f7',
+          }}
+        />
+        {isProgramMode ? 'Live Program' : 'Staged Preview'}
+      </div>
+
+      {/* Expand Fullscreen Button */}
+      {onExpand && (
+        <button
+          onClick={onExpand}
+          style={{
+            position: 'absolute',
+            top: '6px',
+            right: '6px',
+            zIndex: 10,
+            background: 'rgba(0, 0, 0, 0.75)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '4px',
+            padding: '4px',
+            cursor: 'pointer',
+            color: '#FFFFFF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 0.15s ease',
+          }}
+          title="Open expanded preview"
+        >
+          <Maximize2 style={{ width: '12px', height: '12px' }} />
+        </button>
+      )}
 
       <div
         style={{
@@ -122,6 +199,248 @@ function MiniRender({
         }}
       >
         <Component data={fields} styleConfig={template.styleConfig} isPreview={true} />
+      </div>
+    </div>
+  );
+}
+
+// ── High-Definition Fullscreen / Expanded Preview Modal ──────────────────────
+function HDPreviewModal({
+  isOpen,
+  onClose,
+  title,
+  template,
+  fields,
+  isLive = false,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  template: OverlayTemplate | null;
+  fields: Record<string, any>;
+  isLive?: boolean;
+}) {
+  const [bgMode, setBgMode] = useState<'dark' | 'checker' | 'transparent'>('dark');
+  const [containerRef, setContainerRef] = useState<HTMLDivElement | null>(null);
+  const [scale, setScale] = useState(0.6);
+
+  const isMgl = template?.templateType === 'mgl_yt_livestanding';
+  const targetW = isMgl ? 434 : 1920;
+  const targetH = isMgl ? 724 : 1080;
+
+  useEffect(() => {
+    if (!isOpen || !containerRef) return;
+    function update() {
+      if (!containerRef) return;
+      const availW = Math.max(200, containerRef.clientWidth - 48);
+      const availH = Math.max(200, containerRef.clientHeight - 48);
+      const s = Math.min(availW / targetW, availH / targetH);
+      setScale(Math.min(1, Math.max(0.15, s)));
+    }
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [isOpen, containerRef, targetW, targetH]);
+
+  if (!isOpen) return null;
+
+  const Component = template ? templateComponentMap[template.templateType] : null;
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(3, 4, 8, 0.9)',
+        backdropFilter: 'blur(10px)',
+        display: 'flex',
+        flexDirection: 'column',
+        zIndex: 110,
+        overflow: 'hidden',
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0.85rem 1.5rem',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          backgroundColor: 'rgba(12, 14, 22, 0.95)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '3px 10px',
+              borderRadius: '20px',
+              backgroundColor: isLive ? 'rgba(239, 68, 68, 0.15)' : 'rgba(168, 85, 247, 0.15)',
+              border: isLive ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(168, 85, 247, 0.4)',
+              color: isLive ? '#f87171' : '#c084fc',
+              fontSize: '0.72rem',
+              fontWeight: 800,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+            }}
+          >
+            <span
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: isLive ? '#ef4444' : '#a855f7',
+                boxShadow: `0 0 6px ${isLive ? '#ef4444' : '#a855f7'}`,
+              }}
+            />
+            {isLive ? 'PROGRAM / LIVE OUTPUT' : 'PREVIEW / STAGED DRAFT'}
+          </div>
+
+          <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>
+            {title}
+          </h2>
+
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            ({template?.name || 'No Template'} · {targetW}×{targetH} · {Math.round(scale * 100)}% scale)
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Background switcher */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '6px',
+              padding: '2px',
+              fontSize: '0.72rem',
+            }}
+          >
+            <button
+              onClick={() => setBgMode('dark')}
+              style={{
+                padding: '3px 8px',
+                borderRadius: '4px',
+                border: 'none',
+                backgroundColor: bgMode === 'dark' ? 'rgba(255,255,255,0.15)' : 'transparent',
+                color: bgMode === 'dark' ? '#FFFFFF' : 'var(--text-muted)',
+                cursor: 'pointer',
+              }}
+            >
+              Dark
+            </button>
+            <button
+              onClick={() => setBgMode('checker')}
+              style={{
+                padding: '3px 8px',
+                borderRadius: '4px',
+                border: 'none',
+                backgroundColor: bgMode === 'checker' ? 'rgba(255,255,255,0.15)' : 'transparent',
+                color: bgMode === 'checker' ? '#FFFFFF' : 'var(--text-muted)',
+                cursor: 'pointer',
+              }}
+            >
+              Grid
+            </button>
+            <button
+              onClick={() => setBgMode('transparent')}
+              style={{
+                padding: '3px 8px',
+                borderRadius: '4px',
+                border: 'none',
+                backgroundColor: bgMode === 'transparent' ? 'rgba(255,255,255,0.15)' : 'transparent',
+                color: bgMode === 'transparent' ? '#FFFFFF' : 'var(--text-muted)',
+                cursor: 'pointer',
+              }}
+            >
+              Transparent
+            </button>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="btn btn-secondary btn-sm"
+            style={{ padding: '6px', display: 'flex', alignItems: 'center', borderRadius: '6px' }}
+            title="Close preview"
+          >
+            <X style={{ width: '18px', height: '18px' }} />
+          </button>
+        </div>
+      </div>
+
+      {/* Stage */}
+      <div
+        ref={setContainerRef}
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+          backgroundColor: bgMode === 'dark'
+            ? '#050609'
+            : bgMode === 'checker'
+              ? '#141620'
+              : 'transparent',
+          backgroundImage: bgMode === 'checker'
+            ? 'linear-gradient(45deg, #1c1f2e 25%, transparent 25%), linear-gradient(-45deg, #1c1f2e 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #1c1f2e 75%), linear-gradient(-45deg, transparent 75%, #1c1f2e 75%)'
+            : 'none',
+          backgroundSize: bgMode === 'checker' ? '24px 24px' : 'auto',
+          backgroundPosition: bgMode === 'checker' ? '0 0, 0 12px, 12px -12px, -12px 0px' : 'auto',
+        }}
+      >
+        {!template || !Component ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '12px',
+              color: 'var(--text-muted)',
+            }}
+          >
+            <Tv style={{ width: '48px', height: '48px', opacity: 0.3 }} />
+            <span style={{ fontSize: '0.9rem' }}>No template active to preview</span>
+          </div>
+        ) : (
+          <div
+            style={{
+              width: `${Math.round(targetW * scale)}px`,
+              height: `${Math.round(targetH * scale)}px`,
+              position: 'relative',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0,0,0,0.5)',
+              border: isLive ? '2px solid rgba(239, 68, 68, 0.6)' : '2px solid rgba(168, 85, 247, 0.6)',
+              borderRadius: '8px',
+              overflow: 'hidden',
+              flexShrink: 0,
+            }}
+          >
+            <div
+              style={{
+                width: `${targetW}px`,
+                height: `${targetH}px`,
+                transform: `scale(${scale})`,
+                transformOrigin: 'top left',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                pointerEvents: 'none',
+              }}
+            >
+              <style>{`
+                ${googleFontsLink(template.styleConfig)}
+                ${cssVarsForTheme(template.styleConfig)}
+              `}</style>
+              <Component data={fields} styleConfig={template.styleConfig} isPreview={true} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -145,11 +464,24 @@ export default function ControlRoomPage() {
   const [masterTemplateId, setMasterTemplateId] = useState<string>('');
   const [masterFields, setMasterFields] = useState<Record<string, any>>({});
   const [masterPushing, setMasterPushing] = useState(false);
+  const [masterPreviewMode, setMasterPreviewMode] = useState<'preview' | 'program'>('preview');
 
   // Per-Source Local Edit State (when Broadcast All is OFF)
   const [localSourceEdits, setLocalSourceEdits] = useState<
     Record<string, { templateId: string; fields: Record<string, any>; pushing?: boolean; copied?: boolean }>
   >({});
+
+  // Per-Source Preview vs Program mode switcher state
+  const [sourcePreviewModes, setSourcePreviewModes] = useState<Record<string, 'preview' | 'program'>>({});
+
+  // Fullscreen / Expanded HD Preview Modal State
+  const [previewModalData, setPreviewModalData] = useState<{
+    isOpen: boolean;
+    title: string;
+    template: OverlayTemplate | null;
+    fields: Record<string, any>;
+    isLive?: boolean;
+  } | null>(null);
 
   // Editing Name State
   const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
@@ -298,7 +630,7 @@ export default function ControlRoomPage() {
     return map;
   }, [templates]);
 
-  function getTemplateObj(templateId: string | null): OverlayTemplate | null {
+  function getTemplateObj(templateId: string | null | undefined): OverlayTemplate | null {
     if (!templateId) return null;
     return getBuiltInTemplate(templateId) || templateLookup.get(templateId) || null;
   }
@@ -539,7 +871,7 @@ export default function ControlRoomPage() {
               </span>
             </div>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Master multi-source live overlay orchestration
+              Master multi-source live overlay orchestration with live preview mode
             </span>
           </div>
         </div>
@@ -697,12 +1029,104 @@ export default function ControlRoomPage() {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '1.5rem' }}>
-              {/* Master Preview Screen */}
+              {/* Master Preview Screen with Mode Switcher */}
               <div>
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#fca5a5', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
-                  Master Live Output Preview
-                </span>
-                <MiniRender template={masterTemplateObj} fields={masterFields} isLive={true} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', width: `${CARD_PREVIEW_W}px` }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      backgroundColor: 'rgba(0,0,0,0.5)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: '6px',
+                      padding: '2px',
+                      gap: '2px',
+                    }}
+                  >
+                    <button
+                      onClick={() => setMasterPreviewMode('preview')}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        border: 'none',
+                        backgroundColor: masterPreviewMode === 'preview' ? 'rgba(168, 85, 247, 0.25)' : 'transparent',
+                        color: masterPreviewMode === 'preview' ? '#c084fc' : 'var(--text-muted)',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Eye style={{ width: '12px', height: '12px' }} />
+                      <span>Preview (Draft)</span>
+                    </button>
+                    <button
+                      onClick={() => setMasterPreviewMode('program')}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        border: 'none',
+                        backgroundColor: masterPreviewMode === 'program' ? 'rgba(239, 68, 68, 0.25)' : 'transparent',
+                        color: masterPreviewMode === 'program' ? '#f87171' : 'var(--text-muted)',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
+                      <span>Program (Live All)</span>
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setPreviewModalData({
+                        isOpen: true,
+                        title: `Master Controller - ${masterPreviewMode === 'preview' ? 'Staged Preview' : 'Live Program Output'}`,
+                        template: masterTemplateObj,
+                        fields: masterFields,
+                        isLive: masterPreviewMode === 'program',
+                      });
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#fca5a5',
+                      cursor: 'pointer',
+                      fontSize: '0.7rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                    }}
+                    title="Expand full HD preview"
+                  >
+                    <Maximize2 style={{ width: '12px', height: '12px' }} />
+                    <span>Expand</span>
+                  </button>
+                </div>
+
+                <MiniRender
+                  template={masterTemplateObj}
+                  fields={masterFields}
+                  isLive={masterPreviewMode === 'program'}
+                  mode={masterPreviewMode}
+                  onExpand={() => {
+                    setPreviewModalData({
+                      isOpen: true,
+                      title: `Master Controller - ${masterPreviewMode === 'preview' ? 'Staged Preview' : 'Live Program Output'}`,
+                      template: masterTemplateObj,
+                      fields: masterFields,
+                      isLive: masterPreviewMode === 'program',
+                    });
+                  }}
+                />
               </div>
 
               {/* Master Config & Field Editor */}
@@ -793,8 +1217,13 @@ export default function ControlRoomPage() {
                   fields: source.liveState?.fields || {},
                 };
                 const editTemplateObj = getTemplateObj(localEdit.templateId);
+                const currentMode = sourcePreviewModes[sourceId] || 'preview';
                 const isEditingName = editingSourceId === sourceId;
                 const renderUrl = `${origin}/control-render/${source.renderToken}`;
+
+                // Display template and fields based on selected mode
+                const displayTemplate = currentMode === 'preview' ? editTemplateObj : liveTemplateObj;
+                const displayFields = currentMode === 'preview' ? localEdit.fields : (source.liveState?.fields || {});
 
                 return (
                   <div
@@ -1002,12 +1431,112 @@ export default function ControlRoomPage() {
 
                     {/* Card Body: Live Preview & Editor */}
                     <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      {/* Live preview */}
+                      {/* Preview / Program Mode Switcher & Expand */}
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', width: `${CARD_PREVIEW_W}px` }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              backgroundColor: 'rgba(0,0,0,0.5)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '6px',
+                              padding: '2px',
+                              gap: '2px',
+                            }}
+                          >
+                            <button
+                              onClick={() => setSourcePreviewModes((prev) => ({ ...prev, [sourceId]: 'preview' }))}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                border: 'none',
+                                backgroundColor: currentMode === 'preview' ? 'rgba(168, 85, 247, 0.25)' : 'transparent',
+                                color: currentMode === 'preview' ? '#c084fc' : 'var(--text-muted)',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <Eye style={{ width: '12px', height: '12px' }} />
+                              <span>Preview (Draft)</span>
+                            </button>
+                            <button
+                              onClick={() => setSourcePreviewModes((prev) => ({ ...prev, [sourceId]: 'program' }))}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                border: 'none',
+                                backgroundColor: currentMode === 'program' ? 'rgba(239, 68, 68, 0.25)' : 'transparent',
+                                color: currentMode === 'program' ? '#f87171' : 'var(--text-muted)',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: '6px',
+                                  height: '6px',
+                                  borderRadius: '50%',
+                                  backgroundColor: source.liveState?.templateId ? '#ef4444' : 'var(--text-muted)',
+                                }}
+                              />
+                              <span>Program (Live)</span>
+                            </button>
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              setPreviewModalData({
+                                isOpen: true,
+                                title: `${source.name} - ${currentMode === 'preview' ? 'Staged Preview' : 'Live Program Output'}`,
+                                template: displayTemplate,
+                                fields: displayFields,
+                                isLive: currentMode === 'program',
+                              });
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--text-muted)',
+                              cursor: 'pointer',
+                              fontSize: '0.7rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                            }}
+                            title="Expand full HD preview"
+                          >
+                            <Maximize2 style={{ width: '12px', height: '12px' }} />
+                            <span>Expand</span>
+                          </button>
+                        </div>
+
+                        {/* Mini Screen Render */}
                         <MiniRender
-                          template={liveTemplateObj}
-                          fields={source.liveState?.fields || {}}
-                          isLive={Boolean(source.liveState?.templateId)}
+                          template={displayTemplate}
+                          fields={displayFields}
+                          isLive={currentMode === 'program'}
+                          mode={currentMode}
+                          emptyMessage={currentMode === 'preview' ? 'Select a template below to preview' : 'Off Air / No Active Live Template'}
+                          onExpand={() => {
+                            setPreviewModalData({
+                              isOpen: true,
+                              title: `${source.name} - ${currentMode === 'preview' ? 'Staged Preview' : 'Live Program Output'}`,
+                              template: displayTemplate,
+                              fields: displayFields,
+                              isLive: currentMode === 'program',
+                            });
+                          }}
                         />
                       </div>
 
@@ -1115,6 +1644,18 @@ export default function ControlRoomPage() {
           )}
         </div>
       </div>
+
+      {/* ── HD FULLSCREEN / EXPANDED PREVIEW MODAL ─────────────────────────── */}
+      {previewModalData && (
+        <HDPreviewModal
+          isOpen={previewModalData.isOpen}
+          onClose={() => setPreviewModalData(null)}
+          title={previewModalData.title}
+          template={previewModalData.template}
+          fields={previewModalData.fields}
+          isLive={previewModalData.isLive}
+        />
+      )}
 
       {/* ── DELETE SOURCE CONFIRMATION MODAL ──────────────────────────────── */}
       {deletingSource && (

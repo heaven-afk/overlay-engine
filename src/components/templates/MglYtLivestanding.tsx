@@ -31,7 +31,7 @@ function hexToRgba(hex: string, alpha: number): string {
 function TeamLogo({
   logoUrl,
   name,
-  size = 84,
+  size = 32,
   accent,
 }: {
   logoUrl?: string | null;
@@ -41,8 +41,8 @@ function TeamLogo({
 }) {
   const isHttp = logoUrl && (logoUrl.startsWith('http://') || logoUrl.startsWith('https://'));
   const initials = (name || '??').replace(/[^a-zA-Z0-9]/g, '').substring(0, 2).toUpperCase() || 'TM';
-  const fontSize = Math.round(size * 0.36);
-  const radius = '10px';
+  const fontSize = Math.round(size * 0.38);
+  const radius = '6px';
 
   if (isHttp) {
     const canvaUrl = getCanvaEmbedUrl(logoUrl);
@@ -75,7 +75,7 @@ function TeamLogo({
           height: `${size}px`,
           objectFit: 'contain',
           borderRadius: radius,
-          padding: '4px',
+          padding: '2px',
           boxSizing: 'border-box',
           flexShrink: 0,
           display: 'block',
@@ -101,7 +101,7 @@ function TeamLogo({
         fontFamily: 'var(--heading-font, "Orbitron", sans-serif)',
         flexShrink: 0,
         letterSpacing: '0.02em',
-        textShadow: `0 0 10px ${hexToRgba(accent, 0.5)}`,
+        textShadow: `0 0 6px ${hexToRgba(accent, 0.5)}`,
       }}
     >
       {initials}
@@ -126,8 +126,8 @@ function RankBadge({
   return (
     <div
       style={{
-        width: '44px',
-        height: '108px',
+        width: '26px',
+        height: '42px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -137,11 +137,11 @@ function RankBadge({
       <span
         style={{
           fontFamily: 'var(--heading-font, "Orbitron", sans-serif)',
-          fontSize: isTop3 ? '28px' : '22px',
+          fontSize: isTop3 ? '15px' : '13px',
           fontWeight: 900,
           color: rankColor,
           letterSpacing: '-0.02em',
-          textShadow: isTop3 ? `0 0 12px ${rankColor}99` : 'none',
+          textShadow: isTop3 ? `0 0 8px ${rankColor}99` : 'none',
         }}
       >
         {rank}
@@ -247,8 +247,8 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
   const cardBg        = isLight
     ? 'linear-gradient(90deg, rgba(240,243,250,0.98) 0%, rgba(250,252,255,0.99) 50%, rgba(236,241,250,0.98) 100%)'
     : 'linear-gradient(90deg, rgba(14,18,27,0.96) 0%, rgba(20,25,38,0.94) 50%, rgba(13,17,26,0.96) 100%)';
-  const cardBorder    = `1.8px solid ${hexToRgba(accent, isLight ? 0.5 : 0.65)}`;
-  const cardShadow    = `0 4px 20px rgba(0,0,0,0.4), 0 0 16px ${hexToRgba(accent, 0.1)}`;
+  const cardBorder    = `1.2px solid ${hexToRgba(accent, isLight ? 0.5 : 0.65)}`;
+  const cardShadow    = `0 2px 10px rgba(0,0,0,0.4), 0 0 10px ${hexToRgba(accent, 0.08)}`;
   const headerAccent  = accent;
 
   // ── Footer logos ───────────────────────────────────────────────────────────
@@ -263,8 +263,8 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
   return (
     <div
       style={{
-        width: '713px',
-        height: '2048px',
+        width: '434px',
+        height: '724px',
         position: 'relative',
         overflow: 'hidden',
         boxSizing: 'border-box',
@@ -310,13 +310,13 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
             style={{
               position: 'absolute', inset: 0, opacity: 0.06,
               backgroundImage: `radial-gradient(${hexToRgba(accent, 1)} 1px, transparent 1px)`,
-              backgroundSize: '28px 28px',
+              backgroundSize: '20px 20px',
             }}
           />
           {/* Top accent glow */}
           <div
             style={{
-              position: 'absolute', top: 0, left: 0, right: 0, height: '420px',
+              position: 'absolute', top: 0, left: 0, right: 0, height: '220px',
               background: `radial-gradient(ellipse at 50% 0%, ${hexToRgba(accent, 0.12)} 0%, transparent 70%)`,
               pointerEvents: 'none',
             }}
@@ -335,8 +335,8 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
             style={{
               position: 'absolute', inset: 0, opacity: 0.055,
               backgroundImage: `radial-gradient(${hexToRgba(accent, 1)} 1px, transparent 1px), radial-gradient(${hexToRgba(accent, 1)} 1px, #040408 1px)`,
-              backgroundSize: '36px 36px',
-              backgroundPosition: '0 0, 18px 18px',
+              backgroundSize: '24px 24px',
+              backgroundPosition: '0 0, 12px 12px',
             }}
           />
           {/* Diagonal chrome streak */}
@@ -347,13 +347,13 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
               background: `linear-gradient(135deg, transparent 46%, ${hexToRgba(accent, 0.08)} 49%, ${hexToRgba(accent, 0.22)} 50%, ${hexToRgba(accent, 0.07)} 51%, transparent 54%)`,
               transform: 'rotate(-14deg)',
               pointerEvents: 'none',
-              filter: 'blur(4px)',
+              filter: 'blur(3px)',
             }}
           />
           {/* Top ambient glow */}
           <div
             style={{
-              position: 'absolute', top: 0, left: 0, right: 0, height: '420px',
+              position: 'absolute', top: 0, left: 0, right: 0, height: '220px',
               background: `radial-gradient(ellipse at 50% 0%, ${hexToRgba(accent, 0.14)} 0%, transparent 70%)`,
               pointerEvents: 'none',
             }}
@@ -362,10 +362,10 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
           <div
             style={{
               position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-              width: '600px', height: '500px',
+              width: '380px', height: '260px',
               borderRadius: '50%',
               background: `radial-gradient(circle, ${hexToRgba(accent, 0.08)} 0%, transparent 70%)`,
-              filter: 'blur(40px)',
+              filter: 'blur(30px)',
               pointerEvents: 'none',
             }}
           />
@@ -382,19 +382,16 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
           display: 'flex',
           flexDirection: 'column',
           boxSizing: 'border-box',
-          padding: '0 38px',
+          padding: '24px 18px 18px 18px',
         }}
       >
-        {/* TOP SPACER */}
-        <div style={{ height: '310px', flexShrink: 0 }} />
-
         {/* ─── HEADER ──────────────────────────────────────────────────────── */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'flex-start',
-            marginBottom: '30px',
+            marginBottom: '10px',
             width: '100%',
           }}
         >
@@ -404,28 +401,28 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '5px 16px',
-                borderRadius: '24px',
+                gap: '5px',
+                padding: '3px 10px',
+                borderRadius: '16px',
                 backgroundColor: hexToRgba(accent, 0.12),
                 border: `1px solid ${hexToRgba(accent, 0.4)}`,
-                marginBottom: '12px',
-                fontSize: '14px',
+                marginBottom: '6px',
+                fontSize: '10px',
                 fontWeight: 700,
-                letterSpacing: '0.12em',
+                letterSpacing: '0.1em',
                 color: isLight ? accent : headerAccent,
                 textTransform: 'uppercase',
                 fontFamily: 'var(--heading-font, "Orbitron", sans-serif)',
-                boxShadow: `0 0 14px ${hexToRgba(accent, 0.2)}`,
+                boxShadow: `0 0 8px ${hexToRgba(accent, 0.2)}`,
               }}
             >
               <span
                 style={{
-                  width: '7px',
-                  height: '7px',
+                  width: '5px',
+                  height: '5px',
                   borderRadius: '50%',
                   backgroundColor: accent,
-                  boxShadow: `0 0 8px ${accent}`,
+                  boxShadow: `0 0 6px ${accent}`,
                 }}
               />
               {subheaderText}
@@ -436,15 +433,15 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
           <h1
             style={{
               margin: 0,
-              fontSize: '52px',
+              fontSize: '24px',
               fontWeight: 900,
               fontFamily: 'var(--heading-font, "Orbitron", "Rajdhani", sans-serif)',
-              letterSpacing: '0.1em',
+              letterSpacing: '0.08em',
               textTransform: 'uppercase',
               color: isLight ? '#111122' : '#FFFFFF',
               textShadow: isLight
                 ? 'none'
-                : `0 0 20px ${hexToRgba(accent, 0.4)}, 0 4px 12px rgba(0,0,0,0.9)`,
+                : `0 0 14px ${hexToRgba(accent, 0.4)}, 0 2px 8px rgba(0,0,0,0.9)`,
               lineHeight: 1.1,
             }}
           >
@@ -454,12 +451,12 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
           {/* Accent underline bar */}
           <div
             style={{
-              marginTop: '10px',
-              width: '80px',
-              height: '4px',
+              marginTop: '5px',
+              width: '44px',
+              height: '3px',
               borderRadius: '2px',
               background: `linear-gradient(90deg, ${accent}, ${hexToRgba(accent, 0.2)})`,
-              boxShadow: `0 0 10px ${hexToRgba(accent, 0.5)}`,
+              boxShadow: `0 0 6px ${hexToRgba(accent, 0.5)}`,
             }}
           />
         </div>
@@ -469,36 +466,36 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
           style={{
             display: 'flex',
             alignItems: 'center',
-            paddingLeft: '52px',
-            paddingRight: '8px',
-            marginBottom: '10px',
+            paddingLeft: '26px',
+            paddingRight: '6px',
+            marginBottom: '6px',
             width: '100%',
             boxSizing: 'border-box',
           }}
         >
-          <div style={{ width: '108px', flexShrink: 0 }} />
+          <div style={{ width: '42px', flexShrink: 0 }} />
           <div
             style={{
               flex: 1,
-              fontSize: '11px',
+              fontSize: '9px',
               fontWeight: 700,
-              letterSpacing: '0.16em',
+              letterSpacing: '0.14em',
               textTransform: 'uppercase',
               color: textMuted,
               fontFamily: 'var(--heading-font, "Orbitron", sans-serif)',
-              paddingLeft: '20px',
+              paddingLeft: '10px',
             }}
           >
             TEAM
           </div>
           <div
             style={{
-              width: '96px',
+              width: '56px',
               flexShrink: 0,
               textAlign: 'center',
-              fontSize: '11px',
+              fontSize: '9px',
               fontWeight: 700,
-              letterSpacing: '0.16em',
+              letterSpacing: '0.14em',
               textTransform: 'uppercase',
               color: textMuted,
               fontFamily: 'var(--heading-font, "Orbitron", sans-serif)',
@@ -513,7 +510,7 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
           style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px',
+            gap: '5px',
             width: '100%',
           }}
         >
@@ -523,10 +520,10 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
 
             // First row: stronger accent glow. Others: subtle.
             const rowCardBorder = isFirst
-              ? `2px solid ${hexToRgba(accent, 0.95)}`
-              : `1.8px solid ${hexToRgba(accent, isLight ? 0.45 : 0.6)}`;
+              ? `1.5px solid ${hexToRgba(accent, 0.95)}`
+              : `1.2px solid ${hexToRgba(accent, isLight ? 0.45 : 0.6)}`;
             const rowCardShadow = isFirst
-              ? `${cardShadow}, inset 0 0 14px ${hexToRgba(accent, 0.12)}`
+              ? `${cardShadow}, inset 0 0 10px ${hexToRgba(accent, 0.12)}`
               : cardShadow;
 
             // First-row special card background with subtle accent tint
@@ -544,7 +541,7 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
                   alignItems: 'center',
                   gap: '0px',
                   width: '100%',
-                  height: '108px',
+                  height: '42px',
                   boxSizing: 'border-box',
                 }}
               >
@@ -554,9 +551,9 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
                 {/* ── Logo Box ── */}
                 <div
                   style={{
-                    width: '108px',
-                    height: '108px',
-                    borderRadius: '16px 0 0 16px',
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '8px 0 0 8px',
                     border: rowCardBorder,
                     borderRight: 'none',
                     boxShadow: rowCardShadow,
@@ -565,7 +562,7 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
                       : isFirst
                         ? `linear-gradient(135deg, ${hexToRgba(accent, 0.15)} 0%, rgba(16,20,32,0.97) 100%)`
                         : 'rgba(14,18,28,0.96)',
-                    backdropFilter: 'blur(12px)',
+                    backdropFilter: 'blur(8px)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -574,23 +571,23 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
                     overflow: 'hidden',
                   }}
                 >
-                  <TeamLogo logoUrl={team.logoUrl} name={team.teamName} size={84} accent={accent} />
+                  <TeamLogo logoUrl={team.logoUrl} name={team.teamName} size={32} accent={accent} />
                 </div>
 
                 {/* ── Team Name Box ── */}
                 <div
                   style={{
                     flex: 1,
-                    height: '108px',
+                    height: '42px',
                     border: rowCardBorder,
                     borderLeft: 'none',
                     borderRight: 'none',
                     boxShadow: rowCardShadow,
                     background: rowCardBg,
-                    backdropFilter: 'blur(12px)',
+                    backdropFilter: 'blur(8px)',
                     display: 'flex',
                     alignItems: 'center',
-                    padding: '0 24px',
+                    padding: '0 10px',
                     boxSizing: 'border-box',
                     overflow: 'hidden',
                     position: 'relative',
@@ -608,11 +605,11 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
                   {isFirst && (
                     <div
                       style={{
-                        position: 'absolute', left: 0, top: '16px', bottom: '16px',
-                        width: '3px',
+                        position: 'absolute', left: 0, top: '6px', bottom: '6px',
+                        width: '2.5px',
                         borderRadius: '0 2px 2px 0',
                         background: accent,
-                        boxShadow: `0 0 8px ${hexToRgba(accent, 0.7)}`,
+                        boxShadow: `0 0 6px ${hexToRgba(accent, 0.7)}`,
                       }}
                     />
                   )}
@@ -620,12 +617,12 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
                   <span
                     style={{
                       fontFamily: 'var(--heading-font, "Orbitron", "Rajdhani", sans-serif)',
-                      fontSize: '28px',
-                      fontWeight: 900,
+                      fontSize: '13px',
+                      fontWeight: 800,
                       color: isFirst
                         ? isLight ? '#0F0F22' : '#FFFFFF'
                         : textPrimary,
-                      letterSpacing: '0.05em',
+                      letterSpacing: '0.04em',
                       textTransform: 'uppercase',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
@@ -633,8 +630,8 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
                       textShadow: isLight
                         ? 'none'
                         : isFirst
-                          ? `0 0 16px ${hexToRgba(accent, 0.4)}`
-                          : '0 2px 8px rgba(0,0,0,0.8)',
+                          ? `0 0 10px ${hexToRgba(accent, 0.4)}`
+                          : '0 1px 4px rgba(0,0,0,0.8)',
                     }}
                   >
                     {team.teamName}
@@ -644,9 +641,9 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
                 {/* ── Points Box ── */}
                 <div
                   style={{
-                    width: '96px',
-                    height: '108px',
-                    borderRadius: '0 16px 16px 0',
+                    width: '56px',
+                    height: '42px',
+                    borderRadius: '0 8px 8px 0',
                     border: rowCardBorder,
                     borderLeft: 'none',
                     boxShadow: rowCardShadow,
@@ -657,7 +654,7 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
                       : isLight
                         ? 'rgba(240,243,252,0.98)'
                         : 'rgba(14,18,30,0.96)',
-                    backdropFilter: 'blur(12px)',
+                    backdropFilter: 'blur(8px)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -668,17 +665,17 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
                   <span
                     style={{
                       fontFamily: 'var(--heading-font, "Orbitron", "Rajdhani", sans-serif)',
-                      fontSize: '38px',
+                      fontSize: '18px',
                       fontWeight: 900,
                       color: isTop3
                         ? accent
                         : isLight ? '#111122' : '#FFFFFF',
-                      letterSpacing: '0.02em',
+                      letterSpacing: '0.01em',
                       textShadow: isTop3
-                        ? `0 0 16px ${hexToRgba(accent, 0.6)}`
+                        ? `0 0 10px ${hexToRgba(accent, 0.6)}`
                         : isLight
                           ? 'none'
-                          : '0 2px 10px rgba(0,0,0,0.8)',
+                          : '0 1px 6px rgba(0,0,0,0.8)',
                     }}
                   >
                     {team.pts}
@@ -695,9 +692,9 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
             position: 'relative',
             width: '100%',
             height: '2px',
-            margin: '36px 0 32px 0',
+            margin: '14px 0 10px 0',
             background: `linear-gradient(90deg, transparent 0%, ${hexToRgba(accent, 0.35)} 15%, ${hexToRgba(accent, 0.85)} 50%, ${hexToRgba(accent, 0.35)} 85%, transparent 100%)`,
-            boxShadow: `0 0 14px ${hexToRgba(accent, 0.5)}`,
+            boxShadow: `0 0 8px ${hexToRgba(accent, 0.5)}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -705,28 +702,24 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
         >
           <div
             style={{
-              width: '10px',
-              height: '10px',
+              width: '6px',
+              height: '6px',
               backgroundColor: accent,
               transform: 'rotate(45deg)',
-              boxShadow: `0 0 12px ${accent}`,
+              boxShadow: `0 0 8px ${accent}`,
             }}
           />
         </div>
 
         {/* ─── FOOTER LOGO ZONE ────────────────────────────────────────────── */}
-        {/*
-          Bottom zone: blank when no logos set.
-          Shows: [Main Logo] × [Extra Logo 1] × [Extra Logo 2]
-          Logos sourced from brandingLogoUrl and tournamentLogos[0..1].
-        */}
         <div
           style={{
             flex: 1,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            paddingBottom: '48px',
+            paddingBottom: '6px',
+            minHeight: '40px',
           }}
         >
           {hasAnyLogo && (
@@ -735,7 +728,7 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '28px',
+                gap: '14px',
                 flexWrap: 'nowrap',
               }}
             >
@@ -747,13 +740,13 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
                   referrerPolicy="no-referrer"
                   crossOrigin="anonymous"
                   style={{
-                    maxHeight: '130px',
-                    maxWidth: '220px',
+                    maxHeight: '46px',
+                    maxWidth: '90px',
                     objectFit: 'contain',
                     display: 'block',
                     filter: isLight
-                      ? 'drop-shadow(0 2px 12px rgba(0,0,0,0.2))'
-                      : 'drop-shadow(0 4px 16px rgba(0,0,0,0.7))',
+                      ? 'drop-shadow(0 1px 6px rgba(0,0,0,0.2))'
+                      : 'drop-shadow(0 2px 10px rgba(0,0,0,0.7))',
                   }}
                 />
               )}
@@ -762,7 +755,7 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
               {hasMainLogo && hasExtra1 && (
                 <span
                   style={{
-                    fontSize: '22px',
+                    fontSize: '14px',
                     fontWeight: 300,
                     color: hexToRgba(accent, 0.6),
                     fontFamily: 'sans-serif',
@@ -782,13 +775,13 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
                   referrerPolicy="no-referrer"
                   crossOrigin="anonymous"
                   style={{
-                    maxHeight: '100px',
-                    maxWidth: '180px',
+                    maxHeight: '38px',
+                    maxWidth: '75px',
                     objectFit: 'contain',
                     display: 'block',
                     filter: isLight
-                      ? 'drop-shadow(0 2px 10px rgba(0,0,0,0.15))'
-                      : 'drop-shadow(0 4px 14px rgba(0,0,0,0.6))',
+                      ? 'drop-shadow(0 1px 5px rgba(0,0,0,0.15))'
+                      : 'drop-shadow(0 2px 8px rgba(0,0,0,0.6))',
                   }}
                 />
               )}
@@ -797,7 +790,7 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
               {hasExtra1 && hasExtra2 && (
                 <span
                   style={{
-                    fontSize: '22px',
+                    fontSize: '14px',
                     fontWeight: 300,
                     color: hexToRgba(accent, 0.6),
                     fontFamily: 'sans-serif',
@@ -817,13 +810,13 @@ export const MglYtLivestanding: React.FC<MglYtLivestandingProps> = ({
                   referrerPolicy="no-referrer"
                   crossOrigin="anonymous"
                   style={{
-                    maxHeight: '100px',
-                    maxWidth: '180px',
+                    maxHeight: '38px',
+                    maxWidth: '75px',
                     objectFit: 'contain',
                     display: 'block',
                     filter: isLight
-                      ? 'drop-shadow(0 2px 10px rgba(0,0,0,0.15))'
-                      : 'drop-shadow(0 4px 14px rgba(0,0,0,0.6))',
+                      ? 'drop-shadow(0 1px 5px rgba(0,0,0,0.15))'
+                      : 'drop-shadow(0 2px 8px rgba(0,0,0,0.6))',
                   }}
                 />
               )}

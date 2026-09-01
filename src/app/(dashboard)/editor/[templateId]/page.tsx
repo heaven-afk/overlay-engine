@@ -316,14 +316,14 @@ export default function TemplateBuilderPage({ params }: PageProps) {
 
     const updateScale = () => {
       const isMgl = templateType === 'mgl_yt_livestanding';
-      const targetW = isMgl ? 713 : 1920;
-      const targetH = isMgl ? 2048 : 1080;
+      const targetW = isMgl ? 434 : 1920;
+      const targetH = isMgl ? 724 : 1080;
       const availW = Math.max(200, el.clientWidth - 40);
       const availH = Math.max(200, el.clientHeight - 100);
       const scaleX = availW / targetW;
       const scaleY = availH / targetH;
       const fitScale = Math.min(scaleX, scaleY);
-      setPreviewScale(Math.max(0.15, Math.min(isMgl ? 0.45 : 0.65, fitScale)));
+      setPreviewScale(Math.max(0.15, Math.min(isMgl ? 0.95 : 0.65, fitScale)));
     };
 
     updateScale();
@@ -1021,8 +1021,8 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       canvasEl.style.transform = 'scale(1)';
       
       const isMgl = templateType === 'mgl_yt_livestanding';
-      const targetW = isMgl ? 713 : 1920;
-      const targetH = isMgl ? 2048 : 1080;
+      const targetW = isMgl ? 434 : 1920;
+      const targetH = isMgl ? 724 : 1080;
 
       const screenshot = await html2canvas(canvasEl, {
         backgroundColor: null, // transparent
@@ -1212,7 +1212,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                 >
                   <optgroup label="Broadcast Data Templates">
                     <option value="top_standings">Top Standings Table</option>
-                    <option value="mgl_yt_livestanding">Vertical YT Standing (713x2048 Banner)</option>
+                    <option value="mgl_yt_livestanding">Vertical YT Standing (434x724 Banner)</option>
                     <option value="pmnc_top15_standings">Esports Top 15 Standings (PMNC Style)</option>
                     <option value="overall_rankings_dual_column">Overall Rankings (Dual Column)</option>
                     <option value="top_5_overall">Top 5 Overall Table</option>
@@ -3459,8 +3459,8 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           {/* Graphic scaled dynamically to fit 100% of container */}
           {(() => {
             const isMgl = templateType === 'mgl_yt_livestanding';
-            const targetW = isMgl ? 713 : 1920;
-            const targetH = isMgl ? 2048 : 1080;
+            const targetW = isMgl ? 434 : 1920;
+            const targetH = isMgl ? 724 : 1080;
             return (
               <div style={{
                 width: `${Math.round(targetW * previewScale)}px`,
@@ -3493,7 +3493,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           })()}
 
           <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-            Live preview fitted automatically ({Math.round(previewScale * 100)}%). Exported image or OBS renders at full {templateType === 'mgl_yt_livestanding' ? '713x2048' : '1920x1080'}.
+            Live preview fitted automatically ({Math.round(previewScale * 100)}%). Exported image or OBS renders at full {templateType === 'mgl_yt_livestanding' ? '434x724' : '1920x1080'}.
           </div>
 
         </div>

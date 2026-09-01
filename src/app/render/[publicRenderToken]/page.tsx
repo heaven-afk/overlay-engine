@@ -57,8 +57,8 @@ export default function PublicRenderPage({ params }: PageProps) {
   useEffect(() => {
     function handleResize() {
       const isMgl = template?.templateType === 'mgl_yt_livestanding';
-      const targetW = isMgl ? 713 : 1920;
-      const targetH = isMgl ? 2048 : 1080;
+      const targetW = isMgl ? 434 : 1920;
+      const targetH = isMgl ? 724 : 1080;
       const s = Math.min(window.innerWidth / targetW, window.innerHeight / targetH);
       setScale(s);
     }
@@ -164,8 +164,8 @@ export default function PublicRenderPage({ params }: PageProps) {
   const isVisible = template.templateType === 'custom_media' || (publishedFields && Object.keys(publishedFields).length > 0);
 
   const isMgl = template.templateType === 'mgl_yt_livestanding';
-  const targetW = isMgl ? 713 : 1920;
-  const targetH = isMgl ? 2048 : 1080;
+  const targetW = isMgl ? 434 : 1920;
+  const targetH = isMgl ? 724 : 1080;
 
   return (
     <div className="broadcast-stage-wrapper" style={{
