@@ -71,6 +71,9 @@ export async function getProfile(
   return callStatsApi('/api/overlay/profile', { type, id });
 }
 
+export { loadPlayerProfileData } from './playerProfileService';
+
+
 /**
  * Compare two teams or players head-to-head.
  * Optionally scoped to a single tournament; omit tournamentId for a career-wide comparison.

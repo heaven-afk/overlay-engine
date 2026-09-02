@@ -11,6 +11,7 @@ import {
   getGlobalRankings,
   getLobbyKills,
   getTeamKills,
+  loadPlayerProfileData,
 } from '@/lib/statsApi';
 
 interface FieldEditorProps {
@@ -666,13 +667,27 @@ function ProfileFetchEditor({
     if (!selectedId) { alert(`Please select a ${type} first.`); return; }
     try {
       setLoading(true);
-      const data = await getProfile(type, selectedId);
-      const merged = { ...data.profile, ...data.careerStats };
-      onFetched({
-        [type]: merged,
-        profile: merged,
-        currentData: data,
-      });
+      if (type === 'player') {
+        const result = await loadPlayerProfileData({
+          playerId: selectedId,
+          tournamentId: selectedTournamentId || undefined,
+        });
+        onFetched({
+          player: result.player,
+          profile: result.profile,
+          careerStats: result.careerStats,
+          scope: result.scope,
+          currentData: result,
+        });
+      } else {
+        const data = await getProfile(type, selectedId);
+        const merged = { ...data.profile, ...data.careerStats };
+        onFetched({
+          [type]: merged,
+          profile: merged,
+          currentData: data,
+        });
+      }
     } catch (err: any) {
       console.error('Profile fetch error:', err);
       alert(`Failed to load ${type} profile: ${err?.message || 'Unknown error'}`);

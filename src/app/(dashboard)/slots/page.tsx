@@ -18,6 +18,7 @@ import {
   getTeamKills,
   getLobbyKills,
   getMatchSummary,
+  loadPlayerProfileData,
 } from '@/lib/statsApi';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
@@ -83,7 +84,9 @@ interface H2HConfig {
   scopeTournamentId: string; // '' = career-wide
 }
 
-interface PlayerCardConfig {
+interface PlayerProfileSlotConfig {
+  scope: 'career' | 'tournament';
+  tournamentId: string;
   playerId: string;
 }
 
@@ -132,8 +135,10 @@ export default function SlotsDashboard() {
   const [matchSummaryConfig, setMatchSummaryConfig] = useState<Record<string, MatchSummarySlotConfig>>({});
   const [teamProfileConfig, setTeamProfileConfig] = useState<Record<string, TeamProfileConfig>>({});
   const [h2hConfig, setH2HConfig] = useState<Record<string, H2HConfig>>({});
-  const [playerCardConfig, setPlayerCardConfig] = useState<Record<string, PlayerCardConfig>>({});
+  const [playerCardConfig, setPlayerCardConfig] = useState<Record<string, { playerId: string }>>({});
+  const [playerProfileConfig, setPlayerProfileConfig] = useState<Record<string, PlayerProfileSlotConfig>>({});
   const [tournamentTeamsMap, setTournamentTeamsMap] = useState<Record<string, any[]>>({});
+  const [tournamentPlayersMap, setTournamentPlayersMap] = useState<Record<string, any[]>>({});
 
   // Global pickers data
   const [globalTeams, setGlobalTeams] = useState<any[]>([]);
@@ -667,6 +672,47 @@ export default function SlotsDashboard() {
     }
   }
 
+  async function loadTournamentPlayers(tournamentId: string) {
+    if (!tournamentId || tournamentPlayersMap[tournamentId]) return;
+    try {
+      const res = await getTopStandings(tournamentId, 100, 'player');
+      setTournamentPlayersMap((prev) => ({ ...prev, [tournamentId]: res.results || [] }));
+    } catch (err) {
+      console.error('Error loading tournament players:', err);
+    }
+  }
+
+  async function fetchPlayerProfileData(slot: OverlaySlot) {
+    const cfg = playerProfileConfig[slot.id!] ?? { scope: 'career', tournamentId: '', playerId: '' };
+    if (!cfg.playerId) {
+      alert('Please select a player first.');
+      return;
+    }
+
+    try {
+      setPushingId(slot.id!);
+      const result = await loadPlayerProfileData({
+        playerId: cfg.playerId,
+        tournamentId: cfg.scope === 'tournament' && cfg.tournamentId ? cfg.tournamentId : undefined,
+      });
+
+      const payload: Record<string, any> = {
+        player: result.player,
+        profile: result.profile,
+        careerStats: result.careerStats,
+        scope: result.scope,
+        currentData: result,
+      };
+
+      await updateSlotWorkspaceFields(slot, payload);
+    } catch (err: any) {
+      console.error('Error fetching player profile:', err);
+      alert(`Failed to load player profile: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setPushingId(null);
+    }
+  }
+
   async function handleDeleteSlot(slotId: string) {
     if (!confirm('Are you sure you want to delete this slot? All live OBS targets will go offline.')) return;
     try {
@@ -1147,6 +1193,119 @@ export default function SlotsDashboard() {
               onClick={() => fetchMatchSummaryData(slot)}
               className="btn btn-secondary btn-sm"
               style={{ height: '32px', fontSize: '0.8rem', padding: '0 0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', flex: 1 }}
+              disabled={isPushing}
+            >
+              {isPushing ? <Loader2 className="animate-spin" style={{ width: '13px', height: '13px' }} /> : <RefreshCw style={{ width: '13px', height: '13px' }} />}
+              Update Draft Data
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (dataShape === 'player_profile') {
+      const cfg = playerProfileConfig[slot.id!] ?? { scope: 'career', tournamentId: '', playerId: '' };
+      const tournamentPlayers = cfg.tournamentId ? (tournamentPlayersMap[cfg.tournamentId] || []) : [];
+      const participantIds = new Set(tournamentPlayers.map((p) => p.playerId || p.id).filter(Boolean));
+      const otherPlayers = globalPlayers.filter((p) => !participantIds.has(p.playerId || p.id));
+
+      return (
+        <div style={{
+          background: 'rgba(255,255,255,0.02)',
+          padding: '0.75rem',
+          borderRadius: '8px',
+          border: '1px solid rgba(255,255,255,0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem',
+        }}>
+          <span className="slot-control-label" style={{ margin: 0, fontWeight: 600 }}>
+            Fetch Player Profile Data (Workspace)
+          </span>
+
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              type="button"
+              onClick={() => setPlayerProfileConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, scope: 'career' } }))}
+              style={{
+                fontSize: '0.72rem',
+                padding: '2px 10px',
+                borderRadius: '4px',
+                border: '1px solid ' + (cfg.scope === 'career' || !cfg.scope ? '#d946ef' : 'rgba(255,255,255,0.1)'),
+                background: (cfg.scope === 'career' || !cfg.scope) ? 'rgba(217,70,239,0.15)' : 'transparent',
+                color: (cfg.scope === 'career' || !cfg.scope) ? '#d946ef' : 'var(--text-muted)',
+                cursor: 'pointer',
+              }}
+            >
+              Career Level
+            </button>
+            <button
+              type="button"
+              onClick={() => setPlayerProfileConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, scope: 'tournament' } }))}
+              style={{
+                fontSize: '0.72rem',
+                padding: '2px 10px',
+                borderRadius: '4px',
+                border: '1px solid ' + (cfg.scope === 'tournament' ? '#d946ef' : 'rgba(255,255,255,0.1)'),
+                background: cfg.scope === 'tournament' ? 'rgba(217,70,239,0.15)' : 'transparent',
+                color: cfg.scope === 'tournament' ? '#d946ef' : 'var(--text-muted)',
+                cursor: 'pointer',
+              }}
+            >
+              Tournament Level
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {cfg.scope === 'tournament' && (
+              <select
+                className="select-input"
+                style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px', flex: 1 }}
+                value={cfg.tournamentId}
+                onChange={(e) => {
+                  const newTid = e.target.value;
+                  setPlayerProfileConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, tournamentId: newTid } }));
+                  if (newTid) loadTournamentPlayers(newTid);
+                }}
+              >
+                <option value="">-- Choose Tournament --</option>
+                {tournaments.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            )}
+
+            <select
+              className="select-input"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px', flex: 2 }}
+              value={cfg.playerId}
+              onFocus={ensurePickerData}
+              onChange={(e) => setPlayerProfileConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, playerId: e.target.value } }))}
+            >
+              <option value="">-- Choose Player --</option>
+              {pickerLoading && <option disabled>Loading players…</option>}
+              {cfg.scope === 'tournament' && tournamentPlayers.length > 0 && (
+                <optgroup label="⚡ Tournament Participants (Active in Selected Event)">
+                  {tournamentPlayers.map((p: any) => {
+                    const id = p.playerId || p.id;
+                    const name = p.ign || p.playerName || p.professionalName || id;
+                    return <option key={id} value={id}>🟢 {name} (Played in Event)</option>;
+                  })}
+                </optgroup>
+              )}
+              <optgroup label={cfg.scope === 'tournament' && tournamentPlayers.length > 0 ? "🌐 Other Registered Players" : "Registered Players"}>
+                {otherPlayers.map((p: any) => {
+                  const id = p.playerId || p.id;
+                  const name = p.ign || p.playerName || p.professionalName || id;
+                  return <option key={id} value={id}>{name}</option>;
+                })}
+              </optgroup>
+            </select>
+
+            <button
+              onClick={() => fetchPlayerProfileData(slot)}
+              className="btn btn-secondary btn-sm"
+              style={{ height: '32px', fontSize: '0.8rem', padding: '0 0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
               disabled={isPushing}
             >
               {isPushing ? <Loader2 className="animate-spin" style={{ width: '13px', height: '13px' }} /> : <RefreshCw style={{ width: '13px', height: '13px' }} />}

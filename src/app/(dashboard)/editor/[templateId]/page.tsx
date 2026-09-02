@@ -7,7 +7,8 @@ import {
   getTemplate, saveTemplate, getTournaments,
   OverlayTemplate, TemplateStyleConfig, ColorTheme, TemplateType
 } from '@/lib/db';
-import { getTopStandings, getGlobalRankings, getProfile, compareEntities, getDailyStandings, getLobbyKills, getTeamKills, getMatchSummary } from '@/lib/statsApi';
+import { getTopStandings, getGlobalRankings, getProfile, compareEntities, getDailyStandings, getLobbyKills, getTeamKills, getMatchSummary, loadPlayerProfileData } from '@/lib/statsApi';
+
 import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, doc } from 'firebase/firestore';
@@ -687,9 +688,16 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             setPreviewData(MOCK_PLAYER_PROFILE);
             return;
           }
-          const { profile, careerStats } = await getProfile('player', previewPlayerId);
+          const result = await loadPlayerProfileData({
+            playerId: previewPlayerId,
+            tournamentId: selectedTournamentId || undefined,
+          });
           if (active) {
-            setPreviewData({ player: { ...profile, careerStats } });
+            setPreviewData({
+              player: result.player,
+              scope: result.scope,
+              currentData: result,
+            });
           }
         }
       } catch (err) {
@@ -3426,11 +3434,15 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                         value={previewPlayerId}
                         onChange={(e) => setPreviewPlayerId(e.target.value)}
                       >
-                        {filteredPlayers.map((p) => (
-                          <option key={p.playerId || p.id} value={p.playerId || p.id}>
-                            {p.ign || p.professionalName || p.id}
-                          </option>
-                        ))}
+                        {filteredPlayers.map((p) => {
+                          const id = p.playerId || p.id;
+                          const name = p.ign || p.playerName || p.professionalName || id;
+                          return (
+                            <option key={id} value={id}>
+                              {selectedTournamentId ? `🟢 ${name} (In Event)` : name}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
                   )}
