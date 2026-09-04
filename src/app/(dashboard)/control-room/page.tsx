@@ -74,7 +74,7 @@ function MiniRender({
   emptyMessage?: string;
 }) {
   const Component = template ? templateComponentMap[template.templateType] : null;
-  const isMgl = template?.templateType === 'mgl_yt_livestanding';
+  const isMgl = template?.templateType === 'mgl_yt_livestanding' || template?.templateType === 'player_stats_vertical';
   const targetW = isMgl ? 434 : 1920;
   const targetH = isMgl ? 724 : 1080;
   const fitScale = isMgl
@@ -224,7 +224,7 @@ function HDPreviewModal({
   const [containerRef, setContainerRef] = useState<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(0.6);
 
-  const isMgl = template?.templateType === 'mgl_yt_livestanding';
+  const isMgl = template?.templateType === 'mgl_yt_livestanding' || template?.templateType === 'player_stats_vertical';
   const targetW = isMgl ? 434 : 1920;
   const targetH = isMgl ? 724 : 1080;
 

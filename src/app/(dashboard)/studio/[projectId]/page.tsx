@@ -939,6 +939,9 @@ export default function StudioWorkspace({ params }: PageProps) {
               >
                 <option value="">— Select Template —</option>
                 <optgroup label="✨ Default Built-in Templates">
+                  <option value="built-in:player_stats_vertical">Player Stats Graphic (Vertical 434x724)</option>
+                  <option value="built-in:player_stats_horizontal">Player Stats Graphic (Horizontal 1920x1080)</option>
+                  <option value="built-in:mgl_yt_livestanding">Vertical YT Standing (434x724)</option>
                   <option value="built-in:team_roster_kills">Team Roster Kill Cards (Default)</option>
                   <option value="built-in:flexible_top5">Flexible Top 5 Standings (Default)</option>
                   <option value="built-in:match_summary">Match Summary (Default)</option>
@@ -949,6 +952,18 @@ export default function StudioWorkspace({ params }: PageProps) {
                   ))}
                 </optgroup>
               </select>
+              {previewTemplate?.id && !previewTemplate.id.startsWith('built-in:') && (
+                <div style={{ marginTop: '6px', textAlign: 'right' }}>
+                  <Link 
+                    href={`/editor/${previewTemplate.id}`} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    style={{ fontSize: '0.72rem', color: 'var(--accent)', textDecoration: 'underline' }}
+                  >
+                    ✏️ Edit design in Template Builder ↗
+                  </Link>
+                </div>
+              )}
             </div>
 
             {/* Field Editor */}

@@ -99,6 +99,9 @@ export default function TemplateLibrary() {
         return <Layers style={{ width: '20px', height: '20px', color: '#38bdf8' }} />;
       case 'player_profile':
         return <User style={{ width: '20px', height: '20px', color: '#34d399' }} />;
+      case 'player_stats_vertical':
+      case 'player_stats_horizontal':
+        return <User style={{ width: '20px', height: '20px', color: '#C9A84C' }} />;
       case 'custom_media':
         return <Video style={{ width: '20px', height: '20px', color: '#d946ef' }} />;
       default:
@@ -110,6 +113,8 @@ export default function TemplateLibrary() {
     switch (type) {
       case 'top_standings': return 'Top Standings';
       case 'mgl_yt_livestanding': return 'Vertical YT Standing (434x724)';
+      case 'player_stats_vertical': return 'Player Stats Graphic (Vertical 434x724)';
+      case 'player_stats_horizontal': return 'Player Stats Graphic (Horizontal 1920x1080)';
       case 'pmnc_top15_standings': return 'Esports Top 15 Standings (PMNC)';
       case 'overall_rankings_dual_column': return 'Overall Rankings (Dual Column)';
       case 'top_5_overall': return 'Top 5 Overall Table';

@@ -92,6 +92,9 @@ export interface TemplateStyleConfig {
   scope?: 'collation' | 'daily';        // scope mode for team roster kills ('collation' or 'daily')
   frameColor?: string;                  // operator-configurable base color for metallic card border
 
+  // Player Stats template specific
+  statsLevel?: 'career' | 'tournament' | 'daily'; // default stats scope (career, tournament, daily)
+
   // Team Roster Kills — overlay identity fields
   leagueLogoUrl?: string;              // optional league/tournament logo shown top-left (can be empty)
   leagueSubtitle?: string;             // e.g. "R3IGN CODM MULTIPLAYER LEAGUE"

@@ -32,6 +32,8 @@ import { FlexibleTop5Graphic } from '@/components/templates/FlexibleTop5Graphic'
 import { MatchSummary } from '@/components/templates/MatchSummary';
 import { PmncTop15Standings } from '@/components/templates/PmncTop15Standings';
 import { MglYtLivestanding } from '@/components/templates/MglYtLivestanding';
+import { PlayerStatsVertical } from '@/components/templates/PlayerStatsVertical';
+import { PlayerStatsHorizontal } from '@/components/templates/PlayerStatsHorizontal';
 
 // Columns definitions
 const ALL_COLUMNS = [
@@ -263,6 +265,40 @@ const MOCK_PLAYER_PROFILE = {
   }
 };
 
+const MOCK_PLAYER_STATS = {
+  statsLevel: 'tournament',
+  selectedDay: 1,
+  player: {
+    professionalName: 'Fabrizio Mayowa',
+    playerName: 'FABRIZIO',
+    ign: 'FABRIZIO',
+    teamName: 'APEX HUNTERS',
+    country: 'Nigeria',
+    photoUrl: '',
+    totalKills: 78,
+    totalMatches: 10,
+    kpm: 7.8,
+    dpm: 1240,
+    avgAccuracy: 32.4,
+    killsContributionPct: 24.6,
+    killsPerEvent: 64.2,
+    tournamentName: 'African BR Championship',
+    careerStats: {
+      careerKills: 850,
+      careerMatches: 98,
+      avgKillsPerMatch: 8.67,
+      avgDamagePerMatch: 1310,
+      avgAccuracy: 33.1,
+      tournamentsPlayed: 14,
+      killsPerEvent: 60.7,
+    },
+    dayHistory: [
+      { dayNum: 1, kills: 38, matches: 5, avgDamage: 1180 },
+      { dayNum: 2, kills: 40, matches: 5, avgDamage: 1300 },
+    ],
+  },
+};
+
 interface PageProps {
   params: Promise<{ templateId: string }>;
 }
@@ -316,15 +352,15 @@ export default function TemplateBuilderPage({ params }: PageProps) {
     if (!el) return;
 
     const updateScale = () => {
-      const isMgl = templateType === 'mgl_yt_livestanding';
-      const targetW = isMgl ? 434 : 1920;
-      const targetH = isMgl ? 724 : 1080;
+      const isVertical = templateType === 'mgl_yt_livestanding' || templateType === 'player_stats_vertical';
+      const targetW = isVertical ? 434 : 1920;
+      const targetH = isVertical ? 724 : 1080;
       const availW = Math.max(200, el.clientWidth - 40);
       const availH = Math.max(200, el.clientHeight - 100);
       const scaleX = availW / targetW;
       const scaleY = availH / targetH;
       const fitScale = Math.min(scaleX, scaleY);
-      setPreviewScale(Math.max(0.15, Math.min(isMgl ? 0.95 : 0.65, fitScale)));
+      setPreviewScale(Math.max(0.15, Math.min(isVertical ? 0.95 : 0.65, fitScale)));
     };
 
     updateScale();
@@ -350,6 +386,8 @@ export default function TemplateBuilderPage({ params }: PageProps) {
   const [previewTeamBId, setPreviewTeamBId] = useState<string>('');
   const [previewTeamId, setPreviewTeamId] = useState<string>('');
   const [previewPlayerId, setPreviewPlayerId] = useState<string>('');
+  const [previewStatsLevel, setPreviewStatsLevel] = useState<'career' | 'tournament' | 'daily'>('tournament');
+  const [previewSelectedDay, setPreviewSelectedDay] = useState<number>(1);
 
   // Resolved dynamic preview data
   const [previewData, setPreviewData] = useState<any>(MOCK_STANDINGS);
@@ -428,6 +466,34 @@ export default function TemplateBuilderPage({ params }: PageProps) {
               customMediaType: 'auto',
               customMediaFit: 'cover',
               customMediaUrl: '',
+            }));
+          } else if (typeParam === 'player_stats_vertical') {
+            setName('Untitled Player Stats (Vertical)');
+            setTemplateType('player_stats_vertical');
+            setStyleConfig((prev) => ({
+              ...prev,
+              colorTheme: 'dark',
+              accentColor: '#C9A84C',
+              headingFont: 'Inter',
+              bodyFont: 'Inter',
+              brandingName: 'HEAVEN STAT ENGINE\nAfrican CODM BR Coverage',
+              showStatsStamp: true,
+              graphicTitle: 'PLAYER STATS',
+              graphicSubtitle: 'Career Metrics',
+            }));
+          } else if (typeParam === 'player_stats_horizontal') {
+            setName('Untitled Player Stats (Horizontal)');
+            setTemplateType('player_stats_horizontal');
+            setStyleConfig((prev) => ({
+              ...prev,
+              colorTheme: 'dark',
+              accentColor: '#C9A84C',
+              headingFont: 'Inter',
+              bodyFont: 'Inter',
+              brandingName: 'HEAVEN STAT ENGINE\nAfrican CODM BR Coverage',
+              showStatsStamp: true,
+              graphicTitle: 'PLAYER STATS',
+              graphicSubtitle: 'Career Metrics',
             }));
           }
         }
@@ -700,6 +766,30 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             });
           }
         }
+
+        else if (templateType === 'player_stats_vertical' || templateType === 'player_stats_horizontal') {
+          if (!previewPlayerId) {
+            setPreviewData({
+              ...MOCK_PLAYER_STATS,
+              statsLevel: previewStatsLevel,
+              selectedDay: previewSelectedDay,
+            });
+            return;
+          }
+          const result = await loadPlayerProfileData({
+            playerId: previewPlayerId,
+            tournamentId: previewStatsLevel === 'career' ? undefined : (selectedTournamentId || undefined),
+          });
+          if (active) {
+            setPreviewData({
+              player: result.player,
+              scope: result.scope,
+              statsLevel: previewStatsLevel,
+              selectedDay: previewSelectedDay,
+              currentData: result,
+            });
+          }
+        }
       } catch (err) {
         console.warn('Live preview API call failed, falling back to mockups:', err);
         if (active) {
@@ -715,6 +805,9 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           else if (templateType === 'head_to_head') setPreviewData(MOCK_H2H);
           else if (templateType === 'team_profile') setPreviewData(MOCK_TEAM_PROFILE);
           else if (templateType === 'player_profile') setPreviewData(MOCK_PLAYER_PROFILE);
+          else if (templateType === 'player_stats_vertical' || templateType === 'player_stats_horizontal') {
+            setPreviewData({ ...MOCK_PLAYER_STATS, statsLevel: previewStatsLevel, selectedDay: previewSelectedDay });
+          }
         }
       } finally {
         if (active) setPreviewLoading(false);
@@ -723,7 +816,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
 
     loadLivePreview();
     return () => { active = false; };
-  }, [templateType, selectedTournamentId, previewTeamAId, previewTeamBId, previewTeamId, previewPlayerId, styleConfig.topN, styleConfig.dailyStandingsDay, styleConfig.dailyStandingsLobby, styleConfig.dailyStandingsMode, styleConfig.scope, styleConfig.day, styleConfig.lobby, styleConfig.selectedGroup, styleConfig.selectedMap, loading]);
+  }, [templateType, selectedTournamentId, previewTeamAId, previewTeamBId, previewTeamId, previewPlayerId, previewStatsLevel, previewSelectedDay, styleConfig.topN, styleConfig.dailyStandingsDay, styleConfig.dailyStandingsLobby, styleConfig.dailyStandingsMode, styleConfig.scope, styleConfig.day, styleConfig.lobby, styleConfig.selectedGroup, styleConfig.selectedMap, loading]);
 
   // Update specific style configuration field
   const updateStyleConfig = (patch: Partial<TemplateStyleConfig>) => {
@@ -1028,9 +1121,9 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       const originalTransform = canvasEl.style.transform;
       canvasEl.style.transform = 'scale(1)';
       
-      const isMgl = templateType === 'mgl_yt_livestanding';
-      const targetW = isMgl ? 434 : 1920;
-      const targetH = isMgl ? 724 : 1080;
+      const isVertical = templateType === 'mgl_yt_livestanding' || templateType === 'player_stats_vertical';
+      const targetW = isVertical ? 434 : 1920;
+      const targetH = isVertical ? 724 : 1080;
 
       const screenshot = await html2canvas(canvasEl, {
         backgroundColor: null, // transparent
@@ -1108,6 +1201,8 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       case 'flexible_top5': return FlexibleTop5Graphic;
       case 'pmnc_top15_standings': return PmncTop15Standings;
       case 'mgl_yt_livestanding': return MglYtLivestanding;
+      case 'player_stats_vertical': return PlayerStatsVertical;
+      case 'player_stats_horizontal': return PlayerStatsHorizontal;
       case 'match_summary': return MatchSummary;
       default: return TopStandings;
     }
@@ -1221,6 +1316,8 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                   <optgroup label="Broadcast Data Templates">
                     <option value="top_standings">Top Standings Table</option>
                     <option value="mgl_yt_livestanding">Vertical YT Standing (434x724 Banner)</option>
+                    <option value="player_stats_vertical">Player Stats Graphic (Vertical 434x724)</option>
+                    <option value="player_stats_horizontal">Player Stats Graphic (Horizontal 1920x1080)</option>
                     <option value="pmnc_top15_standings">Esports Top 15 Standings (PMNC Style)</option>
                     <option value="overall_rankings_dual_column">Overall Rankings (Dual Column)</option>
                     <option value="top_5_overall">Top 5 Overall Table</option>
@@ -3112,6 +3209,208 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             </div>
           )}
 
+          {/* Section: Player Stats Graphic Settings */}
+          {(templateType === 'player_stats_vertical' || templateType === 'player_stats_horizontal') && (
+            <div>
+              <div className="sidebar-section-title" style={{ color: '#C9A84C' }}>
+                {templateType === 'player_stats_vertical' ? 'Player Stats (Vertical) Settings' : 'Player Stats (Horizontal) Settings'}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+                {/* Banner / Canvas Specs info card */}
+                <div style={{
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  background: 'rgba(201, 168, 76, 0.08)',
+                  border: '1px solid rgba(201, 168, 76, 0.25)',
+                  fontSize: '0.78rem',
+                  lineHeight: 1.5,
+                  color: 'rgba(255,255,255,0.85)',
+                }}>
+                  <div style={{ fontWeight: 800, color: '#C9A84C', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>📐</span>
+                    <span>Canvas: {templateType === 'player_stats_vertical' ? '434 × 724 px (Vertical)' : '1920 × 1080 px (Horizontal)'}</span>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    {templateType === 'player_stats_vertical'
+                      ? 'Compact vertical banner designed for sidebar OBS placements, multi-cam live streams, or mobile viewports.'
+                      : 'Full-screen broadcast spotlight card with prominent player photo, 6-metric grid, and tournament branding.'}
+                  </span>
+                </div>
+
+                {/* Graphic Title */}
+                <div className="property-field">
+                  <span className="property-label">Graphic Header Title</span>
+                  <input
+                    type="text"
+                    className="text-input"
+                    value={styleConfig.graphicTitle || ''}
+                    placeholder="e.g. PLAYER STATS"
+                    onChange={(e) => updateStyleConfig({ graphicTitle: e.target.value })}
+                  />
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }}>
+                    {['PLAYER STATS', 'MVP SPOTLIGHT', 'STANDOUT SLAYER', 'MATCH MVP', 'TOURNAMENT MVP', 'PLAYER PROFILE'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => updateStyleConfig({ graphicTitle: preset })}
+                        style={{
+                          fontSize: '10px',
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          border: '1px solid rgba(201, 168, 76, 0.4)',
+                          background: styleConfig.graphicTitle === preset ? 'rgba(201, 168, 76, 0.25)' : 'rgba(201, 168, 76, 0.08)',
+                          color: '#C9A84C',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Scope / Stats Level default */}
+                <div className="property-field">
+                  <span className="property-label">Default Stats Scope</span>
+                  <div className="toggle-group">
+                    <button
+                      className={`toggle-btn ${(!styleConfig.statsLevel || styleConfig.statsLevel === 'tournament') ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ statsLevel: 'tournament' })}
+                    >
+                      Tournament
+                    </button>
+                    <button
+                      className={`toggle-btn ${styleConfig.statsLevel === 'career' ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ statsLevel: 'career' })}
+                    >
+                      Career
+                    </button>
+                    <button
+                      className={`toggle-btn ${styleConfig.statsLevel === 'daily' ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ statsLevel: 'daily' })}
+                    >
+                      Daily
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    Defines default metrics computed on broadcast output. Operators can also change this live in Studio or Control Room.
+                  </span>
+                </div>
+
+                {/* Theme Mode */}
+                <div className="property-field">
+                  <span className="property-label">Theme Mode</span>
+                  <div className="toggle-group">
+                    <button
+                      className={`toggle-btn ${(!styleConfig.colorTheme || styleConfig.colorTheme === 'dark') ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ colorTheme: 'dark' })}
+                    >
+                      Dark
+                    </button>
+                    <button
+                      className={`toggle-btn ${styleConfig.colorTheme === 'light' ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ colorTheme: 'light' })}
+                    >
+                      Light
+                    </button>
+                    <button
+                      className={`toggle-btn ${styleConfig.colorTheme === 'custom' ? 'active' : ''}`}
+                      onClick={() => updateStyleConfig({ colorTheme: 'custom' })}
+                    >
+                      Custom BG
+                    </button>
+                  </div>
+                </div>
+
+                {/* Custom Background URL — shown only in Custom mode */}
+                {styleConfig.colorTheme === 'custom' && (
+                  <div className="property-field">
+                    <span className="property-label">Custom Background URL</span>
+                    <input
+                      type="url"
+                      className="text-input"
+                      value={styleConfig.customBackgroundUrl || ''}
+                      placeholder="https://… or Canva share link"
+                      onChange={(e) => updateStyleConfig({ customBackgroundUrl: e.target.value })}
+                    />
+                  </div>
+                )}
+
+                {/* Accent Color Presets */}
+                <div className="property-field">
+                  <span className="property-label">Primary Accent Color</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <input
+                      type="color"
+                      value={styleConfig.accentColor || '#C9A84C'}
+                      onChange={(e) => updateStyleConfig({ accentColor: e.target.value })}
+                      style={{ width: '36px', height: '36px', borderRadius: '6px', border: '1px solid var(--border-glass)', cursor: 'pointer', background: 'none' }}
+                    />
+                    <input
+                      type="text"
+                      className="text-input"
+                      value={styleConfig.accentColor || '#C9A84C'}
+                      onChange={(e) => updateStyleConfig({ accentColor: e.target.value })}
+                      style={{ flex: 1, fontFamily: 'monospace' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {[
+                      { label: 'Gold', color: '#C9A84C' },
+                      { label: 'Cyan', color: '#38BDF8' },
+                      { label: 'Violet', color: '#A855F7' },
+                      { label: 'Amber', color: '#F59E0B' },
+                      { label: 'Crimson', color: '#EF4444' },
+                      { label: 'Emerald', color: '#34D399' },
+                    ].map((p) => (
+                      <button
+                        key={p.color}
+                        type="button"
+                        onClick={() => updateStyleConfig({ accentColor: p.color })}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '10px',
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          border: `1px solid ${p.color}55`,
+                          background: `${p.color}15`,
+                          color: p.color,
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                        }}
+                      >
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: p.color }} />
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Show Stats Stamp */}
+                <div className="property-field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span className="property-label" style={{ margin: 0 }}>Stats Stamp ("Stats by Heaven")</span>
+                  <input
+                    type="checkbox"
+                    checked={styleConfig.showStatsStamp !== false}
+                    onChange={(e) => updateStyleConfig({ showStatsStamp: e.target.checked })}
+                    style={{ width: '18px', height: '18px', accentColor: '#C9A84C', cursor: 'pointer' }}
+                  />
+                </div>
+
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.5, padding: '8px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <strong style={{ color: 'var(--text-secondary)' }}>Logos &amp; Watermarks:</strong>
+                  <br />• <em>Main Logo</em> → Configure in the <strong>Branding</strong> section above (shown on the header card).
+                  <br />• <em>Tournament Logos</em> → Configure in <strong>Tournament Logos</strong> section (shown as partner/secondary badge).
+                </div>
+
+              </div>
+            </div>
+          )}
+
           {/* Section 7: Custom Media Configurator */}
           {templateType === 'custom_media' && (
             <div>
@@ -3426,8 +3725,8 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                     </div>
                   )}
 
-                  {/* Player Profile Source Picker */}
-                  {templateType === 'player_profile' && (
+                  {/* Player Profile & Player Stats Source Picker */}
+                  {(templateType === 'player_profile' || templateType === 'player_stats_vertical' || templateType === 'player_stats_horizontal') && (
                     <div className="editor-preview-selector">
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Player:</span>
                       <select 
@@ -3445,6 +3744,37 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                         })}
                       </select>
                     </div>
+                  )}
+
+                  {/* Player Stats Scope & Day Controls */}
+                  {(templateType === 'player_stats_vertical' || templateType === 'player_stats_horizontal') && (
+                    <>
+                      <div className="editor-preview-selector">
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Scope / Level:</span>
+                        <select
+                          value={previewStatsLevel}
+                          onChange={(e) => setPreviewStatsLevel(e.target.value as any)}
+                        >
+                          <option value="tournament">Tournament Scope</option>
+                          <option value="career">Career (All-time)</option>
+                          <option value="daily">Daily Results</option>
+                        </select>
+                      </div>
+
+                      {previewStatsLevel === 'daily' && (
+                        <div className="editor-preview-selector">
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Day #:</span>
+                          <select
+                            value={previewSelectedDay}
+                            onChange={(e) => setPreviewSelectedDay(Number(e.target.value))}
+                          >
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((d) => (
+                              <option key={d} value={d}>Day {d}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -3470,9 +3800,9 @@ export default function TemplateBuilderPage({ params }: PageProps) {
 
           {/* Graphic scaled dynamically to fit 100% of container */}
           {(() => {
-            const isMgl = templateType === 'mgl_yt_livestanding';
-            const targetW = isMgl ? 434 : 1920;
-            const targetH = isMgl ? 724 : 1080;
+            const isVertical = templateType === 'mgl_yt_livestanding' || templateType === 'player_stats_vertical';
+            const targetW = isVertical ? 434 : 1920;
+            const targetH = isVertical ? 724 : 1080;
             return (
               <div style={{
                 width: `${Math.round(targetW * previewScale)}px`,
@@ -3505,7 +3835,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           })()}
 
           <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-            Live preview fitted automatically ({Math.round(previewScale * 100)}%). Exported image or OBS renders at full {templateType === 'mgl_yt_livestanding' ? '434x724' : '1920x1080'}.
+            Live preview fitted automatically ({Math.round(previewScale * 100)}%). Exported image or OBS renders at full {templateType === 'mgl_yt_livestanding' || templateType === 'player_stats_vertical' ? '434x724' : '1920x1080'}.
           </div>
 
         </div>
