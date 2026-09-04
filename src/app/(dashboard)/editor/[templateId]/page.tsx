@@ -280,7 +280,8 @@ const MOCK_PLAYER_STATS = {
     kpm: 7.8,
     dpm: 1240,
     avgAccuracy: 32.4,
-    killsContributionPct: 24.6,
+    killShare: 36.5,
+    killsContributionPct: 36.5,
     killsPerEvent: 64.2,
     tournamentName: 'African BR Championship',
     careerStats: {
@@ -293,8 +294,8 @@ const MOCK_PLAYER_STATS = {
       killsPerEvent: 60.7,
     },
     dayHistory: [
-      { dayNum: 1, kills: 38, matches: 5, avgDamage: 1180 },
-      { dayNum: 2, kills: 40, matches: 5, avgDamage: 1300 },
+      { dayNum: 1, kills: 38, matches: 5, avgDamage: 1180, killShare: 38.0, killsContributionPct: 38.0 },
+      { dayNum: 2, kills: 40, matches: 5, avgDamage: 1300, killShare: 35.1, killsContributionPct: 35.1 },
     ],
   },
 };

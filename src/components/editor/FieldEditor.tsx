@@ -1190,11 +1190,15 @@ const iconStyle: React.CSSProperties = { width: '13px', height: '13px' };
 function PlayerStatsFetchEditor({
   tournaments,
   onFetched,
+  fields,
+  onFieldsChange,
 }: {
   tournaments: any[];
   onFetched: (fields: Record<string, any>) => void;
+  fields?: Record<string, any>;
+  onFieldsChange?: (fields: Record<string, any>) => void;
 }) {
-  const [statsLevel, setStatsLevel] = useState<'career' | 'tournament' | 'daily'>('career');
+  const [statsLevel, setStatsLevel] = useState<'career' | 'tournament' | 'daily'>(fields?.statsLevel || 'tournament');
   const [selectedTournamentId, setSelectedTournamentId] = useState('');
   const [selectedDay, setSelectedDay] = useState<number | ''>('');
   const [globalEntities, setGlobalEntities] = useState<any[]>([]);
@@ -1342,6 +1346,76 @@ function PlayerStatsFetchEditor({
         {loading ? <Loader2 className="animate-spin" style={iconStyle} /> : <RefreshCw style={iconStyle} />}
         Fetch Player Stats
       </button>
+
+      {/* Loaded Player Summary & Manual Overrides */}
+      {fields?.player && (
+        <div style={{
+          marginTop: '10px',
+          padding: '10px',
+          borderRadius: '8px',
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent)' }}>
+              Active: {fields.player.professionalName || fields.player.ign}
+            </span>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+              {fields.player.teamName}
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div>
+              <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                Kill Share %:
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                className="text-input"
+                style={{ width: '100%', height: '28px', fontSize: '0.78rem', padding: '0 6px' }}
+                value={fields.player.killShare ?? fields.player.killsContributionPct ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? '' : parseFloat(e.target.value);
+                  onFieldsChange?.({
+                    ...fields,
+                    player: {
+                      ...fields.player,
+                      killShare: val,
+                      killsContributionPct: val,
+                    },
+                  });
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                Total Kills:
+              </label>
+              <input
+                type="number"
+                className="text-input"
+                style={{ width: '100%', height: '28px', fontSize: '0.78rem', padding: '0 6px' }}
+                value={fields.player.totalKills ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+                  onFieldsChange?.({
+                    ...fields,
+                    player: {
+                      ...fields.player,
+                      totalKills: val,
+                    },
+                  });
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1518,7 +1592,14 @@ export function FieldEditor({
 
       case 'player_stats_vertical':
       case 'player_stats_horizontal':
-        return <PlayerStatsFetchEditor tournaments={tournaments} onFetched={onFetched} />;
+        return (
+          <PlayerStatsFetchEditor 
+            tournaments={tournaments} 
+            onFetched={onFetched} 
+            fields={fields} 
+            onFieldsChange={onFieldsChange} 
+          />
+        );
 
       case 'custom_media':
         return <CustomMediaEditor />;

@@ -17,6 +17,8 @@ export interface DayBreakdownRow {
   kpm: string | number;
   damage: number;
   avgDamage: number;
+  killShare?: number;
+  killsContributionPct?: number;
 }
 
 export interface TournamentHistoryRow {
@@ -75,9 +77,13 @@ export async function loadPlayerProfileData({
       // ignore
     }
 
-    // 1b. Fetch tournament standings for players
-    const standingsRes = await getTopStandings(tournamentId, 100, 'player').catch(() => ({ results: [] }));
+    // 1b. Fetch tournament standings for both players and teams
+    const [standingsRes, teamsStandingsRes] = await Promise.all([
+      getTopStandings(tournamentId, 100, 'player').catch(() => ({ results: [] })),
+      getTopStandings(tournamentId, 100, 'team').catch(() => ({ results: [] })),
+    ]);
     const tournamentPlayers: any[] = standingsRes.results || [];
+    const tournamentTeams: any[] = teamsStandingsRes.results || [];
 
     const norm = (s: any) => String(s || '').trim().toLowerCase();
     const pIdNorm = norm(playerId);
@@ -92,13 +98,85 @@ export async function loadPlayerProfileData({
     });
 
     if (tourneyPlayer) {
-      // Transform perDay into Day Breakdown rows
+      const playerKills = Number(tourneyPlayer.totalKills ?? tourneyPlayer.kills ?? 0);
+      const playerTeamId = norm(tourneyPlayer.teamId || tourneyPlayer.team || profile.teamId);
+      const playerTeamName = norm(tourneyPlayer.teamName || profile.teamName);
+
+      // Find teammates in this tournament (players belonging to the same team)
+      const teammates = tournamentPlayers.filter((p: any) => {
+        const tId = norm(p.teamId || p.team);
+        const tName = norm(p.teamName);
+        if (playerTeamId && tId && tId === playerTeamId) return true;
+        if (playerTeamName && tName && tName === playerTeamName) return true;
+        return false;
+      });
+
+      // Find team in tournament teams standings
+      const matchedTeam = tournamentTeams.find((t: any) => {
+        const tId = norm(t.teamId || t.id);
+        const tName = norm(t.teamName || t.name);
+        if (playerTeamId && tId && tId === playerTeamId) return true;
+        if (playerTeamName && tName && tName === playerTeamName) return true;
+        return false;
+      });
+
+      // Determine team's total tournament kills
+      let teamTotalKills = 0;
+      if (tourneyPlayer.teamKills && Number(tourneyPlayer.teamKills) > 0) {
+        teamTotalKills = Number(tourneyPlayer.teamKills);
+      } else if (matchedTeam && (matchedTeam.kills != null || matchedTeam.totalKills != null)) {
+        teamTotalKills = Number(matchedTeam.kills ?? matchedTeam.totalKills ?? 0);
+      } else if (teammates.length > 0) {
+        teamTotalKills = teammates.reduce((sum: number, p: any) => sum + Number(p.totalKills ?? p.kills ?? 0), 0);
+      }
+
+      // Check for direct kill share / contribution from API
+      let killSharePct = 0;
+      const directShare = 
+        tourneyPlayer.killShare ?? 
+        tourneyPlayer.killContribution ?? 
+        tourneyPlayer.killContributionPct ?? 
+        tourneyPlayer.analytics?.killShare ?? 
+        tourneyPlayer.analytics?.killContribution ?? 
+        tourneyPlayer.analytics?.killPct;
+
+      if (directShare != null && Number(directShare) > 0) {
+        const numVal = Number(directShare);
+        killSharePct = numVal <= 1 ? parseFloat((numVal * 100).toFixed(1)) : parseFloat(numVal.toFixed(1));
+      } else if (teamTotalKills > 0) {
+        killSharePct = parseFloat(((playerKills / teamTotalKills) * 100).toFixed(1));
+      }
+
+      // Transform perDay into Day Breakdown rows, computing day-specific kill share against team
       const dayHistory: DayBreakdownRow[] = Object.entries(tourneyPlayer.perDay || {})
         .map(([dayKey, d]: [string, any]) => {
           const dayNum = parseInt(dayKey, 10) || 1;
           const kills = Number(d.kills ?? 0);
           const matches = Number(d.matches ?? 0);
           const damage = Number(d.damage ?? 0);
+
+          // Day team kills: sum teammates on this day
+          let dayTeamKills = 0;
+          if (d.teamKills && Number(d.teamKills) > 0) {
+            dayTeamKills = Number(d.teamKills);
+          } else if (teammates.length > 0) {
+            dayTeamKills = teammates.reduce((sum: number, p: any) => {
+              const pDay = p.perDay?.[dayKey] || p.perDay?.[dayNum];
+              return sum + Number(pDay?.kills ?? 0);
+            }, 0);
+          }
+
+          let dayKillShare = 0;
+          const directDayShare = d.killShare ?? d.killContribution ?? d.killContributionPct ?? d.killPct;
+          if (directDayShare != null && Number(directDayShare) > 0) {
+            const val = Number(directDayShare);
+            dayKillShare = val <= 1 ? parseFloat((val * 100).toFixed(1)) : parseFloat(val.toFixed(1));
+          } else if (dayTeamKills > 0) {
+            dayKillShare = parseFloat(((kills / dayTeamKills) * 100).toFixed(1));
+          } else {
+            dayKillShare = killSharePct;
+          }
+
           return {
             day: `Day ${dayNum}`,
             dayNum,
@@ -107,16 +185,11 @@ export async function loadPlayerProfileData({
             kpm: matches > 0 ? (kills / matches).toFixed(2) : '0.00',
             damage,
             avgDamage: matches > 0 ? Math.round(damage / matches) : 0,
+            killShare: dayKillShare,
+            killsContributionPct: dayKillShare,
           };
         })
         .sort((a, b) => a.dayNum - b.dayNum);
-
-      // Compute kills contribution % — player's share of all kills across tournament participants
-      const allPlayersKills = tournamentPlayers.reduce((sum: number, p: any) => sum + Number(p.totalKills ?? 0), 0);
-      const playerKills = Number(tourneyPlayer.totalKills ?? 0);
-      const killsContributionPct = allPlayersKills > 0
-        ? parseFloat(((playerKills / allPlayersKills) * 100).toFixed(2))
-        : 0;
 
       const mergedPlayer = {
         ...profile,
@@ -139,7 +212,8 @@ export async function loadPlayerProfileData({
         winRate: Number(tourneyPlayer.analytics?.winRate ?? 0),
         top5Rate: Number(tourneyPlayer.analytics?.top5Rate ?? 0),
         avgPlacement: Number(tourneyPlayer.analytics?.avgPlacement ?? 0),
-        killsContributionPct,
+        killShare: killSharePct,
+        killsContributionPct: killSharePct,
         scores: {
           POWER: Number(tourneyPlayer.scores?.POWER ?? 0),
           PLACEMENT: Number(tourneyPlayer.scores?.PLACEMENT ?? 0),
@@ -287,6 +361,8 @@ export async function loadPlayerProfileData({
       kpm: r.kpm,
       rating: r.rating,
     })),
+    killShare: Number(careerStats.killShare ?? careerStats.killPct ?? profile.killShare ?? 0),
+    killsContributionPct: Number(careerStats.killShare ?? careerStats.killPct ?? profile.killShare ?? 0),
     careerStats: {
       ...careerStats,
       careerKills,
@@ -295,13 +371,7 @@ export async function loadPlayerProfileData({
       winRate,
       top5Rate,
       avgPlacement,
-      tournaments: careerHistory.map((r) => ({
-        tournament: r.tournament,
-        kills: r.kills,
-        matches: r.matches,
-        kpm: r.kpm,
-        rating: r.rating,
-      })),
+      tournaments: careerHistory,
     },
   };
 

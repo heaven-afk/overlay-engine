@@ -300,8 +300,8 @@ export const PlayerStatsHorizontal: React.FC<PlayerStatsHorizontalProps> = ({
     killsPerMatch = matchesPlayed > 0 ? totalKills / matchesPlayed : 0;
     avgDamage = Number(dayData.avgDamage ?? 0);
     avgAccuracy = Number(player.avgAccuracy ?? career.avgAccuracy ?? 0);
-    const pct = Number(player.killsContributionPct ?? 0);
-    sixthLabel = 'KILLS CONTRIB %';
+    const pct = Number(dayData.killShare ?? dayData.killsContributionPct ?? player.killShare ?? player.killsContributionPct ?? 0);
+    sixthLabel = 'KILL SHARE';
     sixthValue = pct > 0 ? `${pct.toFixed(1)}%` : '—';
   } else if (statsLevel === 'tournament') {
     totalKills = Number(player.totalKills ?? 0);
@@ -309,8 +309,15 @@ export const PlayerStatsHorizontal: React.FC<PlayerStatsHorizontalProps> = ({
     killsPerMatch = Number(player.kpm ?? player.killsPerMatch ?? player.analytics?.KPM ?? 0);
     avgDamage = Number(player.dpm ?? player.avgDamage ?? player.analytics?.DPM ?? 0);
     avgAccuracy = Number(player.avgAccuracy ?? career.avgAccuracy ?? 0);
-    const pct = Number(player.killsContributionPct ?? 0);
-    sixthLabel = 'KILLS CONTRIB %';
+    const pct = Number(
+      player.killShare ??
+      player.killsContributionPct ??
+      player.analytics?.killShare ??
+      player.analytics?.killContribution ??
+      player.analytics?.killPct ??
+      0
+    );
+    sixthLabel = 'KILL SHARE';
     sixthValue = pct > 0 ? `${pct.toFixed(1)}%` : '—';
   } else {
     // Career
