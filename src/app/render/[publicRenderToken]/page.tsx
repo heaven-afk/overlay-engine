@@ -22,8 +22,10 @@ import { FlexibleTop5Graphic } from '@/components/templates/FlexibleTop5Graphic'
 import { MatchSummary } from '@/components/templates/MatchSummary';
 import { PmncTop15Standings } from '@/components/templates/PmncTop15Standings';
 import { MglYtLivestanding } from '@/components/templates/MglYtLivestanding';
+import { PlayerStatsVertical } from '@/components/templates/PlayerStatsVertical';
+import { PlayerStatsHorizontal } from '@/components/templates/PlayerStatsHorizontal';
 
-const templateMap = {
+const templateMap: Record<string, React.ComponentType<any>> = {
   top_standings: TopStandings,
   overall_rankings_dual_column: OverallRankingsDualColumn,
   top_5_overall: Top5Overall,
@@ -39,6 +41,8 @@ const templateMap = {
   pmnc_top15_standings: PmncTop15Standings,
   mgl_yt_livestanding: MglYtLivestanding,
   match_summary: MatchSummary,
+  player_stats_vertical: PlayerStatsVertical,
+  player_stats_horizontal: PlayerStatsHorizontal,
 };
 
 interface PageProps {
@@ -56,9 +60,11 @@ export default function PublicRenderPage({ params }: PageProps) {
   // ─── Scale listener for OBS scaling ──────────────────────────────────────
   useEffect(() => {
     function handleResize() {
-      const isMgl = template?.templateType === 'mgl_yt_livestanding';
-      const targetW = isMgl ? 434 : 1920;
-      const targetH = isMgl ? 724 : 1080;
+      const isVertical434 =
+        template?.templateType === 'mgl_yt_livestanding' ||
+        template?.templateType === 'player_stats_vertical';
+      const targetW = isVertical434 ? 434 : 1920;
+      const targetH = isVertical434 ? 724 : 1080;
       const s = Math.min(window.innerWidth / targetW, window.innerHeight / targetH);
       setScale(s);
     }
@@ -163,9 +169,11 @@ export default function PublicRenderPage({ params }: PageProps) {
   const publishedFields = slot.published?.fields || slot.currentData || {};
   const isVisible = template.templateType === 'custom_media' || (publishedFields && Object.keys(publishedFields).length > 0);
 
-  const isMgl = template.templateType === 'mgl_yt_livestanding';
-  const targetW = isMgl ? 434 : 1920;
-  const targetH = isMgl ? 724 : 1080;
+  const isVertical434 =
+    template.templateType === 'mgl_yt_livestanding' ||
+    template.templateType === 'player_stats_vertical';
+  const targetW = isVertical434 ? 434 : 1920;
+  const targetH = isVertical434 ? 724 : 1080;
 
   return (
     <div className="broadcast-stage-wrapper" style={{

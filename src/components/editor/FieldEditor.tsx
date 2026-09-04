@@ -1186,6 +1186,166 @@ const fetchBtnStyle: React.CSSProperties = {
 
 const iconStyle: React.CSSProperties = { width: '13px', height: '13px' };
 
+// ─── Sub-editor: Player Stats (Vertical + Horizontal) ────────────────────────
+function PlayerStatsFetchEditor({
+  tournaments,
+  onFetched,
+}: {
+  tournaments: any[];
+  onFetched: (fields: Record<string, any>) => void;
+}) {
+  const [statsLevel, setStatsLevel] = useState<'career' | 'tournament' | 'daily'>('career');
+  const [selectedTournamentId, setSelectedTournamentId] = useState('');
+  const [selectedDay, setSelectedDay] = useState<number | ''>('');
+  const [globalEntities, setGlobalEntities] = useState<any[]>([]);
+  const [tournamentParticipants, setTournamentParticipants] = useState<any[]>([]);
+  const [selectedId, setSelectedId] = useState('');
+  const [pickerLoading, setPickerLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const needsTournament = statsLevel === 'tournament' || statsLevel === 'daily';
+
+  useEffect(() => {
+    let active = true;
+    async function loadData() {
+      setPickerLoading(true);
+      try {
+        const [globalRes, tourneyRes] = await Promise.all([
+          getGlobalRankings('player', 100).catch(() => ({ results: [] })),
+          selectedTournamentId
+            ? getTopStandings(selectedTournamentId, 100, 'player').catch(() => ({ results: [] }))
+            : Promise.resolve({ results: [] }),
+        ]);
+        if (!active) return;
+        setGlobalEntities(globalRes.results || []);
+        setTournamentParticipants(tourneyRes.results || []);
+      } catch (err) {
+        console.error('PlayerStatsFetchEditor picker error:', err);
+      } finally {
+        if (active) setPickerLoading(false);
+      }
+    }
+    loadData();
+    return () => { active = false; };
+  }, [selectedTournamentId]);
+
+  async function handleFetch() {
+    if (!selectedId) { alert('Please select a player first.'); return; }
+    if (needsTournament && !selectedTournamentId) {
+      alert('Please select a tournament for Tournament / Daily scope.');
+      return;
+    }
+    try {
+      setLoading(true);
+      const result = await loadPlayerProfileData({
+        playerId: selectedId,
+        tournamentId: selectedTournamentId || undefined,
+      });
+      onFetched({
+        player: result.player,
+        profile: result.profile,
+        careerStats: result.careerStats,
+        scope: result.scope,
+        statsLevel,
+        selectedDay: selectedDay !== '' ? Number(selectedDay) : undefined,
+        currentData: result,
+      });
+    } catch (err: any) {
+      console.error('PlayerStats fetch error:', err);
+      alert(`Failed to load player stats: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const participantIds = new Set(tournamentParticipants.map((p) => p.playerId || p.id).filter(Boolean));
+  const otherEntities = globalEntities.filter((e) => !participantIds.has(e.playerId || e.id));
+
+  return (
+    <div style={wrapperStyle}>
+      <span className="slot-control-label" style={{ margin: 0, fontWeight: 700 }}>
+        Fetch Player Stats (Workspace)
+      </span>
+
+      {/* Stats Level selector */}
+      <div style={{ display: 'flex', gap: '6px' }}>
+        {(['career', 'tournament', 'daily'] as const).map((lvl) => (
+          <button
+            key={lvl}
+            type="button"
+            onClick={() => setStatsLevel(lvl)}
+            className={`toggle-btn${statsLevel === lvl ? ' active' : ''}`}
+            style={{ fontSize: '0.75rem', padding: '3px 12px', height: '28px', textTransform: 'capitalize' }}
+          >
+            {lvl.charAt(0).toUpperCase() + lvl.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {/* Tournament selector (required for tournament/daily) */}
+      <select
+        className="select-input"
+        style={selectStyle}
+        value={selectedTournamentId}
+        onChange={(e) => setSelectedTournamentId(e.target.value)}
+      >
+        <option value="">{needsTournament ? '-- Select Tournament (Required) --' : 'Filter by Tournament (Optional)'}</option>
+        {tournaments.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+      </select>
+
+      {/* Day selector (daily only) */}
+      {statsLevel === 'daily' && (
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <label style={labelStyle}>Day #:</label>
+          <input
+            type="number"
+            min={1}
+            max={30}
+            className="text-input"
+            style={{ width: '80px', padding: '0.3rem 0.5rem', fontSize: '0.8rem', height: '32px' }}
+            placeholder="e.g. 1"
+            value={selectedDay}
+            onChange={(e) => setSelectedDay(e.target.value === '' ? '' : Number(e.target.value))}
+          />
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Leave blank for most recent day</span>
+        </div>
+      )}
+
+      {/* Player picker */}
+      <select
+        className="select-input"
+        style={selectStyle}
+        value={selectedId}
+        onChange={(e) => setSelectedId(e.target.value)}
+      >
+        <option value="">-- Choose Player --</option>
+        {pickerLoading && <option disabled>Loading players…</option>}
+        {tournamentParticipants.length > 0 && (
+          <optgroup label="⚡ Tournament Participants">
+            {tournamentParticipants.map((e: any) => {
+              const id = e.playerId || e.id;
+              const name = e.playerName || e.ign || e.name;
+              return <option key={id} value={id}>🟢 {name} (Played in Event)</option>;
+            })}
+          </optgroup>
+        )}
+        <optgroup label={tournamentParticipants.length > 0 ? '🌐 Other Registered Players' : 'Registered Players'}>
+          {otherEntities.map((e: any) => {
+            const id = e.playerId || e.id;
+            const name = e.playerName || e.ign || e.name;
+            return <option key={id} value={id}>{name}</option>;
+          })}
+        </optgroup>
+      </select>
+
+      <button onClick={handleFetch} disabled={loading} className="btn btn-secondary btn-sm" style={fetchBtnStyle}>
+        {loading ? <Loader2 className="animate-spin" style={iconStyle} /> : <RefreshCw style={iconStyle} />}
+        Fetch Player Stats
+      </button>
+    </div>
+  );
+}
+
 // ─── Sub-editor: Subheader Badge Text Editor ─────────────────────────────────
 export function SubheaderBadgeEditor({
   value,
@@ -1355,6 +1515,10 @@ export function FieldEditor({
 
       case 'player_profile':
         return <ProfileFetchEditor type="player" tournaments={tournaments} onFetched={onFetched} />;
+
+      case 'player_stats_vertical':
+      case 'player_stats_horizontal':
+        return <PlayerStatsFetchEditor tournaments={tournaments} onFetched={onFetched} />;
 
       case 'custom_media':
         return <CustomMediaEditor />;

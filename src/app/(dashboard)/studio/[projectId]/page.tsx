@@ -35,6 +35,8 @@ import { FlexibleTop5Graphic } from '@/components/templates/FlexibleTop5Graphic'
 import { MatchSummary } from '@/components/templates/MatchSummary';
 import { PmncTop15Standings } from '@/components/templates/PmncTop15Standings';
 import { MglYtLivestanding } from '@/components/templates/MglYtLivestanding';
+import { PlayerStatsVertical } from '@/components/templates/PlayerStatsVertical';
+import { PlayerStatsHorizontal } from '@/components/templates/PlayerStatsHorizontal';
 
 import {
   ArrowLeft, Clapperboard, Send, Save, History, Copy,
@@ -60,6 +62,8 @@ const templateComponentMap: Record<string, React.ComponentType<any>> = {
   pmnc_top15_standings: PmncTop15Standings,
   mgl_yt_livestanding: MglYtLivestanding,
   match_summary: MatchSummary,
+  player_stats_vertical: PlayerStatsVertical,
+  player_stats_horizontal: PlayerStatsHorizontal,
 };
 
 // ─── Display dimensions ───────────────────────────────────────────────────────
@@ -93,11 +97,13 @@ function InlineRender({
 }) {
   const Component = template ? templateComponentMap[template.templateType] : null;
   const isEmpty = !template;
-  const isMgl = template?.templateType === 'mgl_yt_livestanding';
-  const targetW = isMgl ? 434 : 1920;
-  const targetH = isMgl ? 724 : 1080;
-  const fitScale = isMgl ? Math.min(width / targetW, height / targetH) : scale;
-  const offsetX = isMgl ? Math.max(0, Math.round((width - targetW * fitScale) / 2)) : 0;
+  const isVertical434 =
+    template?.templateType === 'mgl_yt_livestanding' ||
+    template?.templateType === 'player_stats_vertical';
+  const targetW = isVertical434 ? 434 : 1920;
+  const targetH = isVertical434 ? 724 : 1080;
+  const fitScale = isVertical434 ? Math.min(width / targetW, height / targetH) : scale;
+  const offsetX = isVertical434 ? Math.max(0, Math.round((width - targetW * fitScale) / 2)) : 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

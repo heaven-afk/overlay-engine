@@ -22,6 +22,8 @@ import { FlexibleTop5Graphic } from '@/components/templates/FlexibleTop5Graphic'
 import { MatchSummary } from '@/components/templates/MatchSummary';
 import { PmncTop15Standings } from '@/components/templates/PmncTop15Standings';
 import { MglYtLivestanding } from '@/components/templates/MglYtLivestanding';
+import { PlayerStatsVertical } from '@/components/templates/PlayerStatsVertical';
+import { PlayerStatsHorizontal } from '@/components/templates/PlayerStatsHorizontal';
 
 export const templateComponentMap: Record<string, React.ComponentType<any>> = {
   top_standings: TopStandings,
@@ -39,6 +41,8 @@ export const templateComponentMap: Record<string, React.ComponentType<any>> = {
   pmnc_top15_standings: PmncTop15Standings,
   mgl_yt_livestanding: MglYtLivestanding,
   match_summary: MatchSummary,
+  player_stats_vertical: PlayerStatsVertical,
+  player_stats_horizontal: PlayerStatsHorizontal,
 };
 
 interface LiveOverlayRendererProps {
@@ -53,9 +57,11 @@ export function LiveOverlayRenderer({ liveState, loading = false }: LiveOverlayR
   // ── Auto-scale to window dimensions (OBS Browser Source) ──────────────────
   useEffect(() => {
     function handleResize() {
-      const isMgl = template?.templateType === 'mgl_yt_livestanding';
-      const targetW = isMgl ? 434 : 1920;
-      const targetH = isMgl ? 724 : 1080;
+      const isVertical434 =
+        template?.templateType === 'mgl_yt_livestanding' ||
+        template?.templateType === 'player_stats_vertical';
+      const targetW = isVertical434 ? 434 : 1920;
+      const targetH = isVertical434 ? 724 : 1080;
       const s = Math.min(window.innerWidth / targetW, window.innerHeight / targetH);
       setScale(s);
     }
@@ -110,9 +116,11 @@ export function LiveOverlayRenderer({ liveState, loading = false }: LiveOverlayR
     return <div style={{ width: '100vw', height: '100vh', background: 'transparent' }} />;
   }
 
-  const isMgl = template.templateType === 'mgl_yt_livestanding';
-  const width = isMgl ? 434 : 1920;
-  const height = isMgl ? 724 : 1080;
+  const isVertical434 =
+    template.templateType === 'mgl_yt_livestanding' ||
+    template.templateType === 'player_stats_vertical';
+  const width = isVertical434 ? 434 : 1920;
+  const height = isVertical434 ? 724 : 1080;
 
   return (
     <>

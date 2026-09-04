@@ -33,7 +33,9 @@ export type TemplateType =
   | 'flexible_top5'    // NEW: Flexible Top 5 Graphic (Paginated Standings)
   | 'pmnc_top15_standings' // NEW: Esports Top 15 Standings (PMNC Style)
   | 'mgl_yt_livestanding'  // Vertical YT Standing (434x724 Vertical Banner — global, event-agnostic)
-  | 'match_summary';   // NEW: Match Summary Graphic (Lobby / Match Scope)
+  | 'match_summary'    // NEW: Match Summary Graphic (Lobby / Match Scope)
+  | 'player_stats_vertical'   // NEW: Player Stats Graphic — Vertical (434x724)
+  | 'player_stats_horizontal'; // NEW: Player Stats Graphic — Horizontal (1920x1080)
 
 export type ColorTheme = 'dark' | 'light' | 'custom';
 
@@ -308,6 +310,14 @@ export async function getTemplates(): Promise<OverlayTemplate[]> {
       await seedSingleTemplate('Vertical YT Standing', 'mgl_yt_livestanding', '#C0C0C0', 'TOP 8 TEAMS');
       seededNewGraphics = true;
     }
+    if (list.filter((t) => t.templateType === 'player_stats_vertical').length === 0) {
+      await seedSingleTemplate('Player Stats (Vertical)', 'player_stats_vertical', '#C9A84C', 'PLAYER STATS');
+      seededNewGraphics = true;
+    }
+    if (list.filter((t) => t.templateType === 'player_stats_horizontal').length === 0) {
+      await seedSingleTemplate('Player Stats (Horizontal)', 'player_stats_horizontal', '#C9A84C', 'PLAYER STATS');
+      seededNewGraphics = true;
+    }
     if (seededNewGraphics) {
       const freshSnap = await getDocs(collection(db, 'overlayTemplates'));
       list = freshSnap.docs.map((d) => ({ id: d.id, ...d.data() } as OverlayTemplate));
@@ -435,6 +445,50 @@ export function getBuiltInTemplate(id?: string | null): OverlayTemplate | null {
         showColumns: [],
         graphicTitle: 'MATCH SUMMARY',
         graphicSubtitle: 'Lobby & Tournament Overview',
+      },
+    } as OverlayTemplate;
+  }
+  if (id.includes('player_stats_vertical')) {
+    return {
+      id: 'built-in:player_stats_vertical',
+      name: 'Player Stats (Vertical)',
+      templateType: 'player_stats_vertical',
+      styleConfig: {
+        colorTheme: 'dark',
+        accentColor: '#C9A84C',
+        headingFont: 'Inter',
+        bodyFont: 'Inter',
+        brandingLogoUrl: '',
+        brandingName: 'HEAVEN STAT ENGINE\nAfrican CODM BR Coverage',
+        showStatsStamp: true,
+        tournamentLogoCount: 1,
+        tournamentLogos: [],
+        topN: 6,
+        showColumns: [],
+        graphicTitle: 'PLAYER STATS',
+        graphicSubtitle: 'Career Metrics',
+      },
+    } as OverlayTemplate;
+  }
+  if (id.includes('player_stats_horizontal')) {
+    return {
+      id: 'built-in:player_stats_horizontal',
+      name: 'Player Stats (Horizontal)',
+      templateType: 'player_stats_horizontal',
+      styleConfig: {
+        colorTheme: 'dark',
+        accentColor: '#C9A84C',
+        headingFont: 'Inter',
+        bodyFont: 'Inter',
+        brandingLogoUrl: '',
+        brandingName: 'HEAVEN STAT ENGINE\nAfrican CODM BR Coverage',
+        showStatsStamp: true,
+        tournamentLogoCount: 1,
+        tournamentLogos: [],
+        topN: 6,
+        showColumns: [],
+        graphicTitle: 'PLAYER STATS',
+        graphicSubtitle: 'Career Metrics',
       },
     } as OverlayTemplate;
   }

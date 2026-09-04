@@ -111,6 +111,13 @@ export async function loadPlayerProfileData({
         })
         .sort((a, b) => a.dayNum - b.dayNum);
 
+      // Compute kills contribution % — player's share of all kills across tournament participants
+      const allPlayersKills = tournamentPlayers.reduce((sum: number, p: any) => sum + Number(p.totalKills ?? 0), 0);
+      const playerKills = Number(tourneyPlayer.totalKills ?? 0);
+      const killsContributionPct = allPlayersKills > 0
+        ? parseFloat(((playerKills / allPlayersKills) * 100).toFixed(2))
+        : 0;
+
       const mergedPlayer = {
         ...profile,
         ...tourneyPlayer,
@@ -124,13 +131,15 @@ export async function loadPlayerProfileData({
         device: tourneyPlayer.deviceModel || profile.currentDeviceModel || profile.deviceModel || profile.device || 'N/A',
         region: tourneyPlayer.region || profile.region || 'Africa',
         country: tourneyPlayer.country || profile.country || 'N/A',
-        totalKills: Number(tourneyPlayer.totalKills ?? 0),
+        photoUrl: profile.photoUrl || profile.avatarUrl || profile.imageUrl || profile.photo || null,
+        totalKills: playerKills,
         totalMatches: Number(tourneyPlayer.totalMatches ?? 0),
         kpm: Number(tourneyPlayer.analytics?.KPM ?? tourneyPlayer.killsPerMatch ?? 0),
         dpm: Number(tourneyPlayer.analytics?.DPM ?? tourneyPlayer.avgDamage ?? 0),
         winRate: Number(tourneyPlayer.analytics?.winRate ?? 0),
         top5Rate: Number(tourneyPlayer.analytics?.top5Rate ?? 0),
         avgPlacement: Number(tourneyPlayer.analytics?.avgPlacement ?? 0),
+        killsContributionPct,
         scores: {
           POWER: Number(tourneyPlayer.scores?.POWER ?? 0),
           PLACEMENT: Number(tourneyPlayer.scores?.PLACEMENT ?? 0),
@@ -233,6 +242,11 @@ export async function loadPlayerProfileData({
   const conversionScore = Math.min(100, Math.max(10, Math.round((careerHistory.length > 1 ? 75 : 45))));
   const finalRating = Math.round((powerScore * 0.35 + formScore * 0.35 + placementScore * 0.2 + conversionScore * 0.1) * 10);
 
+  // Kills per Event for career scope: average kills across tournaments played
+  const killsPerEvent = careerHistory.length > 0
+    ? parseFloat((careerKills / careerHistory.length).toFixed(2))
+    : 0;
+
   const mergedCareerPlayer = {
     ...profile,
     ...careerStats,
@@ -244,6 +258,7 @@ export async function loadPlayerProfileData({
     device: profile.currentDeviceModel || profile.deviceModel || profile.device || 'N/A',
     region: profile.region || 'Africa',
     country: profile.country || 'N/A',
+    photoUrl: profile.photoUrl || profile.avatarUrl || profile.imageUrl || profile.photo || null,
     totalKills: careerKills,
     totalMatches: careerMatches,
     kpm,
@@ -251,6 +266,7 @@ export async function loadPlayerProfileData({
     winRate,
     top5Rate,
     avgPlacement,
+    killsPerEvent,
     scores: {
       POWER: powerScore,
       PLACEMENT: placementScore,
