@@ -140,6 +140,11 @@ export interface TemplateStyleConfig {
   teamSlotSponsorName?: string;        // e.g. "RUNESTONE"
   teamSlotSponsorLogoUrl?: string;     // sponsor logo URL
   teamSlotCustomTeams?: TeamSlotItem[]; // saved custom teams array
+  teamSlotSourceMode?: 'manual' | 'automatic';
+  teamSlotTournamentId?: string;
+  teamSlotGroupId?: string;
+  teamSlotShowSlotNumbers?: boolean;
+  teamSlotSlotPrefix?: string;
 }
 
 export interface OverlayTemplate {
@@ -193,10 +198,14 @@ export interface StandingsRow {
 
 export interface TeamSlotItem {
   name: string;
+  teamName?: string;       // fallback compatibility
   logoUrl?: string;
-  tag?: string;        // e.g. "NA", "EMEA", "Group A"
-  subtext?: string;    // e.g. "CONFIRMED", "SEED #1"
-  color?: string;      // custom color
+  logo?: string;          // fallback compatibility
+  tag?: string;           // e.g. "NA", "EMEA", "Group A"
+  slot?: number | string; // e.g. 1, "01", "SLOT 1"
+  slotNumber?: number | string; // fallback
+  subtext?: string;       // e.g. "CONFIRMED", "SEED #1"
+  color?: string;         // custom color
 }
 
 export interface TeamSlotData {
@@ -208,6 +217,11 @@ export interface TeamSlotData {
   sponsorName?: string;
   sponsorLogoUrl?: string;
   cardStyle?: 'red_esports' | 'dark_gold' | 'sleek_dark';
+  showSlotNumbers?: boolean;
+  slotPrefix?: string;
+  sourceMode?: 'manual' | 'automatic';
+  tournamentId?: string;
+  groupId?: string;
   teams: TeamSlotItem[];
 }
 

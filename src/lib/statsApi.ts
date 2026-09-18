@@ -161,3 +161,33 @@ export async function getMatchSummary(
   return callStatsApi('/api/overlay/match-summary', params);
 }
 
+/**
+ * Fetch tournament participating / registered teams for Team Slot graphics.
+ * Formats teams with slot numbers, logos, and tags.
+ */
+export async function fetchTournamentTeamSlots(
+  tournamentId: string,
+  options: { groupId?: string; limit?: number } = {}
+) {
+  const limit = options.limit ?? 20;
+  const { results } = await getTopStandings(tournamentId, limit, 'team', options.groupId);
+  if (!Array.isArray(results)) return [];
+
+  return results.map((item: any, idx: number) => {
+    const rawName = item.teamName || item.name || `Team ${idx + 1}`;
+    const logoUrl = item.logoUrl || item.logo || item.logo_url || '';
+    const tag = item.clanName || (item.analyticsRank ? `RANK #${item.analyticsRank}` : '');
+    const slotNumber = idx + 1;
+
+    return {
+      name: rawName,
+      teamName: rawName,
+      logoUrl,
+      tag,
+      slot: slotNumber,
+      slotNumber,
+      subtext: item.analyticsRank ? `RANK #${item.analyticsRank}` : undefined,
+    };
+  });
+}
+

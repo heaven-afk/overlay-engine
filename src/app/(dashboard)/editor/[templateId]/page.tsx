@@ -4,11 +4,11 @@ import { useEffect, useState, use, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  getTemplate, saveTemplate, getTournaments,
+  getTemplate, saveTemplate, getTournaments, getTournamentGroups,
   OverlayTemplate, TemplateStyleConfig, ColorTheme, TemplateType,
   TeamSlotData, TeamSlotItem,
 } from '@/lib/db';
-import { getTopStandings, getGlobalRankings, getProfile, compareEntities, getDailyStandings, getLobbyKills, getTeamKills, getMatchSummary, loadPlayerProfileData } from '@/lib/statsApi';
+import { getTopStandings, getGlobalRankings, getProfile, compareEntities, getDailyStandings, getLobbyKills, getTeamKills, getMatchSummary, loadPlayerProfileData, fetchTournamentTeamSlots } from '@/lib/statsApi';
 
 import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -448,6 +448,16 @@ export default function TemplateBuilderPage({ params }: PageProps) {
   // Resolved dynamic preview data
   const [previewData, setPreviewData] = useState<any>(MOCK_STANDINGS);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [teamSlotSyncLoading, setTeamSlotSyncLoading] = useState(false);
+  const [teamSlotGroups, setTeamSlotGroups] = useState<Array<{ id: string; name: string }>>([]);
+
+  useEffect(() => {
+    if (!styleConfig.teamSlotTournamentId) {
+      setTeamSlotGroups([]);
+      return;
+    }
+    getTournamentGroups(styleConfig.teamSlotTournamentId).then(setTeamSlotGroups).catch(() => setTeamSlotGroups([]));
+  }, [styleConfig.teamSlotTournamentId]);
 
   // Initialize page
   useEffect(() => {
@@ -864,28 +874,39 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           else if (templateType === 'player_stats_vertical' || templateType === 'player_stats_horizontal') {
             setPreviewData({ ...MOCK_PLAYER_STATS, statsLevel: previewStatsLevel, selectedDay: previewSelectedDay });
           }
-          else if (templateType === 'team_slot_horizontal') {
+          else if (templateType === 'team_slot_horizontal' || templateType === 'team_slot_vertical') {
+            const isAuto = styleConfig.teamSlotSourceMode === 'automatic';
+            const tourneyId = styleConfig.teamSlotTournamentId || selectedTournamentId;
+            const baseMock = templateType === 'team_slot_horizontal' ? MOCK_TEAM_SLOT_HORIZONTAL : MOCK_TEAM_SLOT_VERTICAL;
+            let resolvedTeams = styleConfig.teamSlotCustomTeams && styleConfig.teamSlotCustomTeams.length > 0
+              ? styleConfig.teamSlotCustomTeams
+              : baseMock.teams;
+
+            if (isAuto && tourneyId) {
+              try {
+                const autoTeams = await fetchTournamentTeamSlots(tourneyId, {
+                  groupId: styleConfig.teamSlotGroupId,
+                  limit: styleConfig.topN || (templateType === 'team_slot_vertical' ? 12 : 16),
+                });
+                if (autoTeams && autoTeams.length > 0) {
+                  resolvedTeams = autoTeams;
+                }
+              } catch (err) {
+                console.error('Failed to load auto team slots in editor:', err);
+              }
+            }
+
             setPreviewData({
-              ...MOCK_TEAM_SLOT_HORIZONTAL,
-              teams: styleConfig.teamSlotCustomTeams && styleConfig.teamSlotCustomTeams.length > 0 ? styleConfig.teamSlotCustomTeams : MOCK_TEAM_SLOT_HORIZONTAL.teams,
+              ...baseMock,
+              teams: resolvedTeams,
               cardStyle: styleConfig.teamSlotCardStyle || 'dark_gold',
-              categoryTag: styleConfig.teamSlotCategoryTag || 'VALORANT CHAMPIONS • SHANGHAI',
-              footerText: styleConfig.teamSlotFooterText || 'SHANGHAI AWAITS • LIVE BROADCAST',
+              categoryTag: styleConfig.teamSlotCategoryTag || baseMock.categoryTag,
+              footerText: styleConfig.teamSlotFooterText || baseMock.footerText,
               sponsorName: styleConfig.teamSlotSponsorName || 'RUNESTONE',
               sponsorText: styleConfig.teamSlotSponsorText || 'SPONSORED BY',
               sponsorLogoUrl: styleConfig.teamSlotSponsorLogoUrl,
-            });
-          }
-          else if (templateType === 'team_slot_vertical') {
-            setPreviewData({
-              ...MOCK_TEAM_SLOT_VERTICAL,
-              teams: styleConfig.teamSlotCustomTeams && styleConfig.teamSlotCustomTeams.length > 0 ? styleConfig.teamSlotCustomTeams : MOCK_TEAM_SLOT_VERTICAL.teams,
-              cardStyle: styleConfig.teamSlotCardStyle || 'dark_gold',
-              categoryTag: styleConfig.teamSlotCategoryTag || 'TOURNAMENT PARTICIPANTS',
-              footerText: styleConfig.teamSlotFooterText || 'LIVE BROADCAST',
-              sponsorName: styleConfig.teamSlotSponsorName || 'RUNESTONE',
-              sponsorText: styleConfig.teamSlotSponsorText || 'SPONSORED BY',
-              sponsorLogoUrl: styleConfig.teamSlotSponsorLogoUrl,
+              showSlotNumbers: styleConfig.teamSlotShowSlotNumbers ?? true,
+              slotPrefix: styleConfig.teamSlotSlotPrefix || 'SLOT',
             });
           }
         }
@@ -896,7 +917,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
 
     loadLivePreview();
     return () => { active = false; };
-  }, [templateType, selectedTournamentId, previewTeamAId, previewTeamBId, previewTeamId, previewPlayerId, previewStatsLevel, previewSelectedDay, styleConfig.topN, styleConfig.dailyStandingsDay, styleConfig.dailyStandingsLobby, styleConfig.dailyStandingsMode, styleConfig.scope, styleConfig.day, styleConfig.lobby, styleConfig.selectedGroup, styleConfig.selectedMap, loading]);
+  }, [templateType, selectedTournamentId, previewTeamAId, previewTeamBId, previewTeamId, previewPlayerId, previewStatsLevel, previewSelectedDay, styleConfig.topN, styleConfig.dailyStandingsDay, styleConfig.dailyStandingsLobby, styleConfig.dailyStandingsMode, styleConfig.scope, styleConfig.day, styleConfig.lobby, styleConfig.selectedGroup, styleConfig.selectedMap, styleConfig.teamSlotSourceMode, styleConfig.teamSlotTournamentId, styleConfig.teamSlotGroupId, styleConfig.teamSlotCustomTeams, styleConfig.teamSlotShowSlotNumbers, styleConfig.teamSlotSlotPrefix, loading]);
 
   // Update specific style configuration field
   const updateStyleConfig = (patch: Partial<TemplateStyleConfig>) => {
@@ -3700,6 +3721,169 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                   </select>
                 </div>
 
+                {/* Slot Number Display Settings */}
+                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f1f5f9' }}>Display Slot Numbers</span>
+                    <input
+                      type="checkbox"
+                      checked={styleConfig.teamSlotShowSlotNumbers ?? true}
+                      onChange={(e) => {
+                        updateStyleConfig({ teamSlotShowSlotNumbers: e.target.checked });
+                        setPreviewData((prev: any) => ({ ...prev, showSlotNumbers: e.target.checked }));
+                      }}
+                      style={{ width: '16px', height: '16px', accentColor: '#EF4444', cursor: 'pointer' }}
+                    />
+                  </div>
+
+                  {(styleConfig.teamSlotShowSlotNumbers ?? true) && (
+                    <div className="property-field" style={{ marginBottom: 0 }}>
+                      <span className="property-label">Slot Badge Prefix</span>
+                      <input
+                        type="text"
+                        className="text-input"
+                        placeholder="e.g. SLOT or #"
+                        value={styleConfig.teamSlotSlotPrefix || 'SLOT'}
+                        onChange={(e) => {
+                          updateStyleConfig({ teamSlotSlotPrefix: e.target.value });
+                          setPreviewData((prev: any) => ({ ...prev, slotPrefix: e.target.value }));
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Data Sourcing Mode: Automatic vs Manual */}
+                <div className="property-field">
+                  <span className="property-label">Team Data Sourcing</span>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${styleConfig.teamSlotSourceMode === 'automatic' ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ fontSize: '0.78rem', padding: '0.45rem 0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                      onClick={() => updateStyleConfig({ teamSlotSourceMode: 'automatic' })}
+                    >
+                      🌐 From Tournament
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${styleConfig.teamSlotSourceMode !== 'automatic' ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ fontSize: '0.78rem', padding: '0.45rem 0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                      onClick={() => updateStyleConfig({ teamSlotSourceMode: 'manual' })}
+                    >
+                      ✏️ Manual Input
+                    </button>
+                  </div>
+                </div>
+
+                {/* Automatic Mode: Tournament & Group Selectors */}
+                {styleConfig.teamSlotSourceMode === 'automatic' && (
+                  <div style={{ background: 'rgba(239, 68, 68, 0.06)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '8px', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#EF4444', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      ⚡ Automatic Tournament Register
+                    </div>
+
+                    <div className="property-field" style={{ marginBottom: 0 }}>
+                      <span className="property-label">Select Tournament</span>
+                      <select
+                        className="select-input"
+                        value={styleConfig.teamSlotTournamentId || selectedTournamentId || ''}
+                        onChange={(e) => {
+                          const tId = e.target.value;
+                          updateStyleConfig({ teamSlotTournamentId: tId, teamSlotGroupId: '' });
+                          setSelectedTournamentId(tId);
+                        }}
+                      >
+                        <option value="">-- Choose Tournament --</option>
+                        {tournaments.map((t) => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {teamSlotGroups.length > 0 && (
+                      <div className="property-field" style={{ marginBottom: 0 }}>
+                        <span className="property-label">Select Group (Optional)</span>
+                        <select
+                          className="select-input"
+                          value={styleConfig.teamSlotGroupId || ''}
+                          onChange={(e) => updateStyleConfig({ teamSlotGroupId: e.target.value })}
+                        >
+                          <option value="">-- All Groups / Finals --</option>
+                          {teamSlotGroups.map((g) => (
+                            <option key={g.id} value={g.id}>{g.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="property-field" style={{ marginBottom: 0 }}>
+                      <span className="property-label">Team Count</span>
+                      <select
+                        className="select-input"
+                        value={styleConfig.topN || (templateType === 'team_slot_vertical' ? 12 : 16)}
+                        onChange={(e) => updateStyleConfig({ topN: Number(e.target.value) })}
+                      >
+                        <option value="8">8 Teams</option>
+                        <option value="10">10 Teams</option>
+                        <option value="12">12 Teams</option>
+                        <option value="16">16 Teams</option>
+                        <option value="20">20 Teams</option>
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '0.25rem' }}>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        style={{ flex: 1, fontSize: '0.78rem', padding: '0.4rem' }}
+                        disabled={teamSlotSyncLoading || !(styleConfig.teamSlotTournamentId || selectedTournamentId)}
+                        onClick={async () => {
+                          const tId = styleConfig.teamSlotTournamentId || selectedTournamentId;
+                          if (!tId) return;
+                          setTeamSlotSyncLoading(true);
+                          try {
+                            const autoTeams = await fetchTournamentTeamSlots(tId, {
+                              groupId: styleConfig.teamSlotGroupId,
+                              limit: styleConfig.topN || (templateType === 'team_slot_vertical' ? 12 : 16),
+                            });
+                            if (autoTeams && autoTeams.length > 0) {
+                              setPreviewData((prev: any) => ({ ...prev, teams: autoTeams }));
+                            } else {
+                              alert('No registered teams found for this tournament yet.');
+                            }
+                          } catch (err) {
+                            console.error('Failed to sync teams:', err);
+                            alert('Failed to sync tournament teams.');
+                          } finally {
+                            setTeamSlotSyncLoading(false);
+                          }
+                        }}
+                      >
+                        {teamSlotSyncLoading ? 'Syncing...' : '⚡ Sync Teams'}
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        style={{ fontSize: '0.78rem', padding: '0.4rem 0.6rem' }}
+                        title="Copy synced teams into manual editor so you can edit logos or names"
+                        onClick={() => {
+                          if (previewData?.teams && previewData.teams.length > 0) {
+                            updateStyleConfig({
+                              teamSlotCustomTeams: previewData.teams,
+                              teamSlotSourceMode: 'manual',
+                            });
+                            alert('Tournament teams copied into Manual Editor! You can now customize each team.');
+                          }
+                        }}
+                      >
+                        📥 Copy to Manual
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Category / Tournament Tag */}
                 <div className="property-field">
                   <span className="property-label">Category / League Eyebrow Tag</span>
@@ -3759,119 +3943,142 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                   />
                 </div>
 
-                {/* Team Manager List */}
-                <div style={{ marginTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.75rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f1f5f9' }}>
-                      Teams ({Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0 ? styleConfig.teamSlotCustomTeams.length : (previewData?.teams?.length || 16)})
-                    </span>
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm"
-                      style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
-                      onClick={() => {
-                        const current = Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
-                          ? styleConfig.teamSlotCustomTeams
-                          : (previewData?.teams || MOCK_TEAM_SLOT_HORIZONTAL.teams);
-                        const next = [...current, { name: `Team ${current.length + 1}`, tag: 'PRO', logoUrl: '' }];
-                        updateStyleConfig({ teamSlotCustomTeams: next });
-                        setPreviewData((prev: any) => ({ ...prev, teams: next }));
-                      }}
-                    >
-                      + Add Team
-                    </button>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '380px', overflowY: 'auto', paddingRight: '4px' }}>
-                    {(Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
-                      ? styleConfig.teamSlotCustomTeams
-                      : (previewData?.teams || MOCK_TEAM_SLOT_HORIZONTAL.teams)
-                    ).map((team: TeamSlotItem, idx: number) => (
-                      <div
-                        key={idx}
-                        style={{
-                          background: 'rgba(255,255,255,0.025)',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                          borderRadius: '8px',
-                          padding: '0.5rem 0.65rem',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '0.35rem',
+                {/* Team Manager List (Manual Mode) */}
+                {styleConfig.teamSlotSourceMode !== 'automatic' && (
+                  <div style={{ marginTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.75rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f1f5f9' }}>
+                        Custom Teams ({Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0 ? styleConfig.teamSlotCustomTeams.length : (previewData?.teams?.length || (templateType === 'team_slot_vertical' ? 12 : 16))})
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
+                        onClick={() => {
+                          const baseMock = templateType === 'team_slot_vertical' ? MOCK_TEAM_SLOT_VERTICAL : MOCK_TEAM_SLOT_HORIZONTAL;
+                          const current = Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
+                            ? styleConfig.teamSlotCustomTeams
+                            : (previewData?.teams || baseMock.teams);
+                          const nextSlot = current.length + 1;
+                          const next = [...current, { name: `Team ${nextSlot}`, tag: 'PRO', slot: nextSlot, logoUrl: '' }];
+                          updateStyleConfig({ teamSlotCustomTeams: next });
+                          setPreviewData((prev: any) => ({ ...prev, teams: next }));
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', width: '20px' }}>
-                            #{idx + 1}
-                          </span>
-                          <input
-                            type="text"
-                            className="text-input"
-                            style={{ flex: 1, padding: '0.3rem 0.5rem', fontSize: '0.8rem' }}
-                            placeholder="Team Name"
-                            value={team.name}
-                            onChange={(e) => {
-                              const current = Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
-                                ? [...styleConfig.teamSlotCustomTeams]
-                                : [...(previewData?.teams || MOCK_TEAM_SLOT_HORIZONTAL.teams)];
-                              current[idx] = { ...current[idx], name: e.target.value };
-                              updateStyleConfig({ teamSlotCustomTeams: current });
-                              setPreviewData((prev: any) => ({ ...prev, teams: current }));
-                            }}
-                          />
-                          <input
-                            type="text"
-                            className="text-input"
-                            style={{ width: '60px', padding: '0.3rem 0.5rem', fontSize: '0.8rem' }}
-                            placeholder="Tag"
-                            value={team.tag || ''}
-                            onChange={(e) => {
-                              const current = Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
-                                ? [...styleConfig.teamSlotCustomTeams]
-                                : [...(previewData?.teams || MOCK_TEAM_SLOT_HORIZONTAL.teams)];
-                              current[idx] = { ...current[idx], tag: e.target.value };
-                              updateStyleConfig({ teamSlotCustomTeams: current });
-                              setPreviewData((prev: any) => ({ ...prev, teams: current }));
-                            }}
-                          />
-                          <button
-                            type="button"
-                            title="Remove Team"
-                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem' }}
-                            onClick={() => {
-                              const current = Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
-                                ? [...styleConfig.teamSlotCustomTeams]
-                                : [...(previewData?.teams || MOCK_TEAM_SLOT_HORIZONTAL.teams)];
-                              current.splice(idx, 1);
-                              updateStyleConfig({ teamSlotCustomTeams: current });
-                              setPreviewData((prev: any) => ({ ...prev, teams: current }));
-                            }}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                        <input
-                          type="url"
-                          className="text-input"
-                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}
-                          placeholder="Logo Image URL (optional)"
-                          value={team.logoUrl || ''}
-                          onChange={(e) => {
-                            const current = Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
-                              ? [...styleConfig.teamSlotCustomTeams]
-                              : [...(previewData?.teams || MOCK_TEAM_SLOT_HORIZONTAL.teams)];
-                            current[idx] = { ...current[idx], logoUrl: e.target.value };
-                            updateStyleConfig({ teamSlotCustomTeams: current });
-                            setPreviewData((prev: any) => ({ ...prev, teams: current }));
+                        + Add Team
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '380px', overflowY: 'auto', paddingRight: '4px' }}>
+                      {(Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
+                        ? styleConfig.teamSlotCustomTeams
+                        : (previewData?.teams || (templateType === 'team_slot_vertical' ? MOCK_TEAM_SLOT_VERTICAL.teams : MOCK_TEAM_SLOT_HORIZONTAL.teams))
+                      ).map((team: TeamSlotItem, idx: number) => (
+                        <div
+                          key={idx}
+                          style={{
+                            background: 'rgba(255,255,255,0.025)',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            borderRadius: '8px',
+                            padding: '0.5rem 0.65rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.35rem',
                           }}
-                        />
-                      </div>
-                    ))}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <input
+                              type="text"
+                              className="text-input"
+                              style={{ width: '42px', padding: '0.25rem 0.35rem', fontSize: '0.75rem', textAlign: 'center', fontWeight: 800 }}
+                              placeholder="Slot"
+                              value={team.slot !== undefined ? String(team.slot) : String(idx + 1)}
+                              title="Slot Number"
+                              onChange={(e) => {
+                                const baseMock = templateType === 'team_slot_vertical' ? MOCK_TEAM_SLOT_VERTICAL : MOCK_TEAM_SLOT_HORIZONTAL;
+                                const current = Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
+                                  ? [...styleConfig.teamSlotCustomTeams]
+                                  : [...(previewData?.teams || baseMock.teams)];
+                                current[idx] = { ...current[idx], slot: e.target.value };
+                                updateStyleConfig({ teamSlotCustomTeams: current });
+                                setPreviewData((prev: any) => ({ ...prev, teams: current }));
+                              }}
+                            />
+                            <input
+                              type="text"
+                              className="text-input"
+                              style={{ flex: 1, padding: '0.3rem 0.5rem', fontSize: '0.8rem' }}
+                              placeholder="Team Name"
+                              value={team.name || team.teamName || ''}
+                              onChange={(e) => {
+                                const baseMock = templateType === 'team_slot_vertical' ? MOCK_TEAM_SLOT_VERTICAL : MOCK_TEAM_SLOT_HORIZONTAL;
+                                const current = Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
+                                  ? [...styleConfig.teamSlotCustomTeams]
+                                  : [...(previewData?.teams || baseMock.teams)];
+                                current[idx] = { ...current[idx], name: e.target.value, teamName: e.target.value };
+                                updateStyleConfig({ teamSlotCustomTeams: current });
+                                setPreviewData((prev: any) => ({ ...prev, teams: current }));
+                              }}
+                            />
+                            <input
+                              type="text"
+                              className="text-input"
+                              style={{ width: '56px', padding: '0.3rem 0.4rem', fontSize: '0.78rem' }}
+                              placeholder="Tag"
+                              value={team.tag || ''}
+                              onChange={(e) => {
+                                const baseMock = templateType === 'team_slot_vertical' ? MOCK_TEAM_SLOT_VERTICAL : MOCK_TEAM_SLOT_HORIZONTAL;
+                                const current = Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
+                                  ? [...styleConfig.teamSlotCustomTeams]
+                                  : [...(previewData?.teams || baseMock.teams)];
+                                current[idx] = { ...current[idx], tag: e.target.value };
+                                updateStyleConfig({ teamSlotCustomTeams: current });
+                                setPreviewData((prev: any) => ({ ...prev, teams: current }));
+                              }}
+                            />
+                            <button
+                              type="button"
+                              title="Remove Team"
+                              style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem' }}
+                              onClick={() => {
+                                const baseMock = templateType === 'team_slot_vertical' ? MOCK_TEAM_SLOT_VERTICAL : MOCK_TEAM_SLOT_HORIZONTAL;
+                                const current = Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
+                                  ? [...styleConfig.teamSlotCustomTeams]
+                                  : [...(previewData?.teams || baseMock.teams)];
+                                current.splice(idx, 1);
+                                updateStyleConfig({ teamSlotCustomTeams: current });
+                                setPreviewData((prev: any) => ({ ...prev, teams: current }));
+                              }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                          <input
+                            type="url"
+                            className="text-input"
+                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}
+                            placeholder="Logo Image URL (optional)"
+                            value={team.logoUrl || team.logo || ''}
+                            onChange={(e) => {
+                              const baseMock = templateType === 'team_slot_vertical' ? MOCK_TEAM_SLOT_VERTICAL : MOCK_TEAM_SLOT_HORIZONTAL;
+                              const current = Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
+                                ? [...styleConfig.teamSlotCustomTeams]
+                                : [...(previewData?.teams || baseMock.teams)];
+                              current[idx] = { ...current[idx], logoUrl: e.target.value };
+                              updateStyleConfig({ teamSlotCustomTeams: current });
+                              setPreviewData((prev: any) => ({ ...prev, teams: current }));
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
               </div>
             </div>
           )}
+
 
         </div>
 

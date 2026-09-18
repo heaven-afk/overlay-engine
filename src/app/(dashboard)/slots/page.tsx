@@ -19,6 +19,7 @@ import {
   getLobbyKills,
   getMatchSummary,
   loadPlayerProfileData,
+  fetchTournamentTeamSlots,
 } from '@/lib/statsApi';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
@@ -31,6 +32,14 @@ import {
 } from 'lucide-react';
 
 // ─── Per-slot configuration state shapes ─────────────────────────────────────
+
+interface TeamSlotSlotConfig {
+  tournamentId: string;
+  groupId?: string;
+  n: number;
+  showSlotNumbers: boolean;
+  slotPrefix: string;
+}
 
 interface DailyStandingsConfig {
   tournamentId: string;
@@ -130,6 +139,7 @@ export default function SlotsDashboard() {
   // Per-slot configuration state
   const [standingsConfig, setStandingsConfig] = useState<Record<string, StandingsConfig>>({});
   const [dailyConfig, setDailyConfig] = useState<Record<string, DailyStandingsConfig>>({});
+  const [teamSlotConfig, setTeamSlotConfig] = useState<Record<string, TeamSlotSlotConfig>>({});
   const [teamRosterConfig, setTeamRosterConfig] = useState<Record<string, TeamRosterKillsSlotConfig>>({});
   const [flexibleTop5Config, setFlexibleTop5Config] = useState<Record<string, FlexibleTop5SlotConfig>>({});
   const [matchSummaryConfig, setMatchSummaryConfig] = useState<Record<string, MatchSummarySlotConfig>>({});
@@ -539,6 +549,54 @@ export default function SlotsDashboard() {
     } catch (err) {
       console.error('Error fetching daily standings:', err);
       alert('Failed to load daily standings.');
+    } finally {
+      setPushingId(null);
+    }
+  }
+
+  async function fetchTeamSlotData(slot: OverlaySlot) {
+    const cfg = teamSlotConfig[slot.id!];
+    const tournamentId = cfg?.tournamentId;
+    const n = cfg?.n ?? (slot.dataShapeType === 'team_slot_vertical' ? 12 : 16);
+    const showSlotNumbers = cfg?.showSlotNumbers ?? true;
+    const slotPrefix = cfg?.slotPrefix || 'SLOT';
+
+    if (!tournamentId) {
+      alert('Please select a tournament first.');
+      return;
+    }
+
+    try {
+      setPushingId(slot.id!);
+      const teams = await fetchTournamentTeamSlots(tournamentId, {
+        groupId: cfg?.groupId,
+        limit: n,
+      });
+
+      if (!teams || teams.length === 0) {
+        alert('No registered teams found for this tournament yet.');
+        return;
+      }
+
+      const payload: Record<string, any> = {
+        teams,
+        results: teams,
+        showSlotNumbers,
+        slotPrefix,
+        tournamentId,
+        groupId: cfg?.groupId,
+        currentData: {
+          teams,
+          results: teams,
+          showSlotNumbers,
+          slotPrefix,
+        },
+      };
+
+      await updateSlotWorkspaceFields(slot, payload);
+    } catch (err) {
+      console.error('Error fetching team slots:', err);
+      alert('Failed to load team slots from tournament.');
     } finally {
       setPushingId(null);
     }
@@ -1318,6 +1376,82 @@ export default function SlotsDashboard() {
             >
               {isPushing ? <Loader2 className="animate-spin" style={{ width: '13px', height: '13px' }} /> : <RefreshCw style={{ width: '13px', height: '13px' }} />}
               Update Draft Data
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (dataShape === 'team_slot_horizontal' || dataShape === 'team_slot_vertical') {
+      const cfg = teamSlotConfig[slot.id!] ?? {
+        tournamentId: '',
+        groupId: '',
+        n: dataShape === 'team_slot_vertical' ? 12 : 16,
+        showSlotNumbers: true,
+        slotPrefix: 'SLOT',
+      };
+      const isPushing = pushingId === slot.id;
+
+      return (
+        <div style={{
+          background: 'rgba(255,255,255,0.02)',
+          padding: '0.75rem',
+          borderRadius: '8px',
+          border: '1px solid rgba(255,255,255,0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem',
+        }}>
+          <span className="slot-control-label" style={{ margin: 0, fontWeight: 600 }}>
+            Sync Team Slot Data from Tournament Register ({dataShape === 'team_slot_vertical' ? '434x724' : '1920x1080'})
+          </span>
+
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <select
+              className="select-input"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px', flex: 2 }}
+              value={cfg.tournamentId}
+              onChange={(e) => setTeamSlotConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, tournamentId: e.target.value } }))}
+            >
+              <option value="">-- Choose Tournament --</option>
+              {tournaments.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+
+            <select
+              className="select-input"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', height: '32px', width: '110px' }}
+              value={cfg.n}
+              onChange={(e) => setTeamSlotConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, n: Number(e.target.value) } }))}
+            >
+              <option value={8}>8 Teams</option>
+              <option value={10}>10 Teams</option>
+              <option value={12}>12 Teams</option>
+              <option value={16}>16 Teams</option>
+              <option value={20}>20 Teams</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={cfg.showSlotNumbers}
+                onChange={(e) => setTeamSlotConfig((prev) => ({ ...prev, [slot.id!]: { ...cfg, showSlotNumbers: e.target.checked } }))}
+                style={{ accentColor: '#EF4444' }}
+              />
+              Show Slots
+            </label>
+
+            <button
+              onClick={() => fetchTeamSlotData(slot)}
+              className="btn btn-secondary btn-sm"
+              style={{ height: '32px', fontSize: '0.8rem', padding: '0 0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+              disabled={isPushing}
+            >
+              {isPushing ? <Loader2 className="animate-spin" style={{ width: '13px', height: '13px' }} /> : <RefreshCw style={{ width: '13px', height: '13px' }} />}
+              Sync Tournament Teams
             </button>
           </div>
         </div>

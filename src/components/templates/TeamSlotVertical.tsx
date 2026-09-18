@@ -12,18 +12,18 @@ interface TeamSlotVerticalProps {
 
 // ── Default Mock Teams (12 Teams for Vertical Layout) ──────────────────────
 const DEFAULT_TEAMS_VERTICAL: TeamSlotItem[] = [
-  { name: '100 Thieves', tag: 'NA', logoUrl: '' },
-  { name: 'TYLOO', tag: 'CN', logoUrl: '' },
-  { name: 'Karmine Corp', tag: 'EMEA', logoUrl: '' },
-  { name: 'Global Esports', tag: 'PAC', logoUrl: '' },
-  { name: 'LOUD', tag: 'BR', logoUrl: '' },
-  { name: 'JD Gaming', tag: 'CN', logoUrl: '' },
-  { name: 'Team Liquid', tag: 'EMEA', logoUrl: '' },
-  { name: 'NS RedForce', tag: 'KR', logoUrl: '' },
-  { name: 'NRG', tag: 'NA', logoUrl: '' },
-  { name: 'EDward Gaming', tag: 'CN', logoUrl: '' },
-  { name: 'FUT Esports', tag: 'EMEA', logoUrl: '' },
-  { name: 'Paper Rex', tag: 'PAC', logoUrl: '' },
+  { name: '100 Thieves', tag: 'NA', slot: 1, logoUrl: '' },
+  { name: 'TYLOO', tag: 'CN', slot: 2, logoUrl: '' },
+  { name: 'Karmine Corp', tag: 'EMEA', slot: 3, logoUrl: '' },
+  { name: 'Global Esports', tag: 'PAC', slot: 4, logoUrl: '' },
+  { name: 'LOUD', tag: 'BR', slot: 5, logoUrl: '' },
+  { name: 'JD Gaming', tag: 'CN', slot: 6, logoUrl: '' },
+  { name: 'Team Liquid', tag: 'EMEA', slot: 7, logoUrl: '' },
+  { name: 'NS RedForce', tag: 'KR', slot: 8, logoUrl: '' },
+  { name: 'NRG', tag: 'NA', slot: 9, logoUrl: '' },
+  { name: 'EDward Gaming', tag: 'CN', slot: 10, logoUrl: '' },
+  { name: 'FUT Esports', tag: 'EMEA', slot: 11, logoUrl: '' },
+  { name: 'Paper Rex', tag: 'PAC', slot: 12, logoUrl: '' },
 ];
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -42,65 +42,92 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function TeamLogoImage({ logoUrl, name, size = 32, accent }: { logoUrl?: string; name: string; size?: number; accent: string }) {
+/**
+ * Square Logo Container with crisp framing and fallback initials
+ */
+function SquareTeamLogo({
+  logoUrl,
+  name,
+  size = 46,
+  accent,
+  isRedEsports = false,
+}: {
+  logoUrl?: string;
+  name: string;
+  size?: number;
+  accent: string;
+  isRedEsports?: boolean;
+}) {
   const isHttp = logoUrl && (logoUrl.startsWith('http://') || logoUrl.startsWith('https://'));
   const initials = (name || 'TM')
     .replace(/[^a-zA-Z0-9]/g, '')
     .substring(0, 2)
     .toUpperCase() || 'TM';
 
-  if (isHttp) {
-    const canvaUrl = getCanvaEmbedUrl(logoUrl);
-    if (canvaUrl) {
-      return (
-        <iframe
-          src={canvaUrl}
-          scrolling="no"
-          style={{
-            width: `${size}px`,
-            height: `${size}px`,
-            border: 'none',
-            borderRadius: '6px',
-            pointerEvents: 'none',
-            flexShrink: 0,
-          }}
-        />
-      );
-    }
-    return (
-      <img
-        src={logoUrl}
-        alt={name}
-        crossOrigin="anonymous"
-        referrerPolicy="no-referrer"
-        style={{
-          width: `${size}px`,
-          height: `${size}px`,
-          objectFit: 'contain',
-          flexShrink: 0,
-        }}
-      />
-    );
-  }
-
   return (
     <div
       style={{
         width: `${size}px`,
         height: `${size}px`,
-        borderRadius: '6px',
-        background: hexToRgba(accent, 0.15),
-        border: `1px solid ${hexToRgba(accent, 0.4)}`,
+        minWidth: `${size}px`,
+        minHeight: `${size}px`,
+        borderRadius: '7px',
+        background: isRedEsports
+          ? 'rgba(0, 0, 0, 0.45)'
+          : 'linear-gradient(145deg, rgba(25, 25, 35, 0.9) 0%, rgba(10, 10, 16, 0.95) 100%)',
+        border: `1px solid ${isRedEsports ? 'rgba(255, 255, 255, 0.25)' : hexToRgba(accent, 0.35)}`,
+        boxShadow: `inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.4)`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontWeight: 800,
-        fontSize: `${Math.round(size * 0.4)}px`,
-        color: '#fff',
+        padding: '3px',
+        boxSizing: 'border-box',
+        overflow: 'hidden',
         flexShrink: 0,
+        position: 'relative',
       }}
     >
-      {initials}
+      {isHttp ? (
+        getCanvaEmbedUrl(logoUrl) ? (
+          <iframe
+            src={getCanvaEmbedUrl(logoUrl)!}
+            scrolling="no"
+            style={{
+              width: '100%',
+              height: '100%',
+              border: 'none',
+              borderRadius: '5px',
+              pointerEvents: 'none',
+            }}
+          />
+        ) : (
+          <img
+            src={logoUrl}
+            alt={name}
+            crossOrigin="anonymous"
+            referrerPolicy="no-referrer"
+            style={{
+              maxWidth: '92%',
+              maxHeight: '92%',
+              objectFit: 'contain',
+              display: 'block',
+              filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))',
+            }}
+          />
+        )
+      ) : (
+        <span
+          style={{
+            fontSize: `${Math.round(size * 0.38)}px`,
+            fontWeight: 900,
+            letterSpacing: '0.04em',
+            color: isRedEsports ? '#FFFFFF' : accent,
+            textShadow: '0 1px 3px rgba(0, 0, 0, 0.6)',
+          }}
+        >
+          {initials}
+        </span>
+      )}
     </div>
   );
 }
@@ -114,24 +141,34 @@ export const TeamSlotVertical: React.FC<TeamSlotVerticalProps> = ({
   const headingFont = styleConfig?.headingFont || 'Outfit';
   const bodyFont = styleConfig?.bodyFont || 'Inter';
 
-  // Resolved Data
-  const teams: TeamSlotItem[] = (Array.isArray(data?.teams) && data.teams.length > 0)
+  // Resolved Teams Array
+  const rawTeams: any[] = (Array.isArray(data?.teams) && data.teams.length > 0)
     ? data.teams
-    : (Array.isArray(styleConfig?.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0)
-      ? styleConfig.teamSlotCustomTeams
-      : DEFAULT_TEAMS_VERTICAL;
+    : (Array.isArray(data?.results) && data.results.length > 0)
+      ? data.results
+      : (Array.isArray(styleConfig?.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0)
+        ? styleConfig.teamSlotCustomTeams
+        : DEFAULT_TEAMS_VERTICAL;
 
   const title = data?.title || styleConfig?.graphicTitle || 'MEET THE TEAMS';
-  const subtitle = data?.subtitle || styleConfig?.graphicSubtitle || `${teams.length} TEAMS CONFIRMED`;
+  const subtitle = data?.subtitle || styleConfig?.graphicSubtitle || `${rawTeams.length} TEAMS CONFIRMED`;
   const categoryTag = data?.categoryTag || styleConfig?.teamSlotCategoryTag || styleConfig?.brandingName || 'TOURNAMENT PARTICIPANTS';
   const sponsorText = data?.sponsorText || styleConfig?.teamSlotSponsorText || 'SPONSORED BY';
   const sponsorName = data?.sponsorName || styleConfig?.teamSlotSponsorName || 'RUNESTONE';
   const sponsorLogoUrl = data?.sponsorLogoUrl || styleConfig?.teamSlotSponsorLogoUrl;
   const cardStyle = data?.cardStyle || styleConfig?.teamSlotCardStyle || 'dark_gold';
+  const showSlotNumbers = data?.showSlotNumbers ?? styleConfig?.teamSlotShowSlotNumbers ?? true;
+  const slotPrefix = data?.slotPrefix || styleConfig?.teamSlotSlotPrefix || 'SLOT';
 
-  // For 434x724, 2 columns is ideal
-  const displayTeams = teams.slice(0, 16); // max 16 for clean vertical fit
+  // Slice to max 16 for clean vertical fit
+  const displayTeams = rawTeams.slice(0, 16);
   const count = displayTeams.length;
+
+  // Responsive sizing based on team count to distribute vertically
+  const isCompact = count > 10;
+  const logoSize = isCompact ? 44 : 50;
+  const cardMinHeight = isCompact ? '48px' : '56px';
+  const gridGap = count <= 8 ? '10px' : count <= 12 ? '8px' : '6px';
 
   return (
     <div
@@ -147,14 +184,14 @@ export const TeamSlotVertical: React.FC<TeamSlotVerticalProps> = ({
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        padding: '20px 18px 16px 18px',
+        padding: '18px 16px 14px 16px',
         background: styleConfig?.customBackgroundUrl
-          ? `linear-gradient(180deg, rgba(6, 6, 10, 0.7) 0%, rgba(6, 6, 10, 0.95) 100%), url(${styleConfig.customBackgroundUrl}) center/cover no-repeat`
-          : `radial-gradient(ellipse at 50% 0%, ${hexToRgba(accent, 0.25)} 0%, rgba(10, 10, 15, 0.96) 65%),
-             radial-gradient(ellipse at 50% 100%, ${hexToRgba(accent, 0.12)} 0%, #07070a 80%)`,
+          ? `linear-gradient(180deg, rgba(6, 6, 10, 0.75) 0%, rgba(6, 6, 10, 0.95) 100%), url(${styleConfig.customBackgroundUrl}) center/cover no-repeat`
+          : `radial-gradient(ellipse at 50% 0%, ${hexToRgba(accent, 0.28)} 0%, rgba(10, 10, 15, 0.97) 65%),
+             radial-gradient(ellipse at 50% 100%, ${hexToRgba(accent, 0.12)} 0%, #07070a 85%)`,
       }}
     >
-      {/* Background Decorative Grid */}
+      {/* Background Decorative Esports Grid */}
       <div
         style={{
           position: 'absolute',
@@ -163,52 +200,58 @@ export const TeamSlotVertical: React.FC<TeamSlotVerticalProps> = ({
             linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
             linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px)
           `,
-          backgroundSize: '24px 24px',
+          backgroundSize: '20px 20px',
           pointerEvents: 'none',
         }}
       />
 
       {/* Header Section */}
-      <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', marginBottom: '12px' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+      <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', marginBottom: count <= 10 ? '10px' : '6px' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
           <span style={{ width: '12px', height: '2px', background: accent }} />
-          <span style={{
-            fontSize: '9.5px',
-            fontWeight: 800,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: accent,
-            fontFamily: `'${headingFont}', sans-serif`,
-          }}>
+          <span
+            style={{
+              fontSize: '9.5px',
+              fontWeight: 800,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              color: accent,
+              fontFamily: `'${headingFont}', sans-serif`,
+            }}
+          >
             {categoryTag}
           </span>
           <span style={{ width: '12px', height: '2px', background: accent }} />
         </div>
 
-        <h1 style={{
-          fontFamily: `'${headingFont}', sans-serif`,
-          fontSize: '24px',
-          fontWeight: 900,
-          letterSpacing: '-0.01em',
-          textTransform: 'uppercase',
-          margin: 0,
-          lineHeight: 1.15,
-          background: 'linear-gradient(180deg, #FFFFFF 20%, #E2E8F0 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.6))',
-        }}>
+        <h1
+          style={{
+            fontFamily: `'${headingFont}', sans-serif`,
+            fontSize: count > 12 ? '22px' : '24px',
+            fontWeight: 900,
+            letterSpacing: '-0.01em',
+            textTransform: 'uppercase',
+            margin: 0,
+            lineHeight: 1.15,
+            background: 'linear-gradient(180deg, #FFFFFF 20%, #E2E8F0 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.6))',
+          }}
+        >
           {title}
         </h1>
 
-        <p style={{
-          margin: '3px 0 0 0',
-          fontSize: '10.5px',
-          fontWeight: 600,
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          color: 'rgba(255, 255, 255, 0.6)',
-        }}>
+        <p
+          style={{
+            margin: '2px 0 0 0',
+            fontSize: '10px',
+            fontWeight: 600,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            color: 'rgba(255, 255, 255, 0.6)',
+          }}
+        >
           {subtitle}
         </p>
       </div>
@@ -220,7 +263,7 @@ export const TeamSlotVertical: React.FC<TeamSlotVerticalProps> = ({
           zIndex: 2,
           display: 'grid',
           gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-          gap: count > 12 ? '6px' : '8px',
+          gap: gridGap,
           flex: 1,
           alignContent: 'center',
         }}
@@ -228,7 +271,12 @@ export const TeamSlotVertical: React.FC<TeamSlotVerticalProps> = ({
         {displayTeams.map((team, idx) => {
           const isRedEsports = cardStyle === 'red_esports';
           const isDarkGold = cardStyle === 'dark_gold';
-          const isCompact = count > 12;
+
+          // Safe data extraction (support both name and teamName from Heaven Stat Engine)
+          const teamName = team.name || team.teamName || team.clanName || `Team ${idx + 1}`;
+          const logoUrl = team.logoUrl || team.logo || team.logo_url || '';
+          const tag = team.tag || (team.clanName ? team.clanName : '');
+          const slot = team.slot ?? team.slotNumber ?? (idx + 1);
 
           return (
             <div
@@ -236,26 +284,32 @@ export const TeamSlotVertical: React.FC<TeamSlotVerticalProps> = ({
               style={{
                 position: 'relative',
                 borderRadius: '8px',
-                padding: isCompact ? '6px 8px' : '8px 10px',
+                padding: '6px 8px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                minHeight: isCompact ? '40px' : '48px',
-                ...(isRedEsports ? {
-                  background: `linear-gradient(145deg, ${hexToRgba(accent, 0.8)} 0%, ${hexToRgba(accent, 0.35)} 100%)`,
-                  border: `1px solid ${hexToRgba(accent, 0.85)}`,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
-                } : isDarkGold ? {
-                  background: 'linear-gradient(180deg, rgba(22, 22, 30, 0.85) 0%, rgba(12, 12, 18, 0.95) 100%)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
-                } : {
-                  background: 'rgba(18, 18, 24, 0.75)',
-                  border: `1px solid ${hexToRgba(accent, 0.25)}`,
-                }),
+                minHeight: cardMinHeight,
+                boxSizing: 'border-box',
+                ...(isRedEsports
+                  ? {
+                      background: `linear-gradient(145deg, ${hexToRgba(accent, 0.85)} 0%, ${hexToRgba(accent, 0.4)} 100%)`,
+                      border: `1px solid ${hexToRgba(accent, 0.9)}`,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
+                    }
+                  : isDarkGold
+                  ? {
+                      background: 'linear-gradient(180deg, rgba(22, 22, 30, 0.88) 0%, rgba(12, 12, 18, 0.95) 100%)',
+                      border: '1px solid rgba(255, 255, 255, 0.09)',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+                    }
+                  : {
+                      background: 'rgba(18, 18, 24, 0.8)',
+                      border: `1px solid ${hexToRgba(accent, 0.28)}`,
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.35)',
+                    }),
               }}
             >
-              {/* Corner Frame Accents */}
+              {/* Corner Frame Accents for Dark Gold / Sleek style */}
               {!isRedEsports && (
                 <>
                   <span style={{ position: 'absolute', top: '-1px', left: '-1px', width: '5px', height: '5px', borderTop: `1.5px solid ${accent}`, borderLeft: `1.5px solid ${accent}`, borderTopLeftRadius: '3px' }} />
@@ -265,46 +319,75 @@ export const TeamSlotVertical: React.FC<TeamSlotVerticalProps> = ({
                 </>
               )}
 
-              {/* Team Logo */}
-              <TeamLogoImage
-                logoUrl={team.logoUrl}
-                name={team.name}
-                size={isCompact ? 28 : 34}
+              {/* Square Team Logo Tile */}
+              <SquareTeamLogo
+                logoUrl={logoUrl}
+                name={teamName}
+                size={logoSize}
                 accent={accent}
+                isRedEsports={isRedEsports}
               />
 
-              {/* Team Info */}
-              <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
+              {/* Team Info & Slot Meta */}
+              <div style={{ flex: 1, overflow: 'hidden', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                {/* Top Meta Line: Slot Badge & Region Tag */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {showSlotNumbers && (
+                    <span
+                      style={{
+                        fontSize: '8.5px',
+                        fontWeight: 900,
+                        letterSpacing: '0.06em',
+                        textTransform: 'uppercase',
+                        padding: '1px 4px',
+                        borderRadius: '3px',
+                        lineHeight: 1.1,
+                        background: isRedEsports ? 'rgba(0, 0, 0, 0.4)' : hexToRgba(accent, 0.2),
+                        border: `1px solid ${isRedEsports ? 'rgba(255, 255, 255, 0.3)' : hexToRgba(accent, 0.5)}`,
+                        color: isRedEsports ? '#FFFFFF' : accent,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {slotPrefix} {String(slot).padStart(2, '0')}
+                    </span>
+                  )}
+                  {tag && (
+                    <span
+                      style={{
+                        fontSize: '8px',
+                        fontWeight: 700,
+                        color: isRedEsports ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.6)',
+                        letterSpacing: '0.06em',
+                        textTransform: 'uppercase',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {tag}
+                    </span>
+                  )}
+                </div>
+
+                {/* Team Name */}
                 <div
                   style={{
                     fontFamily: `'${headingFont}', sans-serif`,
                     fontSize: isCompact ? '11px' : '12px',
-                    fontWeight: 800,
-                    letterSpacing: '0.02em',
+                    fontWeight: 900,
+                    letterSpacing: '0.01em',
                     textTransform: 'uppercase',
                     whiteSpace: 'nowrap',
                     textOverflow: 'ellipsis',
                     overflow: 'hidden',
                     color: '#FFFFFF',
-                    lineHeight: 1.2,
+                    lineHeight: 1.15,
+                    textShadow: '0 1px 3px rgba(0, 0, 0, 0.7)',
                   }}
+                  title={teamName}
                 >
-                  {team.name}
+                  {teamName}
                 </div>
-                {team.tag && (
-                  <div
-                    style={{
-                      fontSize: '8.5px',
-                      fontWeight: 700,
-                      color: isRedEsports ? 'rgba(255,255,255,0.8)' : accent,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      marginTop: '1px',
-                    }}
-                  >
-                    {team.tag}
-                  </div>
-                )}
               </div>
             </div>
           );
@@ -320,18 +403,20 @@ export const TeamSlotVertical: React.FC<TeamSlotVerticalProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-          paddingTop: '10px',
-          marginTop: '12px',
+          paddingTop: '8px',
+          marginTop: count <= 10 ? '10px' : '6px',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{
-            fontSize: '9px',
-            fontWeight: 800,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            color: 'rgba(255, 255, 255, 0.5)',
-          }}>
+          <span
+            style={{
+              fontSize: '8.5px',
+              fontWeight: 800,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              color: 'rgba(255, 255, 255, 0.5)',
+            }}
+          >
             {sponsorText}
           </span>
           {sponsorLogoUrl ? (
@@ -340,30 +425,34 @@ export const TeamSlotVertical: React.FC<TeamSlotVerticalProps> = ({
               alt="Sponsor"
               crossOrigin="anonymous"
               referrerPolicy="no-referrer"
-              style={{ height: '16px', objectFit: 'contain' }}
+              style={{ height: '15px', objectFit: 'contain' }}
             />
           ) : (
-            <span style={{
-              fontSize: '10.5px',
-              fontWeight: 900,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              color: '#fff',
-              fontFamily: `'${headingFont}', sans-serif`,
-            }}>
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 900,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: '#fff',
+                fontFamily: `'${headingFont}', sans-serif`,
+              }}
+            >
               {sponsorName}
             </span>
           )}
         </div>
 
         {styleConfig?.showStatsStamp !== false && (
-          <div style={{
-            fontSize: '9px',
-            fontWeight: 700,
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            color: 'rgba(255, 255, 255, 0.35)',
-          }}>
+          <div
+            style={{
+              fontSize: '8.5px',
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              color: 'rgba(255, 255, 255, 0.35)',
+            }}
+          >
             Overlay Engine
           </div>
         )}
