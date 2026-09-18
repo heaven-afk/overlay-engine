@@ -52,7 +52,12 @@ export default function InvitePage({ params }: InvitePageProps) {
     try {
       setAccepting(true);
       setError('');
-      await acceptInviteToken(token, { uid: user.uid, email: user.email || '' });
+      const effectiveDisplayName = user.displayName || (typeof window !== 'undefined' ? localStorage.getItem(`overlay_display_name_${user.uid}`) : null) || (user.email ? user.email.split('@')[0] : '');
+      await acceptInviteToken(token, {
+        uid: user.uid,
+        email: user.email || '',
+        displayName: effectiveDisplayName || ''
+      });
       setSuccess(true);
       setTimeout(() => router.push('/slots'), 1500);
     } catch (err: any) {
@@ -148,10 +153,33 @@ export default function InvitePage({ params }: InvitePageProps) {
           Team Invitation
         </h2>
 
-        <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', margin: '0 0 24px 0', lineHeight: 1.5 }}>
-          You have been invited to join team <strong style={{ color: '#d946ef' }}>{invite.teamName}</strong> as an{' '}
+        <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+          You have been invited by <strong style={{ color: '#fff' }}>{invite.createdByName || invite.createdBy}</strong> to join team{' '}
+          <strong style={{ color: '#d946ef' }}>{invite.teamName}</strong> as an{' '}
           <strong style={{ color: '#fff', textTransform: 'uppercase' }}>{invite.role}</strong>.
         </p>
+
+        {user && (
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '10px',
+            padding: '10px 14px',
+            marginBottom: '20px',
+            fontSize: '13px',
+            color: 'var(--text-muted)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}>
+            <span>Joining as:</span>
+            <strong style={{ color: '#fff' }}>
+              {user.displayName || (user.email ? user.email.split('@')[0] : 'Member')}
+            </strong>
+            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>({user.email})</span>
+          </div>
+        )}
 
         {error && (
           <div style={{

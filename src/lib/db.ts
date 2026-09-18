@@ -153,6 +153,7 @@ export interface SlotStateData {
 export interface TeamMember {
   userId: string;
   email: string;
+  displayName?: string;
   role: 'editor' | 'viewer';
   joinedAt?: any;
 }
@@ -173,6 +174,7 @@ export interface OverlayInvite {
   role: 'editor' | 'viewer';
   token: string;
   createdBy: string;
+  createdByName?: string;
   expiresAt: any;
   status: 'active' | 'accepted' | 'expired';
 }
@@ -784,11 +786,17 @@ export async function logWorkspaceEdit(
 
 // ─── TEAM & INVITES CRUD (overlayTeams, overlayInvites) ─────────────────────
 
-export async function createTeam(name: string, owner: { uid: string; email: string }): Promise<string> {
+export async function createTeam(name: string, owner: { uid: string; email: string; displayName?: string }): Promise<string> {
   const ref = await addDoc(collection(db, 'overlayTeams'), {
     name,
     ownerId: owner.uid,
-    members: [{ userId: owner.uid, email: owner.email, role: 'editor', joinedAt: Timestamp.now() }],
+    members: [{
+      userId: owner.uid,
+      email: owner.email,
+      displayName: owner.displayName || '',
+      role: 'editor',
+      joinedAt: Timestamp.now()
+    }],
     createdAt: Timestamp.now(),
   });
   return ref.id;
@@ -819,7 +827,7 @@ export async function createInviteLink(
   teamId: string,
   teamName: string,
   role: 'editor' | 'viewer',
-  user: { uid: string; email: string }
+  user: { uid: string; email: string; displayName?: string }
 ): Promise<string> {
   const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
   const expiresAt = Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)); // 7 days
@@ -830,6 +838,7 @@ export async function createInviteLink(
     role,
     token,
     createdBy: user.email || user.uid,
+    createdByName: user.displayName || user.email || 'Team Member',
     expiresAt,
     status: 'active',
   });
@@ -865,7 +874,7 @@ export async function getTeamInvites(teamId: string): Promise<OverlayInvite[]> {
 
 export async function acceptInviteToken(
   token: string,
-  user: { uid: string; email: string }
+  user: { uid: string; email: string; displayName?: string }
 ): Promise<{ teamId: string }> {
   const invite = await getInviteByToken(token);
   if (!invite) throw new Error('Invalid or expired invite token');
@@ -873,12 +882,28 @@ export async function acceptInviteToken(
   const team = await getTeam(invite.teamId);
   if (!team) throw new Error('Team not found');
 
-  // Check if already a member
-  if (!team.members.some((m) => m.userId === user.uid)) {
+  const existingIdx = team.members.findIndex((m) => m.userId === user.uid);
+  if (existingIdx === -1) {
     const updatedMembers = [
       ...team.members,
-      { userId: user.uid, email: user.email, role: invite.role, joinedAt: Timestamp.now() },
+      {
+        userId: user.uid,
+        email: user.email,
+        displayName: user.displayName || '',
+        role: invite.role,
+        joinedAt: Timestamp.now()
+      },
     ];
+    await updateDoc(doc(db, 'overlayTeams', invite.teamId), {
+      members: updatedMembers,
+      updatedAt: Timestamp.now(),
+    });
+  } else if (user.displayName && !team.members[existingIdx].displayName) {
+    const updatedMembers = [...team.members];
+    updatedMembers[existingIdx] = {
+      ...updatedMembers[existingIdx],
+      displayName: user.displayName,
+    };
     await updateDoc(doc(db, 'overlayTeams', invite.teamId), {
       members: updatedMembers,
       updatedAt: Timestamp.now(),
@@ -891,6 +916,34 @@ export async function acceptInviteToken(
   }
 
   return { teamId: invite.teamId };
+}
+
+export async function updateUserDisplayNameInTeams(
+  userId: string,
+  displayName: string
+): Promise<void> {
+  try {
+    const teams = await getUserTeams(userId);
+    for (const team of teams) {
+      if (!team.id) continue;
+      let hasChanges = false;
+      const updatedMembers = team.members.map((m) => {
+        if (m.userId === userId && m.displayName !== displayName) {
+          hasChanges = true;
+          return { ...m, displayName };
+        }
+        return m;
+      });
+      if (hasChanges) {
+        await updateDoc(doc(db, 'overlayTeams', team.id), {
+          members: updatedMembers,
+          updatedAt: Timestamp.now(),
+        });
+      }
+    }
+  } catch (err) {
+    console.error('Failed to sync user display name to teams:', err);
+  }
 }
 
 // ─── MOCK TEMPLATES SEEDING ──────────────────────────────────────────────────

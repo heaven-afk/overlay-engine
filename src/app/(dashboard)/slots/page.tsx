@@ -421,7 +421,11 @@ export default function SlotsDashboard() {
     e.preventDefault();
     if (!newTeamName.trim() || !currentUser) return;
     try {
-      const tid = await createTeam(newTeamName.trim(), { uid: currentUser.uid, email: currentUser.email || '' });
+      const tid = await createTeam(newTeamName.trim(), {
+        uid: currentUser.uid,
+        email: currentUser.email || '',
+        displayName: currentUser.displayName || '',
+      });
       setNewTeamName('');
       const teams = await getUserTeams(currentUser.uid);
       setUserTeams(teams);
@@ -439,7 +443,11 @@ export default function SlotsDashboard() {
         teamModalSlot.teamId,
         team?.name || 'Overlay Team',
         role,
-        { uid: currentUser.uid, email: currentUser.email || '' }
+        {
+          uid: currentUser.uid,
+          email: currentUser.email || '',
+          displayName: currentUser.displayName || '',
+        }
       );
       setCreatedInviteUrl(`${origin}/invite/${token}`);
     } catch (err: any) {

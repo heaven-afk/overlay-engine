@@ -5,12 +5,11 @@ import {
   getUserTeams, createTeam, createInviteLink, getTeamInvites,
   OverlayTeam, OverlayInvite
 } from '@/lib/db';
-import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { Users, UserPlus, Shield, Copy, Check, Plus, Loader2, Link as LinkIcon, UserCheck } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Users, UserPlus, Shield, Copy, Check, Plus, Loader2, Link as LinkIcon, UserCheck, Sparkles } from 'lucide-react';
 
 export default function TeamsDashboard() {
-  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const { user: currentUser, displayName } = useAuth();
   const [teams, setTeams] = useState<OverlayTeam[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,16 +32,12 @@ export default function TeamsDashboard() {
 
   useEffect(() => {
     setOrigin(window.location.origin);
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setCurrentUser(u);
-      if (u) {
-        loadUserTeams(u.uid);
-      } else {
-        setLoading(false);
-      }
-    });
-    return () => unsub();
-  }, []);
+    if (currentUser) {
+      loadUserTeams(currentUser.uid);
+    } else {
+      setLoading(false);
+    }
+  }, [currentUser]);
 
   async function loadUserTeams(uid: string) {
     try {
@@ -83,6 +78,7 @@ export default function TeamsDashboard() {
       const tid = await createTeam(teamNameInput.trim(), {
         uid: currentUser.uid,
         email: currentUser.email || '',
+        displayName: displayName || currentUser.displayName || '',
       });
       setTeamNameInput('');
       setShowAddTeam(false);
@@ -106,7 +102,11 @@ export default function TeamsDashboard() {
         selectedTeam.id,
         selectedTeam.name,
         role,
-        { uid: currentUser.uid, email: currentUser.email || '' }
+        {
+          uid: currentUser.uid,
+          email: currentUser.email || '',
+          displayName: displayName || currentUser.displayName || '',
+        }
       );
       const fullUrl = `${origin}/invite/${token}`;
       setGeneratedInviteUrl(fullUrl);
@@ -279,9 +279,16 @@ export default function TeamsDashboard() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '1.4rem', fontWeight: 800 }}>{selectedTeam.name}</h2>
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Team Owner ID: {selectedTeam.ownerId}
-                  </p>
+                  {(() => {
+                    const ownerMember = selectedTeam.members?.find((m) => m.userId === selectedTeam.ownerId);
+                    const ownerName = ownerMember?.displayName || ownerMember?.email || selectedTeam.ownerId;
+                    return (
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <Shield style={{ width: '13px', height: '13px', color: '#d946ef' }} />
+                        <span>Team Owner: <strong>{ownerName}</strong></span>
+                      </p>
+                    );
+                  })()}
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -348,37 +355,69 @@ export default function TeamsDashboard() {
                 </h3>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {(selectedTeam.members || []).map((m, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        backgroundColor: 'rgba(255,255,255,0.02)',
-                        border: '1px solid var(--border)',
-                        padding: '0.75rem 1rem',
-                        borderRadius: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{m.email || m.userId}</div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>UID: {m.userId}</div>
-                      </div>
+                  {(selectedTeam.members || []).map((m, idx) => {
+                    const memberName = m.displayName || (m.email ? m.email.split('@')[0] : m.userId);
+                    const memberInitials = memberName.slice(0, 2).toUpperCase();
+                    const isCurrent = m.userId === currentUser?.uid;
 
-                      <span style={{
-                        fontSize: '0.7rem',
-                        fontWeight: 800,
-                        textTransform: 'uppercase',
-                        padding: '3px 8px',
-                        borderRadius: '4px',
-                        backgroundColor: m.role === 'editor' ? 'rgba(217,70,239,0.15)' : 'rgba(255,255,255,0.06)',
-                        color: m.role === 'editor' ? '#d946ef' : 'var(--text-muted)',
-                      }}>
-                        {m.role}
-                      </span>
-                    </div>
-                  ))}
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          backgroundColor: 'rgba(255,255,255,0.02)',
+                          border: '1px solid var(--border)',
+                          padding: '0.75rem 1rem',
+                          borderRadius: '10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '50%',
+                            background: isCurrent ? 'linear-gradient(135deg, #8b5cf6, #d946ef)' : 'linear-gradient(135deg, #374151, #4b5563)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            color: '#fff',
+                            flexShrink: 0
+                          }}>
+                            {memberInitials}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span>{memberName}</span>
+                              {isCurrent && (
+                                <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(139,92,246,0.2)', color: '#c4b5fd', fontWeight: 600 }}>
+                                  You
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                              {m.email || `UID: ${m.userId}`}
+                            </div>
+                          </div>
+                        </div>
+
+                        <span style={{
+                          fontSize: '0.7rem',
+                          fontWeight: 800,
+                          textTransform: 'uppercase',
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          backgroundColor: m.role === 'editor' ? 'rgba(217,70,239,0.15)' : 'rgba(255,255,255,0.06)',
+                          color: m.role === 'editor' ? '#d946ef' : 'var(--text-muted)',
+                        }}>
+                          {m.role}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -416,7 +455,7 @@ export default function TeamsDashboard() {
                               {url}
                             </div>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                              Role: <strong>{inv.role}</strong> • Created by {inv.createdBy}
+                              Role: <strong>{inv.role}</strong> • Created by <strong>{inv.createdByName || inv.createdBy}</strong>
                             </div>
                           </div>
 
