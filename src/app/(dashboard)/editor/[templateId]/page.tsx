@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
   getTemplate, saveTemplate, getTournaments,
-  OverlayTemplate, TemplateStyleConfig, ColorTheme, TemplateType
+  OverlayTemplate, TemplateStyleConfig, ColorTheme, TemplateType,
+  TeamSlotData, TeamSlotItem,
 } from '@/lib/db';
 import { getTopStandings, getGlobalRankings, getProfile, compareEntities, getDailyStandings, getLobbyKills, getTeamKills, getMatchSummary, loadPlayerProfileData } from '@/lib/statsApi';
 
@@ -34,6 +35,8 @@ import { PmncTop15Standings } from '@/components/templates/PmncTop15Standings';
 import { MglYtLivestanding } from '@/components/templates/MglYtLivestanding';
 import { PlayerStatsVertical } from '@/components/templates/PlayerStatsVertical';
 import { PlayerStatsHorizontal } from '@/components/templates/PlayerStatsHorizontal';
+import { TeamSlotHorizontal } from '@/components/templates/TeamSlotHorizontal';
+import { TeamSlotVertical } from '@/components/templates/TeamSlotVertical';
 
 // Columns definitions
 const ALL_COLUMNS = [
@@ -300,6 +303,58 @@ const MOCK_PLAYER_STATS = {
   },
 };
 
+const MOCK_TEAM_SLOT_HORIZONTAL: TeamSlotData = {
+  title: 'ALL TEAMS CONFIRMED',
+  subtitle: '16 TEAMS • 1 CHAMPION',
+  categoryTag: 'VALORANT CHAMPIONS • SHANGHAI',
+  footerText: 'SHANGHAI AWAITS • LIVE BROADCAST',
+  sponsorText: 'SPONSORED BY',
+  sponsorName: 'RUNESTONE',
+  cardStyle: 'dark_gold',
+  teams: [
+    { name: '100 Thieves', tag: 'NA', logoUrl: '' },
+    { name: 'TYLOO', tag: 'CN', logoUrl: '' },
+    { name: 'Karmine Corp', tag: 'EMEA', logoUrl: '' },
+    { name: 'Global Esports', tag: 'PAC', logoUrl: '' },
+    { name: 'LOUD', tag: 'BR', logoUrl: '' },
+    { name: 'JD Gaming', tag: 'CN', logoUrl: '' },
+    { name: 'Team Liquid', tag: 'EMEA', logoUrl: '' },
+    { name: 'NS RedForce', tag: 'KR', logoUrl: '' },
+    { name: 'NRG', tag: 'NA', logoUrl: '' },
+    { name: 'EDward Gaming', tag: 'CN', logoUrl: '' },
+    { name: 'FUT Esports', tag: 'EMEA', logoUrl: '' },
+    { name: 'Paper Rex', tag: 'PAC', logoUrl: '' },
+    { name: 'G2 Esports', tag: 'NA', logoUrl: '' },
+    { name: 'XLG Esports', tag: 'CN', logoUrl: '' },
+    { name: 'Team Vitality', tag: 'EMEA', logoUrl: '' },
+    { name: 'T1', tag: 'PAC', logoUrl: '' },
+  ],
+};
+
+const MOCK_TEAM_SLOT_VERTICAL: TeamSlotData = {
+  title: 'MEET THE TEAMS',
+  subtitle: '12 TEAMS CONFIRMED',
+  categoryTag: 'TOURNAMENT PARTICIPANTS',
+  footerText: 'LIVE BROADCAST',
+  sponsorText: 'SPONSORED BY',
+  sponsorName: 'RUNESTONE',
+  cardStyle: 'dark_gold',
+  teams: [
+    { name: '100 Thieves', tag: 'NA', logoUrl: '' },
+    { name: 'TYLOO', tag: 'CN', logoUrl: '' },
+    { name: 'Karmine Corp', tag: 'EMEA', logoUrl: '' },
+    { name: 'Global Esports', tag: 'PAC', logoUrl: '' },
+    { name: 'LOUD', tag: 'BR', logoUrl: '' },
+    { name: 'JD Gaming', tag: 'CN', logoUrl: '' },
+    { name: 'Team Liquid', tag: 'EMEA', logoUrl: '' },
+    { name: 'NS RedForce', tag: 'KR', logoUrl: '' },
+    { name: 'NRG', tag: 'NA', logoUrl: '' },
+    { name: 'EDward Gaming', tag: 'CN', logoUrl: '' },
+    { name: 'FUT Esports', tag: 'EMEA', logoUrl: '' },
+    { name: 'Paper Rex', tag: 'PAC', logoUrl: '' },
+  ],
+};
+
 interface PageProps {
   params: Promise<{ templateId: string }>;
 }
@@ -353,7 +408,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
     if (!el) return;
 
     const updateScale = () => {
-      const isVertical = templateType === 'mgl_yt_livestanding' || templateType === 'player_stats_vertical';
+      const isVertical = templateType === 'mgl_yt_livestanding' || templateType === 'player_stats_vertical' || templateType === 'team_slot_vertical';
       const targetW = isVertical ? 434 : 1920;
       const targetH = isVertical ? 724 : 1080;
       const availW = Math.max(200, el.clientWidth - 40);
@@ -809,6 +864,30 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           else if (templateType === 'player_stats_vertical' || templateType === 'player_stats_horizontal') {
             setPreviewData({ ...MOCK_PLAYER_STATS, statsLevel: previewStatsLevel, selectedDay: previewSelectedDay });
           }
+          else if (templateType === 'team_slot_horizontal') {
+            setPreviewData({
+              ...MOCK_TEAM_SLOT_HORIZONTAL,
+              teams: styleConfig.teamSlotCustomTeams && styleConfig.teamSlotCustomTeams.length > 0 ? styleConfig.teamSlotCustomTeams : MOCK_TEAM_SLOT_HORIZONTAL.teams,
+              cardStyle: styleConfig.teamSlotCardStyle || 'dark_gold',
+              categoryTag: styleConfig.teamSlotCategoryTag || 'VALORANT CHAMPIONS • SHANGHAI',
+              footerText: styleConfig.teamSlotFooterText || 'SHANGHAI AWAITS • LIVE BROADCAST',
+              sponsorName: styleConfig.teamSlotSponsorName || 'RUNESTONE',
+              sponsorText: styleConfig.teamSlotSponsorText || 'SPONSORED BY',
+              sponsorLogoUrl: styleConfig.teamSlotSponsorLogoUrl,
+            });
+          }
+          else if (templateType === 'team_slot_vertical') {
+            setPreviewData({
+              ...MOCK_TEAM_SLOT_VERTICAL,
+              teams: styleConfig.teamSlotCustomTeams && styleConfig.teamSlotCustomTeams.length > 0 ? styleConfig.teamSlotCustomTeams : MOCK_TEAM_SLOT_VERTICAL.teams,
+              cardStyle: styleConfig.teamSlotCardStyle || 'dark_gold',
+              categoryTag: styleConfig.teamSlotCategoryTag || 'TOURNAMENT PARTICIPANTS',
+              footerText: styleConfig.teamSlotFooterText || 'LIVE BROADCAST',
+              sponsorName: styleConfig.teamSlotSponsorName || 'RUNESTONE',
+              sponsorText: styleConfig.teamSlotSponsorText || 'SPONSORED BY',
+              sponsorLogoUrl: styleConfig.teamSlotSponsorLogoUrl,
+            });
+          }
         }
       } finally {
         if (active) setPreviewLoading(false);
@@ -1122,7 +1201,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       const originalTransform = canvasEl.style.transform;
       canvasEl.style.transform = 'scale(1)';
       
-      const isVertical = templateType === 'mgl_yt_livestanding' || templateType === 'player_stats_vertical';
+      const isVertical = templateType === 'mgl_yt_livestanding' || templateType === 'player_stats_vertical' || templateType === 'team_slot_vertical';
       const targetW = isVertical ? 434 : 1920;
       const targetH = isVertical ? 724 : 1080;
 
@@ -1204,6 +1283,8 @@ export default function TemplateBuilderPage({ params }: PageProps) {
       case 'mgl_yt_livestanding': return MglYtLivestanding;
       case 'player_stats_vertical': return PlayerStatsVertical;
       case 'player_stats_horizontal': return PlayerStatsHorizontal;
+      case 'team_slot_horizontal': return TeamSlotHorizontal;
+      case 'team_slot_vertical': return TeamSlotVertical;
       case 'match_summary': return MatchSummary;
       default: return TopStandings;
     }
@@ -1316,6 +1397,8 @@ export default function TemplateBuilderPage({ params }: PageProps) {
                 >
                   <optgroup label="Broadcast Data Templates">
                     <option value="top_standings">Top Standings Table</option>
+                    <option value="team_slot_horizontal">Meet The Teams (1920x1080)</option>
+                    <option value="team_slot_vertical">Meet The Teams — YouTube (434x724)</option>
                     <option value="mgl_yt_livestanding">Vertical YT Standing (434x724 Banner)</option>
                     <option value="player_stats_vertical">Player Stats Graphic (Vertical 434x724)</option>
                     <option value="player_stats_horizontal">Player Stats Graphic (Horizontal 1920x1080)</option>
@@ -3591,6 +3674,205 @@ export default function TemplateBuilderPage({ params }: PageProps) {
             </div>
           )}
 
+          {/* Section: Team Slot (Meet The Teams) Specific Controls */}
+          {(templateType === 'team_slot_horizontal' || templateType === 'team_slot_vertical') && (
+            <div>
+              <div className="sidebar-section-title" style={{ color: '#EF4444' }}>
+                Team Slot Settings ({templateType === 'team_slot_vertical' ? '434x724 YouTube' : '1920x1080 Normal'})
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+                {/* Card Style */}
+                <div className="property-field">
+                  <span className="property-label">Card Style Aesthetic</span>
+                  <select
+                    className="select-input"
+                    value={styleConfig.teamSlotCardStyle || 'dark_gold'}
+                    onChange={(e) => {
+                      const val = e.target.value as any;
+                      updateStyleConfig({ teamSlotCardStyle: val });
+                      setPreviewData((prev: any) => ({ ...prev, cardStyle: val }));
+                    }}
+                  >
+                    <option value="dark_gold">Dark Metallic & Gold Brackets (Valorant / Champions)</option>
+                    <option value="red_esports">Red Esports Solid Cards (Esports Graffiti)</option>
+                    <option value="sleek_dark">Sleek Minimal Charcoal (Club Partner)</option>
+                  </select>
+                </div>
+
+                {/* Category / Tournament Tag */}
+                <div className="property-field">
+                  <span className="property-label">Category / League Eyebrow Tag</span>
+                  <input
+                    type="text"
+                    className="text-input"
+                    placeholder="e.g. VALORANT CHAMPIONS • SHANGHAI"
+                    value={styleConfig.teamSlotCategoryTag !== undefined ? styleConfig.teamSlotCategoryTag : 'VALORANT CHAMPIONS • SHANGHAI'}
+                    onChange={(e) => {
+                      updateStyleConfig({ teamSlotCategoryTag: e.target.value });
+                      setPreviewData((prev: any) => ({ ...prev, categoryTag: e.target.value }));
+                    }}
+                  />
+                </div>
+
+                {/* Footer Tagline */}
+                <div className="property-field">
+                  <span className="property-label">Footer Tagline / Location</span>
+                  <input
+                    type="text"
+                    className="text-input"
+                    placeholder="e.g. SHANGHAI AWAITS • LIVE BROADCAST"
+                    value={styleConfig.teamSlotFooterText !== undefined ? styleConfig.teamSlotFooterText : 'SHANGHAI AWAITS • LIVE BROADCAST'}
+                    onChange={(e) => {
+                      updateStyleConfig({ teamSlotFooterText: e.target.value });
+                      setPreviewData((prev: any) => ({ ...prev, footerText: e.target.value }));
+                    }}
+                  />
+                </div>
+
+                {/* Sponsor Name & Logo */}
+                <div className="property-field">
+                  <span className="property-label">Sponsor Brand Name</span>
+                  <input
+                    type="text"
+                    className="text-input"
+                    placeholder="e.g. RUNESTONE"
+                    value={styleConfig.teamSlotSponsorName !== undefined ? styleConfig.teamSlotSponsorName : 'RUNESTONE'}
+                    onChange={(e) => {
+                      updateStyleConfig({ teamSlotSponsorName: e.target.value });
+                      setPreviewData((prev: any) => ({ ...prev, sponsorName: e.target.value }));
+                    }}
+                  />
+                </div>
+
+                <div className="property-field">
+                  <span className="property-label">Sponsor Logo URL</span>
+                  <input
+                    type="url"
+                    className="text-input"
+                    placeholder="https://... logo image"
+                    value={styleConfig.teamSlotSponsorLogoUrl || ''}
+                    onChange={(e) => {
+                      updateStyleConfig({ teamSlotSponsorLogoUrl: e.target.value });
+                      setPreviewData((prev: any) => ({ ...prev, sponsorLogoUrl: e.target.value }));
+                    }}
+                  />
+                </div>
+
+                {/* Team Manager List */}
+                <div style={{ marginTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f1f5f9' }}>
+                      Teams ({Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0 ? styleConfig.teamSlotCustomTeams.length : (previewData?.teams?.length || 16)})
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
+                      onClick={() => {
+                        const current = Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
+                          ? styleConfig.teamSlotCustomTeams
+                          : (previewData?.teams || MOCK_TEAM_SLOT_HORIZONTAL.teams);
+                        const next = [...current, { name: `Team ${current.length + 1}`, tag: 'PRO', logoUrl: '' }];
+                        updateStyleConfig({ teamSlotCustomTeams: next });
+                        setPreviewData((prev: any) => ({ ...prev, teams: next }));
+                      }}
+                    >
+                      + Add Team
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '380px', overflowY: 'auto', paddingRight: '4px' }}>
+                    {(Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
+                      ? styleConfig.teamSlotCustomTeams
+                      : (previewData?.teams || MOCK_TEAM_SLOT_HORIZONTAL.teams)
+                    ).map((team: TeamSlotItem, idx: number) => (
+                      <div
+                        key={idx}
+                        style={{
+                          background: 'rgba(255,255,255,0.025)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: '8px',
+                          padding: '0.5rem 0.65rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.35rem',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', width: '20px' }}>
+                            #{idx + 1}
+                          </span>
+                          <input
+                            type="text"
+                            className="text-input"
+                            style={{ flex: 1, padding: '0.3rem 0.5rem', fontSize: '0.8rem' }}
+                            placeholder="Team Name"
+                            value={team.name}
+                            onChange={(e) => {
+                              const current = Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
+                                ? [...styleConfig.teamSlotCustomTeams]
+                                : [...(previewData?.teams || MOCK_TEAM_SLOT_HORIZONTAL.teams)];
+                              current[idx] = { ...current[idx], name: e.target.value };
+                              updateStyleConfig({ teamSlotCustomTeams: current });
+                              setPreviewData((prev: any) => ({ ...prev, teams: current }));
+                            }}
+                          />
+                          <input
+                            type="text"
+                            className="text-input"
+                            style={{ width: '60px', padding: '0.3rem 0.5rem', fontSize: '0.8rem' }}
+                            placeholder="Tag"
+                            value={team.tag || ''}
+                            onChange={(e) => {
+                              const current = Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
+                                ? [...styleConfig.teamSlotCustomTeams]
+                                : [...(previewData?.teams || MOCK_TEAM_SLOT_HORIZONTAL.teams)];
+                              current[idx] = { ...current[idx], tag: e.target.value };
+                              updateStyleConfig({ teamSlotCustomTeams: current });
+                              setPreviewData((prev: any) => ({ ...prev, teams: current }));
+                            }}
+                          />
+                          <button
+                            type="button"
+                            title="Remove Team"
+                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem' }}
+                            onClick={() => {
+                              const current = Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
+                                ? [...styleConfig.teamSlotCustomTeams]
+                                : [...(previewData?.teams || MOCK_TEAM_SLOT_HORIZONTAL.teams)];
+                              current.splice(idx, 1);
+                              updateStyleConfig({ teamSlotCustomTeams: current });
+                              setPreviewData((prev: any) => ({ ...prev, teams: current }));
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <input
+                          type="url"
+                          className="text-input"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}
+                          placeholder="Logo Image URL (optional)"
+                          value={team.logoUrl || ''}
+                          onChange={(e) => {
+                            const current = Array.isArray(styleConfig.teamSlotCustomTeams) && styleConfig.teamSlotCustomTeams.length > 0
+                              ? [...styleConfig.teamSlotCustomTeams]
+                              : [...(previewData?.teams || MOCK_TEAM_SLOT_HORIZONTAL.teams)];
+                            current[idx] = { ...current[idx], logoUrl: e.target.value };
+                            updateStyleConfig({ teamSlotCustomTeams: current });
+                            setPreviewData((prev: any) => ({ ...prev, teams: current }));
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
         </div>
 
         {/* Right Side: Preview Panel */}
@@ -3801,7 +4083,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
 
           {/* Graphic scaled dynamically to fit 100% of container */}
           {(() => {
-            const isVertical = templateType === 'mgl_yt_livestanding' || templateType === 'player_stats_vertical';
+            const isVertical = templateType === 'mgl_yt_livestanding' || templateType === 'player_stats_vertical' || templateType === 'team_slot_vertical';
             const targetW = isVertical ? 434 : 1920;
             const targetH = isVertical ? 724 : 1080;
             return (
@@ -3836,7 +4118,7 @@ export default function TemplateBuilderPage({ params }: PageProps) {
           })()}
 
           <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-            Live preview fitted automatically ({Math.round(previewScale * 100)}%). Exported image or OBS renders at full {templateType === 'mgl_yt_livestanding' || templateType === 'player_stats_vertical' ? '434x724' : '1920x1080'}.
+            Live preview fitted automatically ({Math.round(previewScale * 100)}%). Exported image or OBS renders at full {templateType === 'mgl_yt_livestanding' || templateType === 'player_stats_vertical' || templateType === 'team_slot_vertical' ? '434x724' : '1920x1080'}.
           </div>
 
         </div>

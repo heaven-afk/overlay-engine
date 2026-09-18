@@ -35,7 +35,9 @@ export type TemplateType =
   | 'mgl_yt_livestanding'  // Vertical YT Standing (434x724 Vertical Banner — global, event-agnostic)
   | 'match_summary'    // NEW: Match Summary Graphic (Lobby / Match Scope)
   | 'player_stats_vertical'   // NEW: Player Stats Graphic — Vertical (434x724)
-  | 'player_stats_horizontal'; // NEW: Player Stats Graphic — Horizontal (1920x1080)
+  | 'player_stats_horizontal' // NEW: Player Stats Graphic — Horizontal (1920x1080)
+  | 'team_slot_horizontal'    // Meet The Teams / Team Slot Graphic — Normal (1920x1080)
+  | 'team_slot_vertical';     // Meet The Teams / Team Slot Graphic — YouTube (434x724)
 
 export type ColorTheme = 'dark' | 'light' | 'custom';
 
@@ -129,6 +131,15 @@ export interface TemplateStyleConfig {
   pmncStageBadgeFontSize?: number;     // Stage badge font size in px
   pmncTableFont?: string;              // Leaderboard table font family
   pmncTableFontSize?: number;          // Leaderboard table base font size in px
+
+  // Team Slot / Meet the Teams specific
+  teamSlotCategoryTag?: string;        // e.g. "VALORANT CHAMPIONS • SHANGHAI"
+  teamSlotCardStyle?: 'red_esports' | 'dark_gold' | 'sleek_dark';
+  teamSlotFooterText?: string;         // e.g. "SHANGHAI AWAITS"
+  teamSlotSponsorText?: string;        // e.g. "SPONSORED BY"
+  teamSlotSponsorName?: string;        // e.g. "RUNESTONE"
+  teamSlotSponsorLogoUrl?: string;     // sponsor logo URL
+  teamSlotCustomTeams?: TeamSlotItem[]; // saved custom teams array
 }
 
 export interface OverlayTemplate {
@@ -165,6 +176,39 @@ export interface OverlayTeam {
   members: TeamMember[];
   createdAt?: any;
   updatedAt?: any;
+}
+
+export interface StandingsRow {
+  rank: number;
+  team: string;
+  logoUrl?: string;
+  points: number;
+  kills: number;
+  wins?: number;
+  matchesPlayed?: number;
+  previousRank?: number;
+  trend?: 'up' | 'down' | 'same';
+  pushedAt?: any;
+}
+
+export interface TeamSlotItem {
+  name: string;
+  logoUrl?: string;
+  tag?: string;        // e.g. "NA", "EMEA", "Group A"
+  subtext?: string;    // e.g. "CONFIRMED", "SEED #1"
+  color?: string;      // custom color
+}
+
+export interface TeamSlotData {
+  title?: string;
+  subtitle?: string;
+  categoryTag?: string;
+  footerText?: string;
+  sponsorText?: string;
+  sponsorName?: string;
+  sponsorLogoUrl?: string;
+  cardStyle?: 'red_esports' | 'dark_gold' | 'sleek_dark';
+  teams: TeamSlotItem[];
 }
 
 export interface OverlayInvite {
@@ -321,6 +365,14 @@ export async function getTemplates(): Promise<OverlayTemplate[]> {
     }
     if (list.filter((t) => t.templateType === 'player_stats_horizontal').length === 0) {
       await seedSingleTemplate('Player Stats (Horizontal)', 'player_stats_horizontal', '#C9A84C', 'PLAYER STATS');
+      seededNewGraphics = true;
+    }
+    if (list.filter((t) => t.templateType === 'team_slot_horizontal').length === 0) {
+      await seedSingleTemplate('Meet The Teams (1920x1080)', 'team_slot_horizontal', '#EF4444', 'MEET THE TEAMS');
+      seededNewGraphics = true;
+    }
+    if (list.filter((t) => t.templateType === 'team_slot_vertical').length === 0) {
+      await seedSingleTemplate('Meet The Teams — YouTube (434x724)', 'team_slot_vertical', '#EF4444', 'MEET THE TEAMS');
       seededNewGraphics = true;
     }
     if (seededNewGraphics) {
@@ -494,6 +546,50 @@ export function getBuiltInTemplate(id?: string | null): OverlayTemplate | null {
         showColumns: [],
         graphicTitle: 'PLAYER STATS',
         graphicSubtitle: 'Career Metrics',
+      },
+    } as OverlayTemplate;
+  }
+  if (id.includes('team_slot_horizontal')) {
+    return {
+      id: 'built-in:team_slot_horizontal',
+      name: 'Meet The Teams (1920x1080)',
+      templateType: 'team_slot_horizontal',
+      styleConfig: {
+        colorTheme: 'dark',
+        accentColor: '#EF4444',
+        headingFont: 'Outfit',
+        bodyFont: 'Inter',
+        brandingLogoUrl: '',
+        brandingName: 'VALORANT CHAMPIONS\nSHANGHAI',
+        showStatsStamp: true,
+        tournamentLogoCount: 1,
+        tournamentLogos: [],
+        topN: 16,
+        showColumns: [],
+        graphicTitle: 'ALL TEAMS CONFIRMED',
+        graphicSubtitle: '16 TEAMS • 1 CHAMPION',
+      },
+    } as OverlayTemplate;
+  }
+  if (id.includes('team_slot_vertical')) {
+    return {
+      id: 'built-in:team_slot_vertical',
+      name: 'Meet The Teams — YouTube (434x724)',
+      templateType: 'team_slot_vertical',
+      styleConfig: {
+        colorTheme: 'dark',
+        accentColor: '#EF4444',
+        headingFont: 'Outfit',
+        bodyFont: 'Inter',
+        brandingLogoUrl: '',
+        brandingName: 'MEET THE TEAMS',
+        showStatsStamp: true,
+        tournamentLogoCount: 1,
+        tournamentLogos: [],
+        topN: 12,
+        showColumns: [],
+        graphicTitle: 'MEET THE TEAMS',
+        graphicSubtitle: 'TOURNAMENT PARTICIPANTS',
       },
     } as OverlayTemplate;
   }

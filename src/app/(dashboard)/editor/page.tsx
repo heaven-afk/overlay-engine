@@ -102,6 +102,9 @@ export default function TemplateLibrary() {
       case 'player_stats_vertical':
       case 'player_stats_horizontal':
         return <User style={{ width: '20px', height: '20px', color: '#C9A84C' }} />;
+      case 'team_slot_horizontal':
+      case 'team_slot_vertical':
+        return <Users style={{ width: '20px', height: '20px', color: '#EF4444' }} />;
       case 'custom_media':
         return <Video style={{ width: '20px', height: '20px', color: '#d946ef' }} />;
       default:
@@ -112,6 +115,8 @@ export default function TemplateLibrary() {
   const getTemplateTypeName = (type?: string) => {
     switch (type) {
       case 'top_standings': return 'Top Standings';
+      case 'team_slot_horizontal': return 'Meet The Teams (1920x1080)';
+      case 'team_slot_vertical': return 'Meet The Teams — YouTube (434x724)';
       case 'mgl_yt_livestanding': return 'Vertical YT Standing (434x724)';
       case 'player_stats_vertical': return 'Player Stats Graphic (Vertical 434x724)';
       case 'player_stats_horizontal': return 'Player Stats Graphic (Horizontal 1920x1080)';

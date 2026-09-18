@@ -37,6 +37,8 @@ import { PmncTop15Standings } from '@/components/templates/PmncTop15Standings';
 import { MglYtLivestanding } from '@/components/templates/MglYtLivestanding';
 import { PlayerStatsVertical } from '@/components/templates/PlayerStatsVertical';
 import { PlayerStatsHorizontal } from '@/components/templates/PlayerStatsHorizontal';
+import { TeamSlotHorizontal } from '@/components/templates/TeamSlotHorizontal';
+import { TeamSlotVertical } from '@/components/templates/TeamSlotVertical';
 
 import {
   ArrowLeft, Clapperboard, Send, Save, History, Copy,
@@ -64,6 +66,8 @@ const templateComponentMap: Record<string, React.ComponentType<any>> = {
   match_summary: MatchSummary,
   player_stats_vertical: PlayerStatsVertical,
   player_stats_horizontal: PlayerStatsHorizontal,
+  team_slot_horizontal: TeamSlotHorizontal,
+  team_slot_vertical: TeamSlotVertical,
 };
 
 // ─── Display dimensions ───────────────────────────────────────────────────────
@@ -99,7 +103,8 @@ function InlineRender({
   const isEmpty = !template;
   const isVertical434 =
     template?.templateType === 'mgl_yt_livestanding' ||
-    template?.templateType === 'player_stats_vertical';
+    template?.templateType === 'player_stats_vertical' ||
+    template?.templateType === 'team_slot_vertical';
   const targetW = isVertical434 ? 434 : 1920;
   const targetH = isVertical434 ? 724 : 1080;
   const fitScale = isVertical434 ? Math.min(width / targetW, height / targetH) : scale;
@@ -939,6 +944,8 @@ export default function StudioWorkspace({ params }: PageProps) {
               >
                 <option value="">— Select Template —</option>
                 <optgroup label="✨ Default Built-in Templates">
+                  <option value="built-in:team_slot_horizontal">Meet The Teams (1920x1080)</option>
+                  <option value="built-in:team_slot_vertical">Meet The Teams — YouTube (434x724)</option>
                   <option value="built-in:player_stats_vertical">Player Stats Graphic (Vertical 434x724)</option>
                   <option value="built-in:player_stats_horizontal">Player Stats Graphic (Horizontal 1920x1080)</option>
                   <option value="built-in:mgl_yt_livestanding">Vertical YT Standing (434x724)</option>

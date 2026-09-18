@@ -1413,6 +1413,8 @@ export default function SlotsDashboard() {
                   <option value="head_to_head">Head to Head</option>
                   <option value="team_profile">Team Profile</option>
                   <option value="player_profile">Player Profile</option>
+                  <option value="team_slot_horizontal">Meet The Teams / Team Slot (1920x1080)</option>
+                  <option value="team_slot_vertical">Meet The Teams — YouTube (434x724)</option>
                   <option value="custom_media">Custom Media</option>
                 </select>
               </div>

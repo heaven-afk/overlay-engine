@@ -24,6 +24,8 @@ import { PmncTop15Standings } from '@/components/templates/PmncTop15Standings';
 import { MglYtLivestanding } from '@/components/templates/MglYtLivestanding';
 import { PlayerStatsVertical } from '@/components/templates/PlayerStatsVertical';
 import { PlayerStatsHorizontal } from '@/components/templates/PlayerStatsHorizontal';
+import { TeamSlotHorizontal } from '@/components/templates/TeamSlotHorizontal';
+import { TeamSlotVertical } from '@/components/templates/TeamSlotVertical';
 
 export const templateComponentMap: Record<string, React.ComponentType<any>> = {
   top_standings: TopStandings,
@@ -43,6 +45,8 @@ export const templateComponentMap: Record<string, React.ComponentType<any>> = {
   match_summary: MatchSummary,
   player_stats_vertical: PlayerStatsVertical,
   player_stats_horizontal: PlayerStatsHorizontal,
+  team_slot_horizontal: TeamSlotHorizontal,
+  team_slot_vertical: TeamSlotVertical,
 };
 
 interface LiveOverlayRendererProps {
@@ -59,7 +63,8 @@ export function LiveOverlayRenderer({ liveState, loading = false }: LiveOverlayR
     function handleResize() {
       const isVertical434 =
         template?.templateType === 'mgl_yt_livestanding' ||
-        template?.templateType === 'player_stats_vertical';
+        template?.templateType === 'player_stats_vertical' ||
+        template?.templateType === 'team_slot_vertical';
       const targetW = isVertical434 ? 434 : 1920;
       const targetH = isVertical434 ? 724 : 1080;
       const s = Math.min(window.innerWidth / targetW, window.innerHeight / targetH);
@@ -118,7 +123,8 @@ export function LiveOverlayRenderer({ liveState, loading = false }: LiveOverlayR
 
   const isVertical434 =
     template.templateType === 'mgl_yt_livestanding' ||
-    template.templateType === 'player_stats_vertical';
+    template.templateType === 'player_stats_vertical' ||
+    template.templateType === 'team_slot_vertical';
   const width = isVertical434 ? 434 : 1920;
   const height = isVertical434 ? 724 : 1080;
 
